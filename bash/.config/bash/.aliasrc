@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+alias ls="ls --color=auto"
+alias la="ls -a"
+alias grep="grep --color=auto"
+alias vim="nvim"
+alias vi="nvim"
+
+alias c="clear"
+
+command_not_found_handle() {
+    local cmd="$1"
+    shift
+
+    if command -v "${cmd}.exe" >/dev/null 2>&1; then
+        "${cmd}.exe" "$@"
+    else
+        echo "$cmd: command not found"
+        return 127
+    fi
+}

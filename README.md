@@ -16,3 +16,9 @@ stow <program_name_1> <program_name_2> # ...
 
 if you wish not to use `stow`, you can find the config files for each program insie of its directory at the end of the file structure chain
 (for example the config files for neovim are in `nvim/.config/nvim` because that's where they should reside in)
+
+### notes
+
+#### bash
+
+the `.throwaway` file is a file for any scripts installed by other programs (for example `rustup`) that just pollute your `.bashrc` needlesly
