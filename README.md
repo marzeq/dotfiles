@@ -4,7 +4,7 @@ this is for my own usage, but feel free to use any of this if you want
 
 ### install 
 
-the repo utilises `GNU stow`. Make sure you install the [stow package](https://archlinux.org/packages/extra/any/stow/) and then do these commands if you want to install it on your own machine:
+the repo utilises `GNU stow`. make sure you install the [stow package](https://archlinux.org/packages/extra/any/stow/) and then do these commands if you want to install it on your own machine:
 
 ```bash
 cd dotfiles # or wherever you cloned the repository
