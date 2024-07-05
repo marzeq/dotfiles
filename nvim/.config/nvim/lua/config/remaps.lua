@@ -57,7 +57,10 @@ local wk_remaps = {
 			f = {
 				name = "file",
 
-				f = { "<cmd>Telescope fd<cr>", "Find file" },
+				f = {
+					"<cmd>lua require'telescope.builtin'.find_files({ find_command = {'rg', '--files', '--hidden', '-g', '!.git' }})<cr>",
+					"Find file",
+				},
 				g = { "<cmd>Telescope live_grep<cr>", "Grep" },
 				b = { "<cmd>Telescope file_browser path=%:p:h select_buffer=true<cr>", "File browser" },
 				w = { "<cmd>Telescope buffers<cr>", "Buffers" },
@@ -108,10 +111,10 @@ local wk_remaps = {
               ]],
 							false
 						)
-            
-            resizeToPercent("vertical", 25)
 
-            vim.api.nvim_feedkeys("a", "n", true)
+						resizeToPercent("vertical", 25)
+
+						vim.api.nvim_feedkeys("a", "n", true)
 					end,
 					"Vertical terminal",
 				},
@@ -125,10 +128,10 @@ local wk_remaps = {
               ]],
 							false
 						)
-            
-            resizeToPercent("horizontal", 25)
 
-            vim.api.nvim_feedkeys("a", "n", true)
+						resizeToPercent("horizontal", 25)
+
+						vim.api.nvim_feedkeys("a", "n", true)
 					end,
 					"Vertical terminal",
 				},
@@ -138,7 +141,12 @@ local wk_remaps = {
 		options = { prefix = "<leader>", mode = "n" },
 	},
 
-	{ mappings = { P = { '"_dP', "Paste and keep buffer" } }, options = { prefix = "<leader>", mode = "x" } },
+	{
+		mappings = {
+			P = { '"_dP', "Paste and keep buffer" },
+		},
+		options = { prefix = "<leader>", mode = "x" },
+	},
 
 	{
 		mappings = {
