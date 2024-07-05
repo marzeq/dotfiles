@@ -40,7 +40,7 @@ local function makeResizeRemap(type)
 		},
 		c = {
 			function()
-				vim.ui.input({ prompt = "Value for custom resize" }, function(result)
+				vim.ui.input({ prompt = "Value for custom resize: " }, function(result)
 					local n = tonumber(result)
 
 					resizeToPercent(type, n)
