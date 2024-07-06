@@ -96,7 +96,9 @@ local wk_remaps = {
 				e = { vim.diagnostic.open_float, "Inspect error(s)" },
 				c = { vim.diagnostic.goto_next, "Cycle errors" },
 				r = { vim.lsp.buf.rename, "Rename symbol" },
-				-- a = { require("actions-preview").codeactions, "Code actions" }, -- configured in plugins/actions.lua
+				D = { "<cmd>Trouble diagnostics toggle<cr>", "Project diagnostics" },
+				d = { "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", "File diagnostics" },
+				f = { "<cmd>Trouble qflist toggle<cr>", "Quickfix list" },
 			},
 			t = {
 				name = "terminal",
