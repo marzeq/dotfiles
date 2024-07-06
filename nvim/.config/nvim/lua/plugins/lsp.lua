@@ -23,19 +23,13 @@ return {
 	{
 		"neovim/nvim-lspconfig",
 		lazy = false,
-		dependencies = {
-			{ "ms-jpq/coq_nvim", branch = "coq" },
-		},
-		init = function()
-			vim.g.coq_settings = {
-				auto_start = "shut-up",
-				clients = {
-					snippets = {
-						warn = {},
-					},
-				},
-			}
-		end,
+		dependencies = {},
+		init = function() end,
+	},
+
+	{
+		"nvimdev/epo.nvim",
+		opts = {},
 	},
 
 	{
@@ -49,15 +43,23 @@ return {
 			ensure_installed = { "lua_ls", "rust_analyzer", "tsserver" },
 			handlers = {
 				function(server_name)
-					local coq = require("coq")
+					local capabilities = vim.tbl_deep_extend(
+						"force",
+						vim.lsp.protocol.make_client_capabilities(),
+						require("epo").register_cap()
+					)
 
-					require("lspconfig")[server_name].setup(coq.lsp_ensure_capabilities({}))
+					require("lspconfig")[server_name].setup({ capabilities = capabilities })
 				end,
 				["lua_ls"] = function()
 					local lspconfig = require("lspconfig")
-					local coq = require("coq")
+					local capabilities = vim.tbl_deep_extend(
+						"force",
+						vim.lsp.protocol.make_client_capabilities(),
+						require("epo").register_cap()
+					)
 
-					lspconfig.lua_ls.setup(coq.lsp_ensure_capabilities({
+					lspconfig.lua_ls.setup({
 						settings = {
 							Lua = {
 								diagnostics = {
@@ -65,7 +67,8 @@ return {
 								},
 							},
 						},
-					}))
+						capabilities = capabilities,
+					})
 				end,
 			},
 		},
