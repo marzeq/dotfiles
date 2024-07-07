@@ -1,0 +1,52 @@
+{
+    // "layer": "top", // Waybar at top layer
+    // "position": "bottom", // Waybar position (top|bottom|left|right)
+    // "height": 30, // Waybar height (to be removed for auto height)
+    "margin": "20 20 0 20",
+    // "width": 1280, // Waybar width
+    // Choose the order of the modules
+    "modules-left": ["hyprland/workspaces", "custom/pacman"],
+    "modules-center": ["clock"],
+    "modules-right": ["pulseaudio", "tray"],
+
+
+    //***************************
+    //*  Modules configuration  *
+    //***************************
+
+    "hyprland/workspaces": {},
+
+    "custom/pacman": {
+        "format": "{} ",
+        "interval": 3600,                     			// every hour
+        "exec": "(checkupdates;pacman -Qm | aur vercmp) | wc -l",	// # of updates
+        "exec-if": "exit 0",                  			// always run; consider advanced run conditions
+        "on-click": "foot sh -c 'yay; echo Done - Press enter to exit; read'; pkill -SIGRTMIN+8 waybar", // update system
+        "signal": 8,
+        "tooltip": false,
+    },
+
+    "clock": {
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt>{calendar}</tt>",
+        "interval": 1,
+        "format": "{:%a, %d %b, %H:%M:%S}"
+    },
+
+    "pulseaudio": {
+        "scroll-step": 0.5, // %, can be a float
+        "reverse-scrolling": 1,
+        "format": "{volume}% 󰋋 {format_source}",
+        "format-muted": "󰟎 {format_source}",
+        "format-bluetooth": "{volume}% 󰋋  {format_source}",
+        "format-bluetooth-muted": "󰟎  {format_source}",
+        "format-source": "{volume}% ",
+        "format-source-muted": "",
+        "on-click": "pavucontrol",
+        "min-length": 13,
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 0
+    },
+}
