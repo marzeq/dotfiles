@@ -33,9 +33,6 @@ red = "0xe06c75"
 white = "0x828791"
 yellow = "0xd19a66"
 
-[shell]
-program = "arch"
-
 [window]
 opacity = 0.95
 blur = true
