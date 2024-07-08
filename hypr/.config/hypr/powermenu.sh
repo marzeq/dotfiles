@@ -7,7 +7,7 @@ poweroff" | rofi -dmenu -p "Power menu")
 
 if [[ ! -z "$MODE" ]]; then
   if [ $MODE == "logout" ]; then
-    hyperctl exit
+    hyperctl dispatch exit
   else
     systemctl $MODE
   fi
