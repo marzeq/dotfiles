@@ -98,7 +98,7 @@ local wk_remaps = {
 				r = { vim.lsp.buf.rename, "Rename symbol" },
 				D = { "<cmd>Trouble diagnostics toggle<cr>", "Project diagnostics" },
 				d = { "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", "File diagnostics" },
-				f = { "<cmd>Trouble qflist toggle<cr>", "Quickfix list" },
+				a = { vim.lsp.buf.code_action, "Code action" },
 			},
 			t = {
 				name = "terminal",
@@ -164,6 +164,7 @@ local wk_remaps = {
 
 local remap = function()
 	local key = vim.keymap.set
+	---@diagnostic disable-next-line: unused-local
 	local g = vim.g
 
 	-- key leader to space -- configured in init.lua

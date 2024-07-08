@@ -1,6 +1,6 @@
 return {
 	{
-		"nvim-treesitter/nvim-treesitter",
+		"nvim-treesitter/nvim-treesitter", -- better highlighting
 		build = ":TSUpdate",
 		config = function()
 			local configs = require("nvim-treesitter.configs")
@@ -20,6 +20,7 @@ return {
 		end,
 	},
 
+	-- lsp
 	{
 		"neovim/nvim-lspconfig",
 		lazy = false,
@@ -27,6 +28,7 @@ return {
 		init = function() end,
 	},
 
+	-- autocomplete
 	{
 		"nvimdev/epo.nvim",
 		dependencies = { { "onsails/lspkind.nvim", lazy = false } },
@@ -62,58 +64,6 @@ return {
 
 				return icons[k]
 			end,
-		},
-	},
-
-	{
-		"williamboman/mason.nvim",
-		opts = {},
-	},
-
-	{
-		"williamboman/mason-lspconfig.nvim",
-		opts = {
-			ensure_installed = { "lua_ls", "rust_analyzer", "tsserver" },
-			handlers = {
-				function(server_name)
-					local capabilities = vim.tbl_deep_extend(
-						"force",
-						vim.lsp.protocol.make_client_capabilities(),
-						require("epo").register_cap()
-					)
-
-					require("lspconfig")[server_name].setup({ capabilities = capabilities })
-				end,
-				["lua_ls"] = function()
-					local lspconfig = require("lspconfig")
-					local capabilities = vim.tbl_deep_extend(
-						"force",
-						vim.lsp.protocol.make_client_capabilities(),
-						require("epo").register_cap()
-					)
-
-					lspconfig.lua_ls.setup({
-						settings = {
-							Lua = {
-								diagnostics = {
-									globals = { "vim" },
-								},
-							},
-						},
-						capabilities = capabilities,
-					})
-				end,
-			},
-		},
-	},
-
-	{
-		"numToStr/Comment.nvim",
-		opts = {
-			mappings = {
-				basic = true,
-				extra = true,
-			},
 		},
 	},
 }

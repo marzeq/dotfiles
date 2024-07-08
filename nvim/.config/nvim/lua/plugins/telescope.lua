@@ -7,6 +7,7 @@ return {
 				file_browser = {
 					hijack_netrw = true,
 				},
+				["ui-select"] = require("telescope.themes").get_dropdown({}),
 			},
 			defaults = {
 				sorting_strategy = "ascending",
@@ -21,6 +22,11 @@ return {
 		config = function(_, opts)
 			require("telescope").setup(opts)
 			require("telescope").load_extension("file_browser")
+			require("telescope").load_extension("ui-select")
 		end,
+	},
+
+	{
+		"nvim-telescope/telescope-ui-select.nvim",
 	},
 }
