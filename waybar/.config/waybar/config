@@ -6,7 +6,7 @@
   "custom/updates": {
     "format": "  {}",
     "tooltip": false,
-    "interval": 120,
+    "interval": 1800,
     "exec": "~/.config/waybar/updates.sh",
     "on-click": "alacritty -e paru && pkill -SIGRTMIN+8 waybar",
     "signal": 8
