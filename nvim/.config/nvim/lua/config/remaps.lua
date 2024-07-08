@@ -64,6 +64,7 @@ local wk_remaps = {
 				g = { "<cmd>Telescope live_grep<cr>", "Grep" },
 				b = { "<cmd>Telescope file_browser path=%:p:h select_buffer=true<cr>", "File browser" },
 				w = { "<cmd>Telescope buffers<cr>", "Buffers" },
+				c = { "<cmd>bd<cr>", "Close current buffer" },
 			},
 			l = {
 				name = "lsp",
@@ -159,7 +160,17 @@ local wk_remaps = {
 		},
 	},
 
-	{ mappings = { d = { vim.lsp.buf.definition, "Go to definition" } }, options = { prefix = "g", mode = "n" } },
+	{ mappings = {
+		d = { vim.lsp.buf.definition, "Go to definition" },
+	}, options = { prefix = "g", mode = "n" } },
+
+	{
+		mappings = {
+			["<Tab>"] = { "<cmd>BufferNext<cr>", "Cycle buffers" },
+			["<S-Tab>"] = { "<cmd>BufferPrevious<cr>", "Cycle buffers in reverse" },
+		},
+		options = { mode = "n" },
+	},
 }
 
 local remap = function()
