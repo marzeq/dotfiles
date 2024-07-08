@@ -1,95 +1,133 @@
+/*
+background: #282A36;
+black: #282C34;
+red: #E06C75;
+green: #98C379;
+yellow: #E5C07B;
+blue: #61AFEF;
+purple: #C678DD;
+cyan: #56B6C2;
+white: #ABB2BF;
+*/
+
 * {
-    border: none;
-    border-radius: 0;
-    /* `otf-font-awesome` is required to be installed for icons */
-    font-family: CaskaydiaCove Nerd Font Mono;
-    min-height: 20px;
+  border: none;
+  border-radius: 0;
+  font-family: "CaskaydiaCove Nerd Font Mono";
+  font-size: 16px;
+  min-height: 24px;
 }
 
 window#waybar {
-    background: transparent;
+  background: transparent;
 }
 
 window#waybar.hidden {
-    opacity: 0.2;
+  opacity: 0.2;
+}
+
+#window {
+  margin-top: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-radius: 26px;
+  transition: none;
+  color: transparent;
+  background: transparent;
 }
 
 #workspaces {
-    margin-right: 8px;
-    border-radius: 10px;
-    transition: none;
-    background: #383c4a;
+  margin-top: 8px;
+  margin-left: 12px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  background: #282A36;
+  transition: none;
 }
 
 #workspaces button {
-    transition: none;
-    color: #7c818c;
-    background: transparent;
-    padding: 5px;
-    font-size: 18px;
-}
-
-#workspaces button.active {
-    transition: none;
-    color: #61afef;
-    background: transparent;
-    padding: 5px;
-    font-size: 18px;
-}
-
-/* https://github.com/Alexays/Waybar/wiki/FAQ#the-workspace-buttons-have-a-strange-hover-effect */
-#workspaces button:hover {
-    transition: none;
-    box-shadow: inherit;
-    text-shadow: inherit;
-    border-radius: inherit;
-    color: #383c4a;
-    background: #7c818c;
+  transition: none;
+  color: #ABB2BF;
+  background: transparent;
+  font-size: 16px;
 }
 
 #workspaces button.focused {
-    color: white;
+  color: #61AFEF;
 }
 
-#custom-pacman {
-    padding-left: 16px;
-    padding-right: 16px;
-    border-radius: 10px;
-    transition: none;
-    color: #ABB2BF;
-    background: #383c4a;
+#workspaces button.active {
+  transition: none;
+  box-shadow: inherit;
+  text-shadow: inherit;
+  color: #61AFEF;
 }
 
-#clock {
-    padding-left: 16px;
-    padding-right: 16px;
-    border-radius: 10px;
-    transition: none;
-    color: #ABB2BF;
-    background: #383c4a;
+#workspaces button:hover {
+  transition: none;
+  box-shadow: inherit;
+  text-shadow: inherit;
+  color: #C678DD;
+}
+
+#custom-updates {
+  margin-top: 8px;
+  margin-left: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  transition: none;
+  background-color: #99c379;
+  color: black;
 }
 
 #pulseaudio {
-    margin-right: 8px;
-    padding-left: 16px;
-    padding-right: 16px;
-    border-radius: 10px;
-    transition: none;
-    color: #ABB2BF;
-    background: #383c4a;
+  margin-top: 8px;
+  margin-left: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  transition: none;
+  color: #282C34;
+  background: #61Afef;
 }
 
-#pulseaudio.muted {
-    background-color: #90b1b1;
-    color: #2a5c45;
+#clock {
+  margin-top: 8px;
+  margin-left: 8px;
+  margin-right: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  transition: none;
+  color: #ABB2BF;
+  background: #282A36;
+}
+
+#mode {
+  margin-top: 8px;
+  margin-left: 8px;
+  margin-right: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  transition: none;
+  color: #282A36;
+  background: #E06C75;
 }
 
 #tray {
-    padding-left: 16px;
-    padding-right: 16px;
-    border-radius: 10px;
-    transition: none;
-    color: #ABB2BF;
-    background: #383c4a;
+  margin-top: 8px;
+  margin-right: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  transition: none;
+  color: #ABB2BF;
+  background: #C678DD;
 }
-
