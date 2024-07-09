@@ -22,3 +22,5 @@ o.updatetime = 50
 o.mouse = "a"
 
 o.undofile = true
+
+o.title = true

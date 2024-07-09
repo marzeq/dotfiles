@@ -1,8 +1,21 @@
 {
   "layer": "top",
   "modules-left": ["hyprland/workspaces"],
-  "modules-center": [],
+  "modules-center": ["hyprland/window"],
   "modules-right": ["custom/updates", "pulseaudio", "clock", "tray"],
+  "hyprland/window": {
+    "format": "{}",
+    "rewrite": {
+      "(.*) — Mozilla Firefox": "󰈹 $1",
+      "Mozilla Firefox": "󰈹 Firefox",
+      "(.*) - bash": " $1",
+      "(.*) - NVIM": " $1",
+      "Discord \\| (.*)": " $1",
+      "Discord": " Discord",
+      "Steam(.+)": "$1",
+      "Steam": " Steam",
+    },
+  },
   "custom/updates": {
     "format": "  {}",
     "tooltip": false,

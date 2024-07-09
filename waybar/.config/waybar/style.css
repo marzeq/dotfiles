@@ -70,6 +70,20 @@ window#waybar.hidden {
   color: #C678DD;
 }
 
+#window {
+  margin-top: 8px;
+  margin-left: 12px;
+  margin-bottom: 0;
+  border-radius: 26px;
+  background: #282A36;
+  color: #ABB2BF;
+  transition: none;
+}
+
+window#waybar.empty #window {
+  background: transparent;
+}
+
 #custom-updates {
   margin-top: 8px;
   margin-left: 8px;
