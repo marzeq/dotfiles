@@ -16,6 +16,7 @@
       "Discord": " Discord",
       "Steam(.+)": "$1",
       "Steam": " Steam",
+      "Alacritty(.*)": " Alacritty$1",
     },
   },
   "custom/updates": {

@@ -1,7 +1,10 @@
 return {
 	{
 		"mhartington/formatter.nvim",
-		config = function()
+		opts = {
+			formatOnSave = false,
+		},
+		config = function(_, opts)
 			local filetype = {}
 			local betterFiletypes = {
 				[{ "typescript", "javascript", "typescriptreact", "javascriptreact", "json", "jsonc", "yaml" }] = require(
@@ -30,19 +33,21 @@ return {
 				end
 			end
 
-			require("formatter").setup({
-				filetype = filetype,
-			})
+			opts.filetype = filetype
 
-			-- enable format on save
-			local augroup = vim.api.nvim_create_augroup
-			local autocmd = vim.api.nvim_create_autocmd
-			augroup("__formatter__", { clear = true })
+			require("formatter").setup(opts)
 
-			autocmd("BufWritePost", {
-				group = "__formatter__",
-				command = ":FormatWrite",
-			})
+			if opts.formatOnSave then
+				-- enable format on save
+				local augroup = vim.api.nvim_create_augroup
+				local autocmd = vim.api.nvim_create_autocmd
+				augroup("__formatter__", { clear = true })
+
+				autocmd("BufWritePost", {
+					group = "__formatter__",
+					command = ":FormatWrite",
+				})
+			end
 		end,
 	},
 }
