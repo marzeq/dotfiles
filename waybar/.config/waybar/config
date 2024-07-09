@@ -13,7 +13,7 @@
   },
   "pulseaudio": {
     "tooltip": false,
-    "scroll-step": 0.5, // %, can be a float
+    "scroll-step": 1, // %, can be a float
     "reverse-scrolling": 1,
     "format": "{volume}% 󰋋 {format_source}",
     "format-muted": "󰟎 {format_source}",
