@@ -6,10 +6,10 @@
   "hyprland/window": {
     "format": "{}",
     "rewrite": {
-      "(.*) — Mozilla Firefox": "󰈹 $1",
+      "YouTube — Mozilla Firefox": " YouTube",
+      "(.*) - YouTube — Mozilla Firefox": " $1",
+      "(?!YouTube)(.*) — Mozilla Firefox": "󰈹 $1",
       "Mozilla Firefox": "󰈹 Firefox",
-      "YouTube(.*)": " YouTube",
-      "(.*) - YouTube(.*)": " $1",
       "(.*) - bash": " $1",
       "(.*) - NVIM": " $1",
       "Discord \\| (.*)": " $1",
