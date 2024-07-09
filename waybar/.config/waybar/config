@@ -8,6 +8,8 @@
     "rewrite": {
       "(.*) — Mozilla Firefox": "󰈹 $1",
       "Mozilla Firefox": "󰈹 Firefox",
+      "YouTube(.*)": " YouTube",
+      "(.*) - YouTube(.*)": " $1",
       "(.*) - bash": " $1",
       "(.*) - NVIM": " $1",
       "Discord \\| (.*)": " $1",
