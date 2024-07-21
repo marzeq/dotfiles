@@ -9,12 +9,10 @@ alias c="clear"
 compress() {
   # check if there is at least one argument
   if [ "$#" -eq 0 ]; then
-    echo "No file(s)/directory(-ies) specified"
+    echo "compress: no arguments specified"
     return 1
   fi
 
-  # check if the first argument is either -xz, -gz or -zip
-  
   # if the first argument is -xz, set the compression flag to -J and the extension to .tar.xz
   if [ "$1" == "-xz" ]; then
     compression_flag="J"
@@ -32,7 +30,7 @@ compress() {
     return
   # if the first argument starts with - but doesnt match, error out
   elif [[ "$1" == -* ]]; then
-    echo "Invalid compression flag"
+    echo "compress: invalid flag: $1"
     return 1
   else
     # default to -z and .tar.gz
@@ -44,21 +42,20 @@ compress() {
   if [ "$#" -eq 1 ]; then
     archive_name=$(basename "$1")
     command="tar -c${compression_flag}f $archive_name${extension} $1"
-    echo $command
-    $command
   # otherwise, assume the first argument is the name of the archive and the rest are the directories/files to compress
   else
     archive_name="$1"
     command="tar -c${compression_flag}f $archive_name${extension} ${@:2}"
-    echo $command
-    $command
   fi
+
+  echo $command
+  $command
 }
 
 extract() {
   # check if there is at least one argument
   if [ "$#" -eq 0 ]; then
-    echo "No file(s) specified"
+    echo "extract: no file(s) specified"
     return 1
   fi
 
@@ -66,23 +63,28 @@ extract() {
   for file in "$@"; do
     # check if the file exists
     if [ ! -f "$file" ]; then
-      echo "$file: No such file"
+      echo "extract: no such file: $file"
       continue
     fi
 
     # recognise the file extension
     # if it's .tar.gz, use -xzf
     if [[ "$file" == *.tar.gz ]]; then
-      tar -xzf "$file"
+      command="tar -xzf "$file""
     # if it's .tar.xz, use -xf
     elif [[ "$file" == *.tar.xz ]]; then
-      tar -xf "$file"
+      command="tar -xf "$file""
     # if it's .zip, use unzip
     elif [[ "$file" == *.zip ]]; then
-      unzip -q "$file"
+      command="unzip -q "$file""
     else
-      echo "$file: Unknown file type"
+      # get extension (make sure we catch everything after the first .)
+      extension=".${file#*.}"
+      echo "extract: unknown file type: $extension"
     fi
+
+    echo $command
+    $command
   done
 }
 
