@@ -45,6 +45,7 @@ in this section, the package names are arch linux package names
   - grim & slurp
   - pamixer
   - hyprpicker
+  - swaync
 - **rofi**:
   - none :D
 - **waybar**:
