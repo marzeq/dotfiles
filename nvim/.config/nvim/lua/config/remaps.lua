@@ -35,7 +35,7 @@ local wk_remaps = {
 		desc = "Find file",
 	},
 	{ "<leader>fg", "<cmd>Telescope live_grep<cr>", desc = "Grep" },
-	{ "<leader>fb", "<cmd>Telescope file_browser path=%:p:help |select_buffer=true<cr>|", desc = "File browser" },
+	{ "<leader>fb", "<cmd>Telescope file_browser path=%:p:help |select_buffer=true<cr>", desc = "File browser" },
 	{ "<leader>fw", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
 	{ "<leader>fc", "<cmd>bd<cr>", desc = "Close current buffer" },
 
