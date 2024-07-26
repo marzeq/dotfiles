@@ -54,7 +54,7 @@ local config = {
 	enable_tab_bar = false,
 	window_close_confirmation = "NeverPrompt",
 
-	font = wezterm.font("CaskaydiaCove Nerd Font Mono", {
+	font = wezterm.font("Cascadia Code NF", {
 		stretch = "ExtraCondensed",
 	}),
 	font_size = 11.0,

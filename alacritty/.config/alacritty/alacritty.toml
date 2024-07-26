@@ -39,4 +39,4 @@ blur = true
 dimensions = { columns = 200, lines = 50 }
 
 [font]
-normal = { family = "CaskaydiaCove Nerd Font Mono", style = "Regular" }
+normal = { family = "Cascadia Code NF", style = "Regular" }
