@@ -76,7 +76,9 @@ c.keys = {
 	{ key = "d", mods = mod, action = act.ShowTabNavigator },
 	{ key = "c", mods = mod, action = act.SpawnTab("CurrentPaneDomain") },
 
-  { key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
+	{ key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
+
+	{ key = "e", mods = mod, action = act.SendString("vim\n") },
 }
 
 if string.find(wezterm.target_triple, "windows") then
