@@ -1,70 +1,86 @@
 local wezterm = require("wezterm")
 
-local config = {
-	color_schemes = {
-		OneDark = {
-			background = "#1e2127",
-			foreground = "#abb2bf",
+local c = {}
 
-			cursor_fg = "#282c34",
-      cursor_border = "#abb2bf",
-      cursor_bg = "#abb2bf",
+c.color_schemes = {
+	OneDark = {
+		background = "#1e2127",
+		foreground = "#abb2bf",
 
-			selection_bg = "#3e4452",
-			selection_fg = "#abb2bf",
-			ansi = {
-				"#282c34",
-				"#e06c75",
-				"#98c379",
-				"#d19a66",
-				"#61afef",
-				"#c678dd",
-				"#56b6c2",
-				"#abb2bf",
-			},
-			brights = {
-				"#5c6370",
-				"#e06c75",
-				"#98c379",
-				"#d19a66",
-				"#61afef",
-				"#c678dd",
-				"#56b6c2",
-				"#abb2bf",
-			},
+		cursor_fg = "#282c34",
+		cursor_border = "#abb2bf",
+		cursor_bg = "#abb2bf",
+
+		selection_bg = "#3e4452",
+		selection_fg = "#abb2bf",
+		ansi = {
+			"#282c34",
+			"#e06c75",
+			"#98c379",
+			"#d19a66",
+			"#61afef",
+			"#c678dd",
+			"#56b6c2",
+			"#abb2bf",
+		},
+		brights = {
+			"#5c6370",
+			"#e06c75",
+			"#98c379",
+			"#d19a66",
+			"#61afef",
+			"#c678dd",
+			"#56b6c2",
+			"#abb2bf",
 		},
 	},
+}
 
-	color_scheme = "OneDark",
+c.color_scheme = "OneDark"
 
-	default_cursor_style = "BlinkingBar",
-	animation_fps = 1,
-	cursor_blink_ease_in = "Constant",
-	cursor_blink_ease_out = "Constant",
+c.default_cursor_style = "BlinkingBar"
+c.animation_fps = 1
+c.cursor_blink_ease_in = "Constant"
+c.cursor_blink_ease_out = "Constant"
 
-	front_end = "OpenGL",
+c.front_end = "OpenGL"
 
-	window_padding = {
-		left = 1,
-		right = 1,
-		top = 1,
-		bottom = 1,
-	},
-	window_background_opacity = 0.95,
-	enable_tab_bar = false,
-	window_close_confirmation = "NeverPrompt",
+c.window_padding = {
+	left = 1,
+	right = 1,
+	top = 1,
+	bottom = 1,
+}
 
-	font = wezterm.font("Cascadia Code NF", {
-		stretch = "ExtraCondensed",
-	}),
-	font_size = 11.0,
+c.window_background_opacity = 0.95
+c.enable_tab_bar = false
+c.window_close_confirmation = "NeverPrompt"
 
-	initial_rows = 50,
-	initial_cols = 200,
+c.font = wezterm.font("Cascadia Code NF", {
+	stretch = "ExtraCondensed",
+})
+c.font_size = 11.0
+
+c.initial_rows = 50
+c.initial_cols = 200
+
+c.audible_bell = "Disabled"
+
+local act = wezterm.action
+local mod = "ALT"
+
+c.keys = {
+	{ key = "v", mods = mod, action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
+	{ key = "h", mods = mod, action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
+
+	{ key = "d", mods = mod, action = act.ShowTabNavigator },
+	{ key = "c", mods = mod, action = act.SpawnTab("CurrentPaneDomain") },
+
+  { key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
 }
 
 if string.find(wezterm.target_triple, "windows") then
-	config.default_prog = { "wsl.exe", "~" }
+	c.default_prog = { "wsl.exe", "~" }
 end
 
-return config
+return c
