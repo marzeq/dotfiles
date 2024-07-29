@@ -161,7 +161,20 @@ local wk_remaps = {
 
 	{ "<leader>P", '"_dP', desc = "Paste and keep buffer", mode = "x" },
 
-	{ "<c-k>", "<cmd>WhichKey<cr>", desc = "Which Keys", mode = { "n", "v", "x" } },
+	{ "<c-k>", "<cmd>WhichKey<cr>", desc = "Which Keys", mode = { "n", "v", "x", "s" } },
+
+	{
+		"<C-Space>",
+		"<cmd>lua vim.snippet.jump(1)<cr>",
+		desc = "Go to next field or completion",
+    mode = { "i", "s", "n" },
+	},
+  {
+    "<C-S-Space>",
+    "<cmd>lua vim.snippet.jump(-1)<cr>",
+    desc = "Go to previous field or completion",
+    mode = { "i", "s", "n" },
+  },
 
 	{ "gd", vim.lsp.buf.definition, desc = "Go to definition" },
 }
