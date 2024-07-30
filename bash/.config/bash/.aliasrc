@@ -101,4 +101,17 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
       return 127
     fi
   }
+
+  wincd() {
+    if [ "$#" -eq 0 ]; then
+      # redirect stderr to /dev/null to suppress error of cmd being launched in a non-windows directory
+      LOC=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null)
+    else
+      LOC=${1}
+    fi
+
+    LOC=$(echo $LOC | sed 's/\\/\//g' | sed 's/^\([A-Z]\):/\/mnt\/\L\1/')
+
+    cd "$LOC"
+  }
 fi
