@@ -82,7 +82,25 @@ c.keys = {
 }
 
 if string.find(wezterm.target_triple, "windows") then
-	c.default_prog = { "wsl.exe", "~" }
+	local wsl_domains = wezterm.default_wsl_domains()
+
+	if #wsl_domains > 0 then
+		local default_distro_name = "arch"
+		local found = false
+
+		for _, domain in ipairs(wsl_domains) do
+			if string.find(domain.name, default_distro_name) then
+				c.default_domain = domain.name
+				found = true
+				break
+			end
+		end
+
+    -- fallback to the first distro
+		if not found then
+			c.default_domain = wsl_domains[1].name
+		end
+	end
 end
 
 return c
