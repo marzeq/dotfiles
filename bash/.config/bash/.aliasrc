@@ -7,13 +7,11 @@ alias grep="grep --color=auto"
 alias c="clear"
 
 compress() {
-  # check if there is at least one argument
   if [ "$#" -eq 0 ]; then
     echo "compress: no arguments specified"
     return 1
   fi
 
-  # if the first argument is -xz, set the compression flag to -J and the extension to .tar.xz
   if [ "$1" == "-xz" ]; then
     compression_flag="J"
     extension=".tar.xz"
@@ -23,26 +21,21 @@ compress() {
     extension=".tar.gz"
     shift
   elif [ "$1" == "-zip" ]; then
-    # special case, use zip instead of tar
     command="zip -qr "$2.zip" "${@:3}""
     echo $command
     $command
     return
-  # if the first argument starts with - but doesnt match, error out
   elif [[ "$1" == -* ]]; then
     echo "compress: invalid flag: $1"
     return 1
   else
-    # default to -z and .tar.gz
     compression_flag="z"
     extension=".tar.gz"
   fi
 
-  # get count of real arguments, if it's one, assume it's the name of the directory and the archive name is the same as the directory
   if [ "$#" -eq 1 ]; then
     archive_name=$(basename "$1")
     command="tar -c${compression_flag}f $archive_name${extension} $1"
-  # otherwise, assume the first argument is the name of the archive and the rest are the directories/files to compress
   else
     archive_name="$1"
     command="tar -c${compression_flag}f $archive_name${extension} ${@:2}"
@@ -53,32 +46,24 @@ compress() {
 }
 
 extract() {
-  # check if there is at least one argument
   if [ "$#" -eq 0 ]; then
     echo "extract: no file(s) specified"
     return 1
   fi
 
-  # loop through all the arguments
   for file in "$@"; do
-    # check if the file exists
     if [ ! -f "$file" ]; then
       echo "extract: no such file: $file"
       continue
     fi
 
-    # recognise the file extension
-    # if it's .tar.gz, use -xzf
     if [[ "$file" == *.tar.gz ]]; then
       command="tar -xzf "$file""
-    # if it's .tar.xz, use -xf
     elif [[ "$file" == *.tar.xz ]]; then
       command="tar -xf "$file""
-    # if it's .zip, use unzip
     elif [[ "$file" == *.zip ]]; then
       command="unzip -q "$file""
     else
-      # get extension (make sure we catch everything after the first .)
       extension=".${file#*.}"
       echo "extract: unknown file type: $extension"
     fi
@@ -94,6 +79,8 @@ cl() {
 
 # wsl specific
 if [ -n "$WSL_DISTRO_NAME" ]; then
+
+  # funky stuff to make the .exe suffix optional which i personally like
   command_not_found_handle() {
     local cmd="$1"
     shift
@@ -106,14 +93,18 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
     fi
   }
 
+  # cd command but you can provide a windows path, make sure you use quotes because many windows paths have spaces
+  # doesn't work with relative paths, but that's kinda expected imo
   wincd() {
     if [ "$#" -eq 0 ]; then
-      # redirect stderr to /dev/null to suppress error of cmd being launched in a non-windows directory
+      # redirecting stderr to /dev/null because if you launch cmd.exe in a wsl directory, it complains (understandably) that it can't find the directory
       LOC=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null)
+      LOC=${LOC%$'\r'} # windows is stupid and i hate it. WHHHYYYYYY DO YOU HAVE TO BE DIFFERENT. wish games would run better on linux so i could use it full time
     else
       LOC=${1}
     fi
 
+    # replace \ with / and convert drive letter to /mnt/<lowercase letter> format
     LOC=$(echo $LOC | sed 's/\\/\//g' | sed 's/^\([A-Z]\):/\/mnt\/\L\1/')
 
     cd "$LOC"
