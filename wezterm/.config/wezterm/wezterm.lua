@@ -1,6 +1,6 @@
 local wezterm = require("wezterm")
 
-local c = {}
+local c = wezterm.config_builder()
 
 c.color_schemes = {
 	OneDark = {
@@ -66,23 +66,11 @@ c.initial_cols = 200
 
 c.audible_bell = "Disabled"
 
-local act = wezterm.action
-local mod = "ALT"
+local use_wsl = true
 
-c.keys = {
-	{ key = "v", mods = mod, action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
-	{ key = "h", mods = mod, action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
-
-	{ key = "d", mods = mod, action = act.ShowTabNavigator },
-	{ key = "c", mods = mod, action = act.SpawnTab("CurrentPaneDomain") },
-
-	{ key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
-
-	{ key = "e", mods = mod, action = act.SendString("vim\n") },
-}
-
-if string.find(wezterm.target_triple, "windows") then
+if string.find(wezterm.target_triple, "windows") and use_wsl then
 	local wsl_domains = wezterm.default_wsl_domains()
+	c.wsl_domains = wsl_domains
 
 	if #wsl_domains > 0 then
 		local default_distro_name = "arch"
@@ -96,11 +84,24 @@ if string.find(wezterm.target_triple, "windows") then
 			end
 		end
 
-    -- fallback to the first distro
+		-- fallback to the first distro
 		if not found then
 			c.default_domain = wsl_domains[1].name
 		end
 	end
 end
+
+local act = wezterm.action
+local mod = "ALT"
+
+c.keys = {
+	{ key = "v", mods = mod, action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
+	{ key = "h", mods = mod, action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
+
+	{ key = "d", mods = mod, action = act.ShowTabNavigator },
+	{ key = "c", mods = mod, action = act.SpawnTab("CurrentPaneDomain") },
+
+	{ key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
+}
 
 return c
