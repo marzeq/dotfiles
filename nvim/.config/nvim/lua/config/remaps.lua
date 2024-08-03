@@ -167,14 +167,14 @@ local wk_remaps = {
 		"<C-Space>",
 		"<cmd>lua vim.snippet.jump(1)<cr>",
 		desc = "Go to next field or completion",
-    mode = { "i", "s", "n" },
+		mode = { "i", "s", "n" },
 	},
-  {
-    "<C-S-Space>",
-    "<cmd>lua vim.snippet.jump(-1)<cr>",
-    desc = "Go to previous field or completion",
-    mode = { "i", "s", "n" },
-  },
+	{
+		"<C-S-Space>",
+		"<cmd>lua vim.snippet.jump(-1)<cr>",
+		desc = "Go to previous field or completion",
+		mode = { "i", "s", "n" },
+	},
 
 	{ "gd", vim.lsp.buf.definition, desc = "Go to definition" },
 }
