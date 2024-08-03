@@ -88,6 +88,10 @@ extract() {
   done
 }
 
+cl() {
+  cd $1 && ls
+}
+
 # wsl specific
 if [ -n "$WSL_DISTRO_NAME" ]; then
   command_not_found_handle() {
