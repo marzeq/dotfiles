@@ -1,0 +1,3 @@
+[submodule "tree-sitter-mconf"]
+	path = nvim/.config/nvim/after
+	url = https://github.com/marzeq/tree-sitter-mconf.git
