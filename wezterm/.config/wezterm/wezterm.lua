@@ -92,14 +92,11 @@ if string.find(wezterm.target_triple, "windows") and use_wsl then
 end
 
 local act = wezterm.action
-local mod = "ALT"
+local mod = "ALT|CTRL"
 
 c.keys = {
 	{ key = "v", mods = mod, action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
 	{ key = "h", mods = mod, action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
-
-	{ key = "d", mods = mod, action = act.ShowTabNavigator },
-	{ key = "c", mods = mod, action = act.SpawnTab("CurrentPaneDomain") },
 
 	{ key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
 }
