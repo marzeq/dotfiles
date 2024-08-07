@@ -26,6 +26,6 @@ return {
       },
       tabline = {},
       extensions = { "fugitive", "nvim-tree" },
-    }
-  }
+    },
+  },
 }
