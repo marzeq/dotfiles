@@ -18,6 +18,10 @@ stow <program_name_1> <program_name_2> # ...
 
 #### neovim
 
+![image](https://github.com/user-attachments/assets/ae1c454a-9351-4f3e-9228-a4f8d15b94af)
+
+![image](https://github.com/user-attachments/assets/0c18cafa-16af-48b3-b4d9-166a70e10a78)
+
 #### hyprland desktop
 
 ![image](https://github.com/marzeq/dotfiles/assets/58303665/c5cd3581-6143-4bfa-8266-6a98d3c6959e)
