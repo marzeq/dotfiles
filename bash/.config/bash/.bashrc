@@ -16,8 +16,4 @@ function update_title() {
 
 export PROMPT_COMMAND="update_title"
 
-if command -v gpg &> /dev/null; then
-  export GPG_TTY=$(tty)
-  # force gpg to use TUI password input
-  gpg-connect-agent updatestartuptty /bye >/dev/null
-fi
+export GPG_TTY=$(tty)
