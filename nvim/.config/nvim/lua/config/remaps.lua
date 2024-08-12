@@ -23,7 +23,13 @@ local wk_remaps = {
   { "<leader>ah", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], desc = "Find and replace word" },
   { "<leader>ae", vim.diagnostic.open_float, desc = "Inspect error(s)" },
   { "<leader>ac", vim.diagnostic.goto_next, desc = "Cycle errors" },
-  { "<leader>ar", vim.lsp.buf.rename, desc = "Rename symbol" },
+  {
+    "<leader>ar",
+    function()
+      require("live-rename").rename({ insert = true })
+    end,
+    desc = "Rename symbol",
+  },
   { "<leader>ad", "<cmd>Trouble diagnostics toggle<cr>", desc = "Project diagnostics" },
   { "<leader>aD", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "File diagnostics" },
   { "<leader>aa", vim.lsp.buf.code_action, desc = "Code action" },
