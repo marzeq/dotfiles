@@ -13,6 +13,16 @@ stow <program_name_1> <program_name_2> # ...
 ```
 
 ---
+ 
+### gallery
+
+#### neovim
+
+#### hyprland desktop
+
+![image](https://github.com/marzeq/dotfiles/assets/58303665/c5cd3581-6143-4bfa-8266-6a98d3c6959e)
+
+---
 
 ### dependencies for each program:
 
@@ -52,10 +62,6 @@ in this section, the package names are arch linux package names
   - paru, can be swapped out for yay
   - pavucontrol
   - pacman-contrib
- 
-##### preview with everything installed
-
-![image](https://github.com/marzeq/dotfiles/assets/58303665/c5cd3581-6143-4bfa-8266-6a98d3c6959e)
 
 ---
 
