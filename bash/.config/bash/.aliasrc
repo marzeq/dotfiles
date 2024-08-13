@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 alias ls="ls --color=auto"
-alias la="ls -a"
+alias la="ls -A"
 alias grep="grep --color=auto"
 
 alias c="clear"
