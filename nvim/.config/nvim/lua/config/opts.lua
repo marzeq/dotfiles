@@ -7,6 +7,8 @@ o.softtabstop = indent_size
 o.shiftwidth = indent_size
 o.expandtab = true
 
+o.relativenumber = true
+
 o.clipboard:append("unnamedplus")
 
 o.nu = true
