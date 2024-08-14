@@ -54,6 +54,12 @@ local wk_remaps = {
   { "<leader>ps", "<cmd>Lazy sync<cr>", desc = "Lazy sync" },
 
   {
+    "<leader>c",
+    require("visual-commit").commit,
+    desc = "Open git commit menu",
+  },
+
+  {
     mode = { "v" },
     { "<leader>s", group = "Screenshot" },
     {
