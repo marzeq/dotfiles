@@ -6,6 +6,10 @@ alias grep="grep --color=auto"
 
 alias c="clear"
 
+shopt -s histappend
+PROMPT_COMMAND="history -a;history -n;$PROMPT_COMMAND"
+alias prev="cat $HOME/.bash_history | grep -v '^prev$' | fzf --tac --no-multi | xargs -r -d '\n' -I {} bash -c {}"
+
 compress() {
   if [ "$#" -eq 0 ]; then
     echo "compress: no arguments specified"

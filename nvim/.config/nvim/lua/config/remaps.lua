@@ -53,6 +53,32 @@ local wk_remaps = {
   { "<leader>pm", "<cmd>Lazy<cr>", desc = "Lazy menu" },
   { "<leader>ps", "<cmd>Lazy sync<cr>", desc = "Lazy sync" },
 
+  {
+    mode = { "v" },
+    { "<leader>s", group = "Screenshot" },
+    {
+      "<leader>sc",
+      function()
+        require("nvim-silicon").clip()
+      end,
+      desc = "Copy code screenshot to clipboard",
+    },
+    {
+      "<leader>sf",
+      function()
+        require("nvim-silicon").file()
+      end,
+      desc = "Save code screenshot as file",
+    },
+    {
+      "<leader>ss",
+      function()
+        require("nvim-silicon").shoot()
+      end,
+      desc = "Create code screenshot",
+    },
+  },
+
   { "<leader>t", group = "terminal" },
   {
     "<leader>th",
@@ -95,77 +121,33 @@ local wk_remaps = {
   { "<leader>wh", "<cmd>split<cr><C-w>j", desc = "Horizontal split" },
   { "<leader>wv", "<cmd>vsplit<cr><C-w>l", desc = "Vertical split" },
   { "<leader>wr", group = "resize" },
-  { "<leader>wrh", group = "horizontal" },
   {
-    "<leader>wrh=",
+    "<leader>wrh",
     function()
-      resizeToPercent("horizontal", 50)
-    end,
-    desc = "Resize equal",
-  },
-  {
-    "<leader>wrhb",
-    function()
-      resizeToPercent("horizontal", 75)
-    end,
-    desc = "Resize bigger (75%)",
-  },
-  {
-    "<leader>wrhs",
-    function()
-      resizeToPercent("horizontal", 25)
-    end,
-    desc = "Resize smaller (25%)",
-  },
-  {
-    "<leader>wrhc",
-    function()
-      vim.ui.input({ prompt = "Value for custom resize: " }, function(result)
+      vim.ui.input({ prompt = "Value for horizontal resize: " }, function(result)
         local n = tonumber(result)
 
         resizeToPercent("horizontal", n)
       end)
     end,
-    desc = "Resize custom",
-  },
-  { "<leader>wrv", group = "vertical" },
-  {
-    "<leader>wrv=",
-    function()
-      resizeToPercent("vertical", 50)
-    end,
-    desc = "Resize equal",
+    desc = "Resize horizontal",
   },
   {
-    "<leader>wrvb",
+    "<leader>wrv",
     function()
-      resizeToPercent("vertical", 75)
-    end,
-    desc = "Resize bigger (75%)",
-  },
-  {
-    "<leader>wrvs",
-    function()
-      resizeToPercent("vertical", 25)
-    end,
-    desc = "Resize smaller (25%)",
-  },
-  {
-    "<leader>wrvc",
-    function()
-      vim.ui.input({ prompt = "Value for custom resize: " }, function(result)
+      vim.ui.input({ prompt = "Value for vertical resize: " }, function(result)
         local n = tonumber(result)
 
         resizeToPercent("vertical", n)
       end)
     end,
-    desc = "Resize custom",
+    desc = "Resize vertical",
   },
 
   { "<S-Tab>", "<cmd>BufferPrevious<cr>", desc = "Cycle buffers in reverse" },
   { "<Tab>", "<cmd>BufferNext<cr>", desc = "Cycle buffers" },
 
-  { "<leader>P", '"_dP', desc = "Paste and keep buffer", mode = "x" },
+  { "<leader>p", '"_dP', desc = "Paste and keep buffer", mode = "x" },
 
   { "<c-k>", "<cmd>WhichKey<cr>", desc = "Which Keys", mode = { "n", "v", "x", "s" } },
 
