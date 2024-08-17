@@ -26,3 +26,8 @@ o.mouse = "a"
 o.undofile = true
 
 o.title = true
+
+return {
+  ---@type "telescope" | "builtin" | "none"
+  startup = "none",
+}
