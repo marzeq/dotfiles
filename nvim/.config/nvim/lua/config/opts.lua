@@ -1,6 +1,8 @@
 local o = vim.opt
 local g = vim.g
 
+g.have_nerd_font = true
+
 local indent_size = 2
 o.tabstop = indent_size
 o.softtabstop = indent_size
