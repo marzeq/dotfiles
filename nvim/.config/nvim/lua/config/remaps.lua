@@ -170,6 +170,8 @@ local wk_remaps = {
     mode = { "i", "s", "n" },
   },
 
+  { "<Esc>", "<cmd>nohlsearch<CR>", desc = "Clear highlights", mode = "n" },
+
   { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
 }
 

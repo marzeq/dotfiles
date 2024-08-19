@@ -9,7 +9,9 @@ o.expandtab = true
 
 o.relativenumber = true
 
-o.clipboard:append("unnamedplus")
+vim.schedule(function()
+  o.clipboard:append("unnamedplus")
+end)
 
 o.nu = true
 
@@ -26,6 +28,9 @@ o.mouse = "a"
 o.undofile = true
 
 o.title = true
+
+o.ignorecase = true
+o.smartcase = true
 
 return {
   ---@type "telescope" | "builtin" | "none"
