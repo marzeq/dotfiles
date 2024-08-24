@@ -24,9 +24,36 @@ export GPG_TTY="$(tty)"
 # ------------------------------
 
 dim="%{$(tput dim)%}"
+bold="%{$(tput bold)%}"
+
 reset="%{$(tput sgr0)%}"
+
+red="%{$(tput setaf 1)%}"
 green="%{$(tput setaf 2)%}"
-PS1="${dim}[${reset}${green}%n${reset}${dim}@${reset}${green}%m${reset} %1~${dim}]%%${reset} "
+yellow="%{$(tput setaf 3)%}"
+blue="%{$(tput setaf 4)%}"
+magenta="%{$(tput setaf 5)%}"
+cyan="%{$(tput setaf 6)%}"
+white="%{$(tput setaf 7)%}"
+
+function git_branch() {
+  branch=$(git symbolic-ref HEAD 2> /dev/null | awk 'BEGIN{FS="/"} {print $NF}')
+  if [[ $branch == "" ]];
+  then
+    :
+  else
+    echo " ${dim}${branch}${reset}"
+  fi
+}
+
+# default bash prompt with colours and a % instead of a $
+#PROMPT="${dim}[${reset}${green}%n${reset}${dim}@${reset}${green}%m${reset} %1~${dim}]%%${reset} "
+# minimal prompt
+setopt prompt_subst
+prompt () {
+  PS1="${cyan}%1~${reset}$(git_branch) ${bold}${red}⟩ ${reset}"
+}
+precmd_functions+=(prompt)
 
 # ------------------------------
 #           Plugins
