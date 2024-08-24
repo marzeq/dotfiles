@@ -56,7 +56,7 @@ c.window_background_opacity = 0.95
 c.enable_tab_bar = false
 c.window_close_confirmation = "NeverPrompt"
 
-c.font = wezterm.font("Cascadia Code NF", {
+c.font = wezterm.font("Cascadia Code", {
 	stretch = "ExtraCondensed",
 })
 c.font_size = 11.0
@@ -100,5 +100,12 @@ c.keys = {
 
 	{ key = "q", mods = mod, action = act.CloseCurrentPane({ confirm = false }) },
 }
+
+local mux = wezterm.mux
+
+wezterm.on("gui-startup", function()
+	local _, _, window = mux.spawn_window({})
+	window:gui_window():maximize()
+end)
 
 return c
