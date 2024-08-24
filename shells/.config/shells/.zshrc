@@ -59,6 +59,8 @@ precmd_functions+=("update_title")
 # vi mode and related
 
 bindkey -v
+bindkey "^H" backward-delete-char
+bindkey "^?" backward-delete-char
 export KEYTIMEOUT=1
 
 function zle-keymap-select {
