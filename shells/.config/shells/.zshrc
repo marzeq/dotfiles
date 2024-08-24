@@ -19,13 +19,26 @@ export EDITOR="nvim"
 export PATH="$PATH:$HOME/.bin:$HOME/.local/bin"
 export GPG_TTY="$(tty)"
 
+# ------------------------------
+#            Prompt
+# ------------------------------
+
 dim="%{$(tput dim)%}"
 reset="%{$(tput sgr0)%}"
 green="%{$(tput setaf 2)%}"
 PS1="${dim}[${reset}${green}%n${reset}${dim}@${reset}${green}%m${reset} %1~${dim}]%%${reset} "
 
 # ------------------------------
-#         Shell stuff
+#           Plugins
+# ------------------------------
+
+plug "zap-zsh/supercharge"
+plug "zsh-users/zsh-autosuggestions"
+
+plug "zsh-users/zsh-syntax-highlighting"
+
+# ------------------------------
+#          Shell stuff
 # ------------------------------
 
 # cool update title so it can be hijacked by the WM to change decoration name
