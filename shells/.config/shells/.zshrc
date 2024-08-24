@@ -51,7 +51,7 @@ function git_branch() {
 # minimal prompt
 setopt prompt_subst
 prompt () {
-  PS1="${cyan}%1~${reset}$(git_branch) ${bold}${red}⟩ ${reset}"
+  PS1="${cyan}%1~${reset}$(git_branch) ${bold}${red}❭ ${reset}"
 }
 precmd_functions+=(prompt)
 
