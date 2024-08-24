@@ -1,10 +1,10 @@
 # If not running interactively, dont do anything
 [[ $- != *i* ]] && return
 
-. $HOME/.config/bash/.bashrc
-. $HOME/.config/bash/.aliasrc
+. $HOME/.config/shells/.bashrc
+. $HOME/.config/shells/.aliasrc
 
-THROWAWAY=$HOME/.config/bash/.throwaway
+THROWAWAY=$HOME/.config/shells/.throwaway
 if [ ! -f $THROWAWAY ]; then
   touch $THROWAWAY
   echo "#!/usr/bin/env bash" >> $THROWAWAY
