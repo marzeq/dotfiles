@@ -28,50 +28,20 @@ stow <program_name_1> <program_name_2> # ...
 
 ---
 
-### dependencies for each program:
+### automatic install script
 
-#### not hyprland related
+run the `install.sh` script to stow the config files for the specified package of programs and install the necessary dependencies:
 
-- **bash**:
-  - none :D
-- **neovim**:
-  - ripgrep
-  - a clipboard manager for your OS (see :help clipboard)
-  - nodejs & npm
-    - prettierd npm package installed globally
-  - any nerd font
-  - curl
-- **alacritty**:
-  - caskaydia cove nerd font by default
-
-#### hyprland related
-
-in this section, the package names are arch linux package names
-
-- **hypr**:
-  - hyprland & typical dependencies (like the hyprland portal)
-  - rofi-wayland
-  - alacritty
-  - nautilus
-  - firefox
-  - hyprpaper
-  - wl-clip-persist & clipse
-  - grim & slurp
-  - pamixer
-  - hyprpicker
-  - swaync
-- **rofi**:
-  - none :D
-- **waybar**:
-  - paru, can be swapped out for yay
-  - pavucontrol
-  - pacman-contrib
+```bash
+./install.sh [package]
+# available packages: shells, neovim, alacritty, hyprland
+```
 
 ---
 
 ### manual install
 
-if you wish not to use `stow`, you can find the config files for each program insie of its directory at the end of the file structure chain
+if you wish not to use `stow` and `install.sh`, you can find the config files for each program insie of its directory at the end of the file structure chain
 (for example the config files for neovim are in `nvim/.config/nvim` because that's where they should reside in)
 
 ---
