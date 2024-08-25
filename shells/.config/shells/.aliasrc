@@ -42,7 +42,7 @@ compress() {
   fi
 
   echo $command
-  $command
+  eval $command
 }
 
 extract() {
@@ -69,7 +69,7 @@ extract() {
     fi
 
     echo $command
-    $command
+    eval $command
   done
 }
 

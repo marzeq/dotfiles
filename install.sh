@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ $EUID -eq 0 ]]; then
+  echo "This script shall not be run as root!"
+  exit 1
+fi
+
 SHELLS_DEPS=(
   "zsh"
   "bash"
@@ -105,6 +110,11 @@ install_hyprland() {
 }
 
 main() {
+  first_dir="$(pwd)"
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+
+  cd "$script_dir"
+
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
     echo "Available packages: shells, neovim, alacritty, hyprland"
@@ -126,9 +136,12 @@ main() {
       ;;
     *)
       echo "Unknown package: $1"
+      cd "$first_dir"
       exit 1
       ;;
   esac
+
+  cd "$first_dir"
 }
 
 main "$@"

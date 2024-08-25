@@ -46,14 +46,21 @@ function git_branch() {
   fi
 }
 
-# default bash prompt with colours and a % instead of a $
-#PROMPT="${dim}[${reset}${green}%n${reset}${dim}@${reset}${green}%m${reset} %1~${dim}]%%${reset} "
-# minimal prompt
-setopt prompt_subst
-prompt () {
-  PS1="${cyan}%1~${reset}$(git_branch) ${bold}${red}❭ ${reset}"
-}
-precmd_functions+=(prompt)
+PROMPT_TYPE="minimal"
+
+if [[ $PROMPT_TYPE == "minimal" ]];
+then
+  setopt prompt_subst
+  prompt () {
+    PS1="${cyan}%1~${reset}$(git_branch) ${bold}${red}❭ ${reset}"
+  }
+  precmd_functions+=(prompt)
+elif [[ $PROMPT_TYPE == "bash_like" ]];
+then
+  PROMPT="${dim}[${reset}${green}%n${reset}${dim}@${reset}${green}%m${reset} %1~${dim}]%%${reset} "
+else
+  echo "$(tput setaf 1)Invalid prompt type $(tput bold)\"$PROMPT_TYPE\"$(tput sgr0)"
+fi
 
 # ------------------------------
 #           Plugins
