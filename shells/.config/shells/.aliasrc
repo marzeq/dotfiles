@@ -79,7 +79,6 @@ cl() {
 
 # wsl specific
 if [ -n "$WSL_DISTRO_NAME" ]; then
-
   # funky stuff to make the .exe suffix optional which i personally like
   command_not_found_handle() {
     local cmd="$1"
@@ -98,20 +97,21 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
     command_not_found_handle "$@"
   }
 
+  winhome() {
+    echo $(wslpath $(wslvar "USERPROFILE"))
+  }
+
   # cd command but you can provide a windows path, make sure you use quotes because many windows paths have spaces
   # doesn't work with relative paths, but that's kinda expected imo
   wincd() {
     if [ "$#" -eq 0 ]; then
-      # redirecting stderr to /dev/null because if you launch cmd.exe in a wsl directory, it complains (understandably) that it can't find the directory
-      LOC=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null)
-      LOC=${LOC%$'\r'} # windows is stupid and i hate it. WHHHYYYYYY DO YOU HAVE TO BE DIFFERENT. wish games would run better on linux so i could use it full time
+      LOC=$(winhome)
     else
-      LOC=${1}
+      LOC=$(wslpath ${1})
     fi
-
-    # replace \ with / and convert drive letter to /mnt/<lowercase letter> format
-    LOC=$(echo $LOC | sed 's/\\/\//g' | sed 's/^\([A-Z]\):/\/mnt\/\L\1/')
 
     cd "$LOC"
   }
+
+  
 fi
