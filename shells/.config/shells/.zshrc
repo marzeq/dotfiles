@@ -42,7 +42,7 @@ function git_branch() {
   then
     :
   else
-    echo " ${dim}${branch}${reset}"
+    echo $branch
   fi
 }
 
@@ -51,8 +51,37 @@ PROMPT_TYPE="minimal"
 if [[ $PROMPT_TYPE == "minimal" ]];
 then
   setopt prompt_subst
-  prompt () {
-    PS1="${cyan}%1~${reset}$(git_branch) ${bold}${red}❭ ${reset}"
+  prompt() {
+    local LAST_EXIT_CODE=$?
+    local EXIT_CODE_COLOR
+    RPROMPT="${dim}$(date +'%X')${reset}"
+    if [[ $LAST_EXIT_CODE == 0 ]]; then
+      EXIT_CODE_COLOR="${green}"
+      RPROMPT="$RPROMPT"
+    else
+      EXIT_CODE_COLOR="${red}"
+      RPROMPT="$RPROMPT ${red}${LAST_EXIT_CODE}${reset}"
+    fi
+
+    local BRANCH_FORMAT
+    local gb=$(git_branch)
+    if [[ $gb == "" ]];
+    then
+      BRANCH_FORMAT=""
+    else
+      BRANCH_FORMAT=" ${dim}${gb}${reset}"
+      local unstaged_changes=$(git diff --name-only | wc -l)
+      local staged_changes=$(git diff --cached --name-only | wc -l)
+
+      if [[ $unstaged_changes -gt 0 ]]; then
+        RPROMPT="${yellow}${unstaged_changes}*${reset} $RPROMPT"
+      fi
+
+      if [[ $staged_changes -gt 0 ]]; then
+        RPROMPT="${green}${staged_changes}+${reset} $RPROMPT"
+      fi
+    fi
+    PROMPT="${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"
   }
   precmd_functions+=(prompt)
 elif [[ $PROMPT_TYPE == "bash_like" ]];
