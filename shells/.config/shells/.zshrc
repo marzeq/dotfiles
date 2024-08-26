@@ -54,7 +54,8 @@ then
   prompt() {
     local LAST_EXIT_CODE=$?
     local EXIT_CODE_COLOR
-    RPROMPT="${dim}$(date +'%X')${reset}"
+    local USER_HOST="${USER}@${HOST%%.*}"
+    RPROMPT="${dim}$(date +'%X') (${USER_HOST})${reset}"
     if [[ $LAST_EXIT_CODE == 0 ]]; then
       EXIT_CODE_COLOR="${green}"
       RPROMPT="$RPROMPT"
