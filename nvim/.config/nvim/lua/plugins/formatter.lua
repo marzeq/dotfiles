@@ -7,7 +7,7 @@ return {
     config = function(_, opts)
       local filetype = {}
       local betterFiletypes = {
-        [{ "typescript", "javascript", "typescriptreact", "javascriptreact", "json", "jsonc", "yaml" }] = require(
+        [{ "typescript", "javascript", "typescriptreact", "javascriptreact", "json", "jsonc", "yaml", "html", "css" }] = require(
           "formatter.defaults.prettierd"
         ),
         rust = require("formatter.filetypes.rust").rustfmt,
