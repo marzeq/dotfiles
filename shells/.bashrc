@@ -3,6 +3,7 @@
 
 . $HOME/.config/shells/.bashrc
 . $HOME/.config/shells/.aliasrc
+. "$HOME/.config/shells/.wsl"
 
 THROWAWAY=$HOME/.config/shells/.throwaway
 if [ ! -f $THROWAWAY ]; then
