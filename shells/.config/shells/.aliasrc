@@ -1,4 +1,4 @@
-#!/usr/bin/env sh 
+#!/usr/bin/env bash
 
 alias ls="ls --color=auto"
 alias la="ls -A"
@@ -53,19 +53,19 @@ extract() {
 
   for file in "$@"; do
     if [ ! -f "$file" ]; then
-      echo "extract: no such file: $file"
+      echo "extract: no such file: ${file}"
       continue
     fi
 
     if [[ "$file" == *.tar.gz ]]; then
-      command="tar -xzf "$file""
+      command="tar -xzf ${file}"
     elif [[ "$file" == *.tar.xz ]]; then
-      command="tar -xf "$file""
+      command="tar -xf ${file}"
     elif [[ "$file" == *.zip ]]; then
-      command="unzip -q "$file""
+      command="unzip -q ${file}"
     else
       extension=".${file#*.}"
-      echo "extract: unknown file type: $extension"
+      echo "extract: unknown file type: ${extension}"
     fi
 
     echo $command
@@ -76,3 +76,14 @@ extract() {
 cl() {
   cd $1 && ls
 }
+
+editmkdir() {
+  if [ -z "$1" ]; then
+    echo "maybedit: no file specified"
+    return 1
+  fi
+
+  mkdir -p $(dirname ${1})
+  $EDITOR ${1}
+}
+
