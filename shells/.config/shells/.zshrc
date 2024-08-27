@@ -73,6 +73,7 @@ then
       BRANCH_FORMAT=" ${dim}${gb}${reset}"
       local unstaged_changes=$(git diff --name-only | wc -l)
       local staged_changes=$(git diff --cached --name-only | wc -l)
+      local untracked_files=$(git ls-files --others --exclude-standard | wc -l)
 
       if [[ $unstaged_changes -gt 0 ]]; then
         RPROMPT="${yellow}${unstaged_changes}*${reset} $RPROMPT"
@@ -80,6 +81,10 @@ then
 
       if [[ $staged_changes -gt 0 ]]; then
         RPROMPT="${green}${staged_changes}+${reset} $RPROMPT"
+      fi
+
+      if [[ $untracked_files -gt 0 ]]; then
+        RPROMPT="${red}${untracked_files}?${reset} $RPROMPT"
       fi
     fi
     PROMPT="${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"
