@@ -88,39 +88,18 @@ local wk_remaps = {
   { "<leader>t", group = "terminal" },
   {
     "<leader>th",
-    function()
-      vim.api.nvim_exec(
-        [[
-          split
-          wincmd j
-          term
-        ]],
-        false
-      )
-
-      resizeToPercent("horizontal", 25)
-
-      vim.api.nvim_feedkeys("a", "n", true)
-    end,
+    ":ToggleTerm direction=horizontal<cr>",
     desc = "Horizontal terminal",
   },
   {
     "<leader>tv",
-    function()
-      vim.api.nvim_exec(
-        [[
-          vsplit
-          wincmd l
-          term
-        ]],
-        false
-      )
-
-      resizeToPercent("vertical", 25)
-
-      vim.api.nvim_feedkeys("a", "n", true)
-    end,
+    ":ToggleTerm direction=vertical<cr>",
     desc = "Vertical terminal",
+  },
+  {
+    "<leader>tt",
+    ":ToggleTerm direction=float<cr>",
+    desc = "Toggle terminal",
   },
 
   { "<leader>w", group = "window" },
@@ -168,6 +147,27 @@ local wk_remaps = {
     "<cmd>lua vim.snippet.jump(-1)<cr>",
     desc = "Go to previous field or completion",
     mode = { "i", "s", "n" },
+  },
+
+  {
+    "<c-h>",
+    "<c-w>h",
+    desc = "Move to the window to the left",
+  },
+  {
+    "<c-j>",
+    "<c-w>j",
+    desc = "Move to the window below",
+  },
+  {
+    "<c-k>",
+    "<c-w>k",
+    desc = "Move to the window above",
+  },
+  {
+    "<c-l>",
+    "<c-w>l",
+    desc = "Move to the window to the right",
   },
 
   { "<Esc>", "<cmd>nohlsearch<CR>", desc = "Clear highlights", mode = "n" },
