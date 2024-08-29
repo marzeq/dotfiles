@@ -53,6 +53,10 @@ local wk_remaps = {
   { "<leader>pm", "<cmd>Lazy<cr>", desc = "Lazy menu" },
   { "<leader>ps", "<cmd>Lazy sync<cr>", desc = "Lazy sync" },
 
+  { "<leader>r", group = "command-runner" },
+  { "<leader>rs", require("command-runner").set_commands, desc = "Set commands" },
+  { "<leader>rr", require("command-runner").run_commands, desc = "Run commands" },
+
   {
     "<leader>c",
     require("visual-commit").commit,
