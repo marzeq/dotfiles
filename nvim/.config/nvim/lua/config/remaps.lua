@@ -55,7 +55,43 @@ local wk_remaps = {
 
   { "<leader>r", group = "command-runner" },
   { "<leader>rs", require("command-runner").set_commands, desc = "Set commands" },
-  { "<leader>rr", require("command-runner").run_commands, desc = "Run commands" },
+  {
+    "<leader>rr",
+    function()
+      require("command-runner").run_command(nil)
+    end,
+    desc = "Run all commands",
+  },
+  {
+    "<leader>rc",
+    function()
+      local commands = require("command-runner").get_commands()
+
+      if #commands == 0 then
+        vim.notify("No commands set", vim.log.levels.ERROR)
+        return
+      end
+
+      local indexes = {}
+
+      for i, _ in ipairs(commands) do
+        table.insert(indexes, tostring(i))
+      end
+
+      vim.ui.select(indexes, {
+        prompt = "Select command to run: ",
+        format_item = function(item)
+          return item .. ": " .. commands[tonumber(item)]
+        end,
+      }, function(choice)
+        if choice == nil then
+          return
+        end
+        require("command-runner").run_command(tonumber(choice))
+      end)
+    end,
+    desc = "Run command",
+  },
 
   {
     "<leader>c",
