@@ -17,6 +17,12 @@ vim.api.nvim_create_autocmd("FileType", {
     o.shiftwidth = indent_size
   end,
 })
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "go",
+  callback = function()
+    o.expandtab = false
+  end,
+})
 
 o.relativenumber = true
 
