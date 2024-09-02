@@ -12,15 +12,15 @@ o.expandtab = true
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "markdown",
   callback = function()
-    o.tabstop = indent_size
-    o.softtabstop = indent_size
-    o.shiftwidth = indent_size
+    vim.opt_local.tabstop = indent_size
+    vim.opt_local.softtabstop = indent_size
+    vim.opt_local.shiftwidth = indent_size
   end,
 })
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "go",
   callback = function()
-    o.expandtab = false
+    vim.opt_local.expandtab = false
   end,
 })
 
