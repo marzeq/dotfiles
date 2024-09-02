@@ -58,15 +58,20 @@ extract() {
     fi
 
     if [[ "$file" == *.tar.gz ]]; then
-      command="tar -xzf ${file}"
+      basename=${file%.tar.gz}
+      command="tar -xzf ${file} -C ${basename}"
     elif [[ "$file" == *.tar.xz ]]; then
-      command="tar -xf ${file}"
+      basename=${file%.tar.xz}
+      command="tar -xf ${file} -C ${basename}"
     elif [[ "$file" == *.zip ]]; then
-      command="unzip -q ${file}"
+      basename=${file%.zip}
+      command="unzip -q ${file} -d ${basename}"
     else
       extension=".${file#*.}"
       echo "extract: unknown file type: ${extension}"
     fi
+
+
 
     echo $command
     eval $command
