@@ -9,6 +9,15 @@ o.softtabstop = indent_size
 o.shiftwidth = indent_size
 o.expandtab = true
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "markdown",
+  callback = function()
+    o.tabstop = indent_size
+    o.softtabstop = indent_size
+    o.shiftwidth = indent_size
+  end,
+})
+
 o.relativenumber = true
 
 vim.schedule(function()
