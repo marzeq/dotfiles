@@ -6,6 +6,28 @@ alias grep="grep --color=auto"
 
 alias c="clear"
 
+loadenv() {
+  if [ -z "$1" ]; then
+    if [ -e ".env" ]; then
+      set -a; source .env; set +a
+    else
+      echo "loadenv: no file specified and no .env file found in the current directory"
+      return 1
+    fi
+  else
+    if [ ! -e "$1" ]; then
+      echo "loadenv: no such file or directory: ${1}"
+      return 1
+    fi
+
+    if [ -d "$1" ]; then
+      set -a; source ${1}/.env; set +a
+    else
+      set -a; source ${1}; set +a
+    fi
+  fi
+}
+
 compress() {
   if [ "$#" -eq 0 ]; then
     echo "compress: no arguments specified"
