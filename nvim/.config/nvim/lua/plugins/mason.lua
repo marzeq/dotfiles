@@ -1,3 +1,5 @@
+local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
 return {
   {
     "williamboman/mason.nvim",
@@ -10,21 +12,26 @@ return {
       ensure_installed = { "lua_ls", "rust_analyzer", "gopls" },
       handlers = {
         function(server_name)
-          local capabilities =
-            vim.tbl_deep_extend("force", vim.lsp.protocol.make_client_capabilities(), require("epo").register_cap())
-
           require("lspconfig")[server_name].setup({ capabilities = capabilities })
         end,
         ["lua_ls"] = function()
-          local lspconfig = require("lspconfig")
-          local capabilities =
-            vim.tbl_deep_extend("force", vim.lsp.protocol.make_client_capabilities(), require("epo").register_cap())
-
-          lspconfig.lua_ls.setup({
+          require("lspconfig").lua_ls.setup({
             settings = {
               Lua = {
                 diagnostics = {
                   globals = { "vim" },
+                },
+              },
+            },
+            capabilities = capabilities,
+          })
+        end,
+        ["pylsp"] = function()
+          require("lspconfig").pylsp.setup({
+            settings = {
+              pylsp = {
+                plugins = {
+                  pycodestyle = { enabled = false },
                 },
               },
             },

@@ -24,28 +24,6 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
-vim.api.nvim_create_autocmd("BufWritePost", {
-  pattern = { "*.mconf" },
-  callback = function()
-    local file = vim.fn.expand("%:t")
-    local json_file = vim.fn.expand("%:t:r") .. ".json"
-
-    local out = vim.fn.system("mconf -j " .. file)
-
-    if vim.v.shell_error == 0 then
-      local f = io.open(json_file, "w")
-      if f == nil then
-        vim.notify("Failed to open file: " .. json_file, vim.log.levels.ERROR)
-        return
-      end
-      f:write(out)
-      f:close()
-    else
-      vim.notify("mconf to json transpilation failed:\n" .. out, vim.log.levels.ERROR)
-    end
-  end,
-})
-
 o.relativenumber = true
 
 vim.schedule(function()

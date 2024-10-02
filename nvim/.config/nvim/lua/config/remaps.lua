@@ -210,6 +210,19 @@ local wk_remaps = {
     desc = "Move to the window to the right",
   },
 
+  {
+    "<c-s>",
+    "<cmd>w<cr>",
+    desc = "Save file",
+    mode = { "n", "v", "x", "s", "i" },
+  },
+  {
+    "<C-S-s>",
+    "<cmd>noa w<cr>",
+    desc = "Save file without formatting",
+    mode = { "n", "v", "x", "s", "i" },
+  },
+
   { "<Esc>", "<cmd>nohlsearch<CR>", desc = "Clear highlights", mode = "n" },
 
   { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
