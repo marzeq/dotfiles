@@ -24,7 +24,7 @@ return {
         [{ "lua", "luau" }] = require("formatter.filetypes.lua").stylua,
         [{ "c", "cpp" }] = require("formatter.defaults.clangformat"),
         go = require("formatter.filetypes.go").gofumpt,
-        pyton = require("formatter.filetypes.python").black,
+        python = require("formatter.filetypes.python").black,
       }
 
       for fts, format in pairs(betterFiletypes) do

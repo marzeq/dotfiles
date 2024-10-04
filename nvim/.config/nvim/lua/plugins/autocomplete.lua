@@ -16,8 +16,6 @@ return {
       vim.opt.shortmess:append("c")
 
       local lspkind = require("lspkind")
-      lspkind.init({})
-
       local cmp = require("cmp")
 
       cmp.setup({
@@ -36,6 +34,12 @@ return {
           expand = function(args)
             require("luasnip").lsp_expand(args.body)
           end,
+        },
+        ---@diagnostic disable-next-line: missing-fields
+        formatting = {
+          format = lspkind.cmp_format({
+            mode = "symbol",
+          }),
         },
       })
     end,

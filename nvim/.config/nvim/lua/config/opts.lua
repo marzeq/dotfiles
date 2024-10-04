@@ -23,6 +23,13 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.expandtab = false
   end,
 })
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "json",
+  callback = function()
+    -- set local ft=jsonc
+    vim.opt_local.filetype = "jsonc"
+  end,
+})
 
 o.relativenumber = true
 
