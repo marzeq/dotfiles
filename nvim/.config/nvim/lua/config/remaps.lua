@@ -169,6 +169,11 @@ local wk_remaps = {
     desc = "Resize vertical",
   },
 
+  { "<leader>h", group = "hook" },
+  { "<leader>hh", require("hook").goto_hook, desc = "Go-to hook" },
+  { "<leader>hs", require("hook").set_hook, desc = "Set hook" },
+  { "<leader>hc", require("hook").clear_hook, desc = "Clear hook" },
+
   { "<S-Tab>", "<cmd>BufferPrevious<cr>", desc = "Cycle buffers in reverse" },
   { "<Tab>", "<cmd>BufferNext<cr>", desc = "Cycle buffers" },
 
