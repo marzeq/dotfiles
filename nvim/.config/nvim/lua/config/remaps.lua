@@ -258,7 +258,7 @@ local wk_remaps = {
         local pattern_partial = "([^:%s]+):(%d+)"
 
         local open_file = function(filename, linenum, columnnum)
-          vim.cmd(string.format("edit +%d %s", linenum, filename))
+          vim.cmd("silent! normal! " .. linenum .. "G")
           if columnnum then
             if columnnum > vim.fn.strdisplaywidth(vim.fn.getline(linenum)) then
               columnnum = vim.fn.strdisplaywidth(vim.fn.getline(linenum))
