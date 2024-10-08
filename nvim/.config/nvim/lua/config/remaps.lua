@@ -231,6 +231,73 @@ local wk_remaps = {
   { "<Esc>", "<cmd>nohlsearch<CR>", desc = "Clear highlights", mode = "n" },
 
   { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
+  {
+    "gf",
+    function()
+      local function find_locations(str, pattern)
+        local results = {}
+        local start_pos = 1
+
+        while true do
+          local s, e, _ = string.find(str, pattern, start_pos)
+          if not s then
+            break
+          end
+          table.insert(results, { start_index = s, end_index = e })
+          start_pos = e + 1
+        end
+
+        return results
+      end
+
+      local function smart_goto_file()
+        local line = vim.fn.getline(".")
+        local col = vim.fn.col(".")
+
+        local pattern_full = "([^:%s]+):(%d+):(%d+)"
+        local pattern_partial = "([^:%s]+):(%d+)"
+
+        local open_file = function(filename, linenum, columnnum)
+          vim.cmd(string.format("edit +%d %s", linenum, filename))
+          if columnnum then
+            if columnnum > vim.fn.strdisplaywidth(vim.fn.getline(linenum)) then
+              columnnum = vim.fn.strdisplaywidth(vim.fn.getline(linenum))
+            elseif columnnum < 1 then
+              columnnum = 1
+            end
+            vim.cmd(string.format("normal! %d|", columnnum))
+          end
+        end
+
+        local finds = find_locations(line, pattern_full)
+        for _, find_info in ipairs(finds) do
+          if col >= find_info.start_index and col <= find_info.end_index then
+            local match = string.sub(line, find_info.start_index, find_info.end_index)
+            local filename, l, c = string.match(match, pattern_full)
+            open_file(filename, tonumber(l), tonumber(c))
+            return
+          end
+        end
+
+        finds = find_locations(line, pattern_partial)
+        for _, find_info in ipairs(finds) do
+          if col >= find_info.start_index and col <= find_info.end_index then
+            local match = string.sub(line, find_info.start_index, find_info.end_index)
+            local filename, l = string.match(match, pattern_partial)
+            open_file(filename, tonumber(l))
+            return
+          end
+        end
+
+        local cfile = vim.fn.expand("<cfile>")
+        if cfile ~= "" then
+          vim.cmd("edit " .. cfile)
+        end
+      end
+
+      smart_goto_file()
+    end,
+  },
 }
 
 local remap = function()

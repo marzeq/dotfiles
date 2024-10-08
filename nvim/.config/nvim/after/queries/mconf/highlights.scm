@@ -33,4 +33,6 @@
  ","
  "."
  "?"
+ "~"
+ "|"
 ] @punctuation.delimiter
