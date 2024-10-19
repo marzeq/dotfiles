@@ -6,6 +6,24 @@ alias grep="grep --color=auto"
 
 alias c="clear"
 
+if [ -f /etc/arch-release ]; then
+  function remove-orphans() {
+    orphans=$(pacman -Qdtq)
+    if [ -n "$orphans" ]; then
+      sudo pacman -Rns $orphans
+    fi
+  }
+
+  if ! command -v paru &> /dev/null; then
+    git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin
+    cd /tmp/paru-bin
+    makepkg -si
+    cd -
+  fi
+
+  alias update-system="paru && remove-orphans"
+fi
+
 loadenv() {
   if [ -z "$1" ]; then
     if [ -e ".env" ]; then
