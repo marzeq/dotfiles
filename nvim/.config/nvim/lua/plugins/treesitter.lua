@@ -19,20 +19,6 @@ return {
         },
       })
 
-      local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-      parser_config.mconf = {
-        install_info = {
-          url = "https://github.com/marzeq/tree-sitter-mconf",
-          files = { "src/parser.c" },
-          branch = "dev",
-        },
-      }
-
-      vim.filetype.add({
-        -- *.mconf files
-        pattern = { [".*%.mconf"] = "mconf" },
-      })
-
       vim.filetype.add({
         pattern = { [".*/hypr/.*%.conf"] = "hyprlang" },
       })
