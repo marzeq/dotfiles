@@ -29,6 +29,15 @@ ALACRITTY_DEPS=(
   "alacritty"
 )
 
+FONTS_DEPS=(
+  "wget"
+  "unzip"
+  "fontconfig"
+  
+  ".AUR:ttf-ms-win11-auto" # microsoft fonts, needed for many websites
+  ".AUR:ttf-twemoji" # out emoji font of choice
+)
+
 HYPRLAND_DEPS=(
   "stow"
   "hyprland"
@@ -93,6 +102,21 @@ install_packages() {
   fi
 }
 
+install_fonts() {
+  local twemojilinkcmd="sudo ln -sf /usr/share/fontconfig/conf.avail/75-twemoji.conf /etc/fonts/conf.d/75-twemoji.conf"
+
+  install_packages "${FONTS_DEPS[@]}" && \
+  echo "Running: $twemojilinkcmd" && \
+  echo "This will require root permissions!" && \
+  eval $twemojilinkcmd && \
+
+  mkdir -p "$HOME/.local/share/fonts" && \
+  wget -O "/tmp/CascadiaCode.zip" "https://github.com/microsoft/cascadia-code/releases/download/v2404.23/CascadiaCode-2404.23.zip" && \
+  unzip -o "/tmp/CascadiaCode.zip" -d "/tmp/CascadiaCode" && \
+  mv "/tmp/CascadiaCode/ttf"/* "$HOME/.local/share/fonts" && \
+  fc-cache -f
+}
+
 install_shells() {
   install_packages "${SHELLS_DEPS[@]}"
   if [[ -f "$HOME/.bashrc" ]]; then
@@ -107,18 +131,21 @@ install_shells() {
 }
 
 install_neovim() {
-  install_packages "${NEOVIM_DEPS[@]}"
+  install_packages "${NEOVIM_DEPS[@]}" && \
+  install_fonts && \
   stow -t "$HOME" nvim
 }
 
 install_alacritty() {
-  install_packages "${ALACRITTY_DEPS[@]}"
+  install_packages "${ALACRITTY_DEPS[@]}" && \
+  install_fonts && \
   stow -t "$HOME" alacritty
 }
 
 install_hyprland() {
-  install_packages "${HYPRLAND_DEPS[@]}"
-  stow -t "$HOME" hypr waybar rofi wallpapers gtk3
+  install_packages "${HYPRLAND_DEPS[@]}" && \
+  install_fonts && \
+  stow -t "$HOME" hypr waybar rofi wallpapers gtk3 && \
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
 }
@@ -131,7 +158,7 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, alacritty, hyprland"
+    echo "Available packages: shells, neovim, alacritty, hyprland, fonts"
     exit 1
   fi
 
@@ -147,6 +174,9 @@ main() {
       ;;
     "hyprland")
       install_hyprland
+      ;;
+    "fonts")
+      install_fonts
       ;;
     *)
       echo "Unknown package: $1"
