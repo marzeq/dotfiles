@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ ! -f "/etc/arch-release" ]]; then
+  echo "This script is intended for Arch Linux only!"
+  exit 1
+fi
+
 if [[ $EUID -eq 0 ]]; then
   echo "This script shall not be run as root!"
   exit 1
@@ -21,6 +26,7 @@ NEOVIM_DEPS=(
   "nodejs"
   "npm"
   "curl"
+  "stylua"
   ".AUR:prettierd"
 )
 

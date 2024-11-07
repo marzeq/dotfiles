@@ -34,7 +34,7 @@ run the `install.sh` script to stow the config files for the specified package o
 
 ```bash
 ./install.sh [package]
-# available packages: shells, neovim, alacritty, hyprland
+# available packages: shells, neovim, alacritty, hyprland, fonts
 ```
 
 ---
