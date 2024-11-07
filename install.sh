@@ -30,9 +30,9 @@ NEOVIM_DEPS=(
   ".AUR:prettierd"
 )
 
-ALACRITTY_DEPS=(
+KITTY_DEPS=(
   "stow"
-  "alacritty"
+  "kitty"
 )
 
 FONTS_DEPS=(
@@ -142,15 +142,16 @@ install_neovim() {
   stow -t "$HOME" nvim
 }
 
-install_alacritty() {
-  install_packages "${ALACRITTY_DEPS[@]}" && \
+install_kitty() {
+  install_packages "${KITTY_DEPS[@]}" && \
   install_fonts && \
-  stow -t "$HOME" alacritty
+  stow -t "$HOME" kitty
 }
 
 install_hyprland() {
   install_packages "${HYPRLAND_DEPS[@]}" && \
   install_fonts && \
+  install_kitty && \
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3 && \
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
@@ -164,7 +165,7 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, alacritty, hyprland, fonts"
+    echo "Available packages: shells, neovim, kitty, hyprland, fonts"
     exit 1
   fi
 
@@ -175,8 +176,8 @@ main() {
     "neovim")
       install_neovim
       ;;
-    "alacritty")
-      install_alacritty
+    "kitty")
+      install_kitty
       ;;
     "hyprland")
       install_hyprland

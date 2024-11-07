@@ -18,6 +18,7 @@
       "Steam(.+)": "$1",
       "Steam": " Steam",
       "Alacritty(.*)": " Alacritty$1",
+      "kitty(.*)": " Kitty$1",
     },
   },
   "custom/updates": {
