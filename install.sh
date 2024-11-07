@@ -12,6 +12,7 @@ fi
 
 SHELLS_DEPS=(
   "stow"
+
   "zsh"
   "bash"
   "git"
@@ -19,7 +20,9 @@ SHELLS_DEPS=(
 
 NEOVIM_DEPS=(
   "stow"
+
   "neovim"
+
   "python"
   "fzf"
   "ripgrep"
@@ -30,9 +33,10 @@ NEOVIM_DEPS=(
   ".AUR:prettierd"
 )
 
-KITTY_DEPS=(
+ALACRITTY_DEPS=(
   "stow"
-  "kitty"
+
+  "alacritty"
 )
 
 FONTS_DEPS=(
@@ -46,25 +50,30 @@ FONTS_DEPS=(
 
 HYPRLAND_DEPS=(
   "stow"
+
   "hyprland"
+
   "xdg-desktop-portal-hyprland"
   "xdg-desktop-portal-gtk" # for gtk darkmode
   "polkit-gnome"
+
   "hyprpaper"
   "hyprpicker"
+  "hypridle"
+
   "rofi-wayland"
-  "alacritty"
-  "nautilus"
-  "firefox"
   "grim" "slurp"
+  "waybar"
   ".AUR:clipse-bin" "wl-clipboard"
   "swaync"
   "pamixer"
   "nwg-displays"
   "adw-gtk-theme"
-  "waybar"
   "pavucontrol"
   "pacman-contrib"
+
+  "nautilus"
+  "firefox"
 )
 
 install_paru() {
@@ -142,16 +151,16 @@ install_neovim() {
   stow -t "$HOME" nvim
 }
 
-install_kitty() {
-  install_packages "${KITTY_DEPS[@]}" && \
+install_alacritty() {
+  install_packages "${ALACRITTY_DEPS[@]}" && \
   install_fonts && \
-  stow -t "$HOME" kitty
+  stow -t "$HOME" alacritty
 }
 
 install_hyprland() {
   install_packages "${HYPRLAND_DEPS[@]}" && \
   install_fonts && \
-  install_kitty && \
+  install_alacritty && \
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3 && \
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
@@ -165,7 +174,7 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, kitty, hyprland, fonts"
+    echo "Available packages: shells, neovim, alacritty, hyprland, fonts"
     exit 1
   fi
 
@@ -176,8 +185,8 @@ main() {
     "neovim")
       install_neovim
       ;;
-    "kitty")
-      install_kitty
+    "alacritty")
+      install_alacritty
       ;;
     "hyprland")
       install_hyprland
