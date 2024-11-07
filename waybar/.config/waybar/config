@@ -1,8 +1,8 @@
 {
   "layer": "top",
-  "modules-left": ["hyprland/workspaces"],
-  "modules-center": ["hyprland/window"],
-  "modules-right": ["custom/updates", "pulseaudio", "clock", "tray"],
+  "modules-left": ["hyprland/workspaces", "hyprland/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["custom/updates", "pulseaudio", "tray"],
   "hyprland/window": {
     "format": "{}",
     "rewrite": {
@@ -11,6 +11,7 @@
       "(?!YouTube)(.*) — Mozilla Firefox": "󰈹 $1",
       "Mozilla Firefox": "󰈹 Firefox",
       "(.*) - bash": " $1",
+      "(.*) - zsh": " $1",
       "(.*) - NVIM": " $1",
       "(.*)Discord \\| (.*)": " $2",
       "(.*)Discord": " Discord",

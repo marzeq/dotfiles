@@ -10,7 +10,7 @@ if [ -f /etc/arch-release ]; then
   function remove-orphans() {
     orphans=$(pacman -Qdtq)
     if [ -n "$orphans" ]; then
-      sudo pacman -Rns $orphans
+      sudo pacman -Rns $(pacman -Qdtq)
     fi
   }
 

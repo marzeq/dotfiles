@@ -6,12 +6,14 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 SHELLS_DEPS=(
+  "stow"
   "zsh"
   "bash"
   "git"
 )
 
 NEOVIM_DEPS=(
+  "stow"
   "neovim"
   "python"
   "fzf"
@@ -19,17 +21,20 @@ NEOVIM_DEPS=(
   "nodejs"
   "npm"
   "curl"
-  ".PARU"
   ".AUR:prettierd"
 )
 
 ALACRITTY_DEPS=(
+  "stow"
   "alacritty"
 )
 
 HYPRLAND_DEPS=(
+  "stow"
   "hyprland"
   "xdg-desktop-portal-hyprland"
+  "xdg-desktop-portal-gtk" # for gtk darkmode
+  "polkit-gnome"
   "hyprpaper"
   "hyprpicker"
   "rofi-wayland"
@@ -37,12 +42,12 @@ HYPRLAND_DEPS=(
   "nautilus"
   "firefox"
   "grim" "slurp"
-  "wl-clip-persist" "clipse"
+  ".AUR:clipse-bin" "wl-clipboard"
   "swaync"
   "pamixer"
-
+  "nwg-displays"
+  "adw-gtk-theme"
   "waybar"
-  ".PARU"
   "pavucontrol"
   "pacman-contrib"
 )
@@ -56,7 +61,6 @@ install_paru() {
 }
 
 install_packages() {
-  # filter out AUR packages
   local aur_packages=()
   local pacman_packages=()
   local install_paru=false
@@ -91,6 +95,14 @@ install_packages() {
 
 install_shells() {
   install_packages "${SHELLS_DEPS[@]}"
+  if [[ -f "$HOME/.bashrc" ]]; then
+    mv "$HOME/.bashrc" "$HOME/.bashrc.bak"
+    echo "Moved existing .bashrc to .bashrc.bak"
+  fi
+  if [[ -f "$HOME/.zshrc" ]]; then
+    mv "$HOME/.zshrc" "$HOME/.zshrc.bak"
+    echo "Moved existing .zshrc to .zshrc.bak"
+  fi
   stow -t "$HOME" shells
 }
 
@@ -106,7 +118,9 @@ install_alacritty() {
 
 install_hyprland() {
   install_packages "${HYPRLAND_DEPS[@]}"
-  stow -t "$HOME" hypr waybar rofi wallpapers
+  stow -t "$HOME" hypr waybar rofi wallpapers gtk3
+
+  echo "Make sure you run nwg-displays to configure your displays graphically"
 }
 
 main() {

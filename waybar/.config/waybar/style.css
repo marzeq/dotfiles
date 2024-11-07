@@ -13,7 +13,7 @@ white: #ABB2BF;
 * {
   border: none;
   border-radius: 0;
-  font-family: "CaskaydiaCove Nerd Font Mono";
+  font-family: "Cascadia Code NF";
   font-size: 16px;
   min-height: 24px;
 }
@@ -41,33 +41,33 @@ window#waybar.hidden {
   margin-left: 12px;
   margin-bottom: 0;
   border-radius: 26px;
-  background: #282A36;
+  background: #282a36;
   transition: none;
 }
 
 #workspaces button {
   transition: none;
-  color: #ABB2BF;
+  color: #abb2bf;
   background: transparent;
   font-size: 16px;
 }
 
 #workspaces button.focused {
-  color: #61AFEF;
+  color: #61afef;
 }
 
 #workspaces button.active {
   transition: none;
   box-shadow: inherit;
   text-shadow: inherit;
-  color: #61AFEF;
+  color: #61afef;
 }
 
 #workspaces button:hover {
   transition: none;
   box-shadow: inherit;
   text-shadow: inherit;
-  color: #C678DD;
+  color: #c678dd;
 }
 
 #window {
@@ -75,8 +75,8 @@ window#waybar.hidden {
   margin-left: 12px;
   margin-bottom: 0;
   border-radius: 26px;
-  background: #282A36;
-  color: #ABB2BF;
+  background: #282a36;
+  color: #abb2bf;
   transition: none;
 }
 
@@ -104,8 +104,8 @@ window#waybar.empty #window {
   margin-bottom: 0;
   border-radius: 26px;
   transition: none;
-  color: #282C34;
-  background: #61Afef;
+  color: #282c34;
+  background: #61afef;
 }
 
 #clock {
@@ -117,8 +117,8 @@ window#waybar.empty #window {
   margin-bottom: 0;
   border-radius: 26px;
   transition: none;
-  color: #ABB2BF;
-  background: #282A36;
+  color: #abb2bf;
+  background: #282a36;
 }
 
 #mode {
@@ -130,18 +130,19 @@ window#waybar.empty #window {
   margin-bottom: 0;
   border-radius: 26px;
   transition: none;
-  color: #282A36;
-  background: #E06C75;
+  color: #282a36;
+  background: #e06c75;
 }
 
 #tray {
   margin-top: 8px;
+  margin-left: 8px;
   margin-right: 12px;
   padding-left: 16px;
   padding-right: 16px;
   margin-bottom: 0;
   border-radius: 26px;
   transition: none;
-  color: #ABB2BF;
-  background: #C678DD;
+  color: #abb2bf;
+  background: #c678dd;
 }

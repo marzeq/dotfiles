@@ -15,7 +15,7 @@
   spacing: 0;
   background-color: transparent;
 
-  font: "CaskaydiaCove Nerd Font 14";
+  font: "Cascadia Code NF 14";
   text-color: @text;
 }
 
