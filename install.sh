@@ -44,43 +44,43 @@ FONTS_DEPS=(
   "unzip"
   "fontconfig"
   
-  ".AUR:ttf-ms-win11-auto" # microsoft fonts, needed for many websites
-  ".AUR:ttf-twemoji" # out emoji font of choice
+  ".AUR:ttf-ms-win11-auto"    # microsoft fonts, needed for many websites
+  ".AUR:ttf-twemoji"          # out emoji font of choice
 )
 
 HYPRLAND_DEPS=(
   "stow"
 
-  "hyprland"
+  "hyprland"                            # the compositor itself
 
-  "xdg-desktop-portal-hyprland"
-  "xdg-desktop-portal-gtk" # for gtk darkmode
-  "polkit-gnome"
+  "xdg-desktop-portal-hyprland"         # portals for hyprland
+  "xdg-desktop-portal-gtk"              # for gtk darkmode
+  "polkit-gnome"                        # gtk gui for polkit
 
-  "hyprpaper"
-  "hyprpicker"
-  "hypridle"
+  "hyprpaper"                           # wallpaper manager
+  "hyprpicker"                          # colour picker
+  "hypridle"                            # idle manager (sleep after inactivity etc.)
 
-  "rofi-wayland"
-  "grim" "slurp"
-  "waybar"
-  ".AUR:clipse-bin" "wl-clipboard"
-  "swaync"
-  "pamixer"
-  "nwg-displays"
-  "adw-gtk-theme"
-  "pavucontrol"
-  "pacman-contrib"
+  "rofi-wayland"                        # app launcher
+  ".AUR:grimblast-git" "grim" "slurp"   # screenshots
+  "waybar"                              # status bar
+  ".PARU"                               # explicitly install paru, needed for update module in waybar
+  ".AUR:clipse-bin" "wl-clipboard"      # clipboard
+  "swaync"                              # notifications
+  "pamixer" "pavucontrol"               # audio control
+  "nwg-displays"                        # gui monitor configuration
+  "adw-gtk-theme"                       # gtk3 theme
+  "pacman-contrib"                      # for update module in waybar
 
-  "nautilus"
-  "firefox"
+  "nautilus"                            # file manager
+  "firefox"                             # web browser
 )
 
 install_paru() {
-  git clone https://aur.archlinux.org/paru-bin.git
-  cd paru-bin
+  git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin
+  cd /tmp/paru-bin
   makepkg -si
-  cd ..
+  cd - > /dev/null
   rm -rf paru-bin
 }
 
