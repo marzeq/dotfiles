@@ -127,19 +127,9 @@ local wk_remaps = {
 
   { "<leader>t", group = "terminal" },
   {
-    "<leader>th",
-    ":ToggleTerm direction=horizontal<cr>",
-    desc = "Horizontal terminal",
-  },
-  {
-    "<leader>tv",
-    ":ToggleTerm direction=vertical<cr>",
-    desc = "Vertical terminal",
-  },
-  {
     "<leader>tt",
-    ":ToggleTerm direction=float<cr>",
-    desc = "Toggle terminal",
+    ":ToggleTerm direction=horizontal<cr>",
+    desc = "Terminal",
   },
 
   { "<leader>w", group = "window" },
