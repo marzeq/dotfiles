@@ -94,12 +94,6 @@ local wk_remaps = {
   },
 
   {
-    "<leader>c",
-    require("visual-commit").commit,
-    desc = "Open git commit menu",
-  },
-
-  {
     mode = { "v" },
     { "<leader>s", group = "Screenshot" },
     {
