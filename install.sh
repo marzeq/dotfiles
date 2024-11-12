@@ -5,6 +5,11 @@ if [[ ! -f "/etc/arch-release" ]]; then
   exit 1
 fi
 
+if [[ -f "/run/archiso/cowspace" ]]; then
+  echo "This script is not intended to be run in a live environment!"
+  exit 1
+fi
+
 if [[ $EUID -eq 0 ]]; then
   echo "This script shall not be run as root!"
   exit 1
@@ -13,67 +18,79 @@ fi
 SHELLS_DEPS=(
   "stow"
 
-  "zsh"
-  "bash"
-  "git"
+  "zsh"                                             # best shell ever
+  "bash"                                            # just in case you somehow dont have bash
+  "git"                                             # i guess you wouldnt get this far without git but just in case
 )
 
 NEOVIM_DEPS=(
   "stow"
 
-  "neovim"
+  "neovim"                                          # duh
 
-  "python"
-  "fzf"
-  "ripgrep"
-  "nodejs"
-  "npm"
-  "curl"
-  "stylua"
-  ".AUR:prettierd"
+  "python"                                          # honestly i dont remember why but its probably important if its here
+  "fzf"                                             # fzf is a godsend
+  "ripgrep"                                         # same for you rg <3
+  "nodejs" "npm"                                    # i think this is needed for a lot of lsp stuff
+  "curl"                                            # for downloading stuff
 )
 
 ALACRITTY_DEPS=(
   "stow"
 
-  "alacritty"
+  "alacritty"                                       # duh
 )
 
 FONTS_DEPS=(
-  "wget"
-  "unzip"
-  "fontconfig"
+  "wget"                                            # for downloading stuff (again)
+  "unzip"                                           # why is .zip still a thinggg
+  "fontconfig"                                      # duh
   
-  ".AUR:ttf-ms-win11-auto"    # microsoft fonts, needed for many websites
-  ".AUR:ttf-twemoji"          # out emoji font of choice
+  ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
+  ".AUR:ttf-twemoji"                                # our emoji font of choice
 )
 
 HYPRLAND_DEPS=(
   "stow"
 
-  "hyprland"                            # the compositor itself
+  "hyprland"                                        # duh
 
-  "xdg-desktop-portal-hyprland"         # portals for hyprland
-  "xdg-desktop-portal-gtk"              # for gtk darkmode
-  "polkit-gnome"                        # gtk gui for polkit
+  "xdg-desktop-portal-hyprland"                     # portals for hyprland
+  "xdg-desktop-portal-gtk"                          # for gtk darkmode
+  "polkit-gnome"                                    # gtk gui for polkit
+  "qt5-wayland" "qt6-wayland"                       # qt wayland support
 
-  "hyprpaper"                           # wallpaper manager
-  "hyprpicker"                          # colour picker
-  "hypridle"                            # idle manager (sleep after inactivity etc.)
+  "pipewire"                                        # audio server
+  "pipewire-pulse" "pipewire-jack" "pipewire-alsa"  # pipewire modules
+  "gst-plugin-pipewire"                             # gstreamer pipewire plugin
+  "alsa-utils"                                      # alsa utilities
 
-  "rofi-wayland"                        # app launcher
-  ".AUR:grimblast-git" "grim" "slurp"   # screenshots
-  "waybar"                              # status bar
-  ".PARU"                               # explicitly install paru, needed for update module in waybar
-  ".AUR:clipse-bin" "wl-clipboard"      # clipboard
-  "swaync"                              # notifications
-  "pamixer" "pavucontrol"               # audio control
-  "nwg-displays"                        # gui monitor configuration
-  "adw-gtk-theme"                       # gtk3 theme
-  "pacman-contrib"                      # for update module in waybar
+  "hyprpaper"                                       # wallpaper manager
+  "hyprpicker"                                      # colour picker
+  "hypridle"                                        # idle manager (sleep after inactivity etc.)
 
-  "nautilus"                            # file manager
-  "firefox"                             # web browser
+  "rofi-wayland"                                    # app launcher
+  ".AUR:grimblast-git" "grim" "slurp"               # screenshots
+  "waybar"                                          # status bar
+  ".PARU"                                           # explicitly install aur manager
+  ".AUR:clipse-bin" "wl-clipboard"                  # clipboard
+  "swaync"                                          # notifications
+  "pamixer" "pavucontrol"                           # audio control
+  "nwg-displays"                                    # gui monitor configuration
+  "adw-gtk-theme"                                   # gtk3 theme
+  "pacman-contrib"                                  # for update module in waybar
+
+  # my apps
+  "nautilus"                                        # file manager
+  "firefox"                                         # web browser
+  "thunderbird"                                     # email client
+)
+
+GAMING_DEPS=(
+  "steam"                                           # duh
+  ".AUR:proton-ge-custom-bin"                       # latest proton-ge
+  "gamemode"                                        # cpu governor optimisation, to squeeze out a couple more framses
+  "gamescope"                                       # game compositor
 )
 
 install_paru() {
@@ -158,12 +175,81 @@ install_alacritty() {
 }
 
 install_hyprland() {
+  install_gpu_drivers && \ # hyprland relies on gpu acceleration
   install_packages "${HYPRLAND_DEPS[@]}" && \
   install_fonts && \
   install_alacritty && \
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3 && \
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
+}
+
+check_yn() {
+  local prompt="$1"
+
+  if [[ -z "$prompt" ]]; then
+    prompt="Are you sure?"
+  fi
+
+  echo -n "$prompt [y/n]: "
+
+  while true; do
+    read -r response
+    case $response in
+      [Yy]*)
+        return 0
+        ;;
+      [Nn]*)
+        return 1
+        ;;
+      *)
+        echo -n "$prompt [y/n]: "
+        ;;
+    esac
+  done
+}
+
+enable_multilib() {
+  if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+    echo "Enabling multilib repository"
+    echo "[multilib]" | sudo tee -a /etc/pacman.conf
+    echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
+
+    sudo pacman -Sy --noconfirm
+  fi
+}
+
+install_gpu_drivers() {
+  if [[ -f "/sys/class/drm/card0/device/vendor" ]]; then
+    if [[ "$(cat /sys/class/drm/card0/device/vendor)" == "0x1002" ]]; then
+      local pkglist=("mesa" "vulkan-radeon" "libva-mesa-driver" "mesa-vdpau")
+
+      echo "AMD GPU detected, installing packages: ${pkglist[@]}"
+      check_yn "Do you want to install these packages?" && install_packages "${pkglist[@]}"
+    elif [[ "$(cat /sys/class/drm/card0/device/vendor)" == "0x10de" ]]; then
+      local lspci_output=$(lspci -k | grep -A 2 -E "(VGA|3D)")
+      local common_packages=("nvidia-utils" "nvidia-settings")
+      
+      if echo "$lspci_output" | grep -qE "GTX 1650|20[0-9]{2}|30[0-9]{2}|40[0-9]{2}"; then
+        echo "Modern NVIDIA GPU (1650, 20xx, 30xx, or 40xx series) detected, installing these packages: nvidia-open ${common_packages[@]}"
+        check_yn "Do you want to install these packages?" && install_packages "nvidia-open" "${common_packages[@]}"
+      else
+        echo "Older NVIDIA GPU detected, installing these packages: nvidia ${common_packages[@]}"
+        check_yn "Do you want to install these packages?" && install_packages "nvidia" "${common_packages[@]}"
+      fi
+    else
+      echo "Unknown GPU vendor, install them in this shell and exit to continue the process"
+      bash
+    fi
+  fi
+}
+
+install_gaming() {
+  enable_multilib
+
+  install_gpu_drivers
+
+  install_packages "${GAMING_DEPS[@]}"
 }
 
 main() {
@@ -174,7 +260,8 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, alacritty, hyprland, fonts"
+    echo "Available packages: shells, neovim, alacritty, hyprland, fonts, gaming"
+    echo "Or run $0 all to install all packages"
     exit 1
   fi
 
@@ -193,6 +280,15 @@ main() {
       ;;
     "fonts")
       install_fonts
+      ;;
+    "gaming")
+      install_gaming
+      ;;
+    "all")
+      install_gaming && \
+      install_shells && \
+      install_neovim && \
+      install_hyprland
       ;;
     *)
       echo "Unknown package: $1"
