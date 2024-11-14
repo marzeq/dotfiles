@@ -1,8 +1,8 @@
 {
-  "layer": "top",
+  "layer": "bottom",
   "modules-left": ["hyprland/workspaces", "hyprland/window"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/updates", "pulseaudio", "tray"],
+  "modules-right": ["custom/updates", "cpu", "memory", "pulseaudio", "tray"],
   "hyprland/window": {
     "format": "{}",
     "rewrite": {
@@ -21,13 +21,30 @@
       "kitty(.*)": " Kitty$1",
     },
   },
+  "clock": {
+    "interval": 1,
+    "format": " {:%a %d %b 󰥔 %H:%M:%S}",
+    "tooltip": false,
+  },
   "custom/updates": {
     "format": "  {}",
     "tooltip": false,
     "interval": 1800,
     "exec": "~/.config/waybar/updates.sh",
     "on-click": "alacritty -e paru && pkill -SIGRTMIN+8 waybar",
-    "signal": 8
+    "signal": 8,
+  },
+  "cpu": {
+    "tooltip": false,
+    "interval": 5,
+    "format": " {usage}%",
+    "on-click": "gnome-system-monitor",
+  },
+  "memory": {
+    "tooltip": false,
+    "interval": 5,
+    "format": " {percentage}%",
+    "on-click": "gnome-system-monitor",
   },
   "pulseaudio": {
     "tooltip": false,
@@ -39,14 +56,9 @@
     "format-bluetooth-muted": "󰟎  {format_source}",
     "format-source": "{volume}% ",
     "format-source-muted": "",
-    "on-click": "pavucontrol"
-  },
-  "clock": {
-    "interval": 1,
-    "format": "{:%a %d %b %H:%M:%S}",
-    "tooltip-format": "<tt>{calendar}</tt>"
+    "on-click": "pavucontrol",
   },
   "tray": {
-    "spacing": 10
-  }
+    "spacing": 10,
+  },
 }

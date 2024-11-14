@@ -47,6 +47,15 @@ if command -v mconf &> /dev/null; then
   }
 fi
 
+function sudo() {
+  if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
+    shift
+    sudoedit "$@"
+  else
+    command sudo "$@"
+  fi
+}
+
 function scratch() {
   local dir=$(mktemp -d)
 
