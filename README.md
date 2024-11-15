@@ -24,7 +24,7 @@ stow <program_name_1> <program_name_2> # ...
 
 #### hyprland desktop
 
-![image](https://github.com/marzeq/dotfiles/assets/58303665/c5cd3581-6143-4bfa-8266-6a98d3c6959e)
+![image](https://github.com/user-attachments/assets/ab368bf0-f620-4f3e-aa50-6b92a33784bf)
 
 ---
 
