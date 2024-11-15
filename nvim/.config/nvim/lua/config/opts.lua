@@ -26,10 +26,10 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "json",
   callback = function()
-    -- set local ft=jsonc
     vim.opt_local.filetype = "jsonc"
   end,
 })
+vim.api.nvim_command("au BufNewFile,BufRead *.rasi set filetype=css")
 
 o.relativenumber = true
 

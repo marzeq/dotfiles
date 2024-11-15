@@ -1,18 +1,19 @@
-/*
-background: #282A36;
-black: #282C34;
-red: #E06C75;
-green: #98C379;
-yellow: #E5C07B;
-blue: #61AFEF;
-purple: #C678DD;
-cyan: #56B6C2;
-white: #ABB2BF;
-*/
+/* --------------- */
+/* GLOBAL SETTINGS */
+/* --------------- */
+
+@define-color bg #282A36;
+@define-color fg #ABB2BF;
+@define-color black #282C34;
+@define-color red #E06C75;
+@define-color green #98C379;
+@define-color yellow #E5C07B;
+@define-color blue #61AFEF;
+@define-color purple #C678DD;
+@define-color cyan #56B6C2;
+@define-color white #ABB2BF;
 
 * {
-  border: none;
-  border-radius: 0;
   font-family: "Cascadia Code";
   font-size: 16px;
 }
@@ -21,14 +22,11 @@ white: #ABB2BF;
   background: transparent;
 }
 
-#waybar.hidden {
-  opacity: 0.2;
-}
-
 .module {
   border-radius: 26px;
 
-  margin-top: 8px;
+  margin-top: 12px;
+  margin-bottom: 12px;
 
   margin-left: 6px;
   margin-right: 6px;
@@ -37,19 +35,19 @@ white: #ABB2BF;
   padding-left: 16px;
 
   min-height: 36px;
-
-  transition: none;
 }
 
 .modules-left {
-  margin-left: 12px;
+  margin-left: 6px;
 }
 
 .modules-right {
-  margin-right: 12px;
+  margin-right: 6px;
 }
 
+/* ------------ */
 /* LEFT MODULES */
+/* ------------ */
 
 #window {
   border-radius: 26px;
@@ -61,52 +59,54 @@ white: #ABB2BF;
   padding-left: 4px;
   padding-right: 4px;
 
-  background: #282a36;
+  background: @bg;
 }
 
 #workspaces button {
-  color: #abb2bf;
+  color: @fg;
   background: transparent;
+  transition: none;
 }
 
-#workspaces button.focused {
-  color: #61afef;
-}
-
+#workspaces button.focused,
 #workspaces button.active {
-  color: #61afef;
+  color: @blue;
 }
 
 #workspaces button:hover {
-  color: #c678dd;
+  color: @purple;
 }
 
 #window {
-  background: #282a36;
-  color: #abb2bf;
+  background: @bg;
+  color: @fg;
 }
 
 #waybar.empty #window {
   background: transparent;
 }
 
+/* -------------- */
 /* MIDDLE MODULES */
+/* -------------- */
 
 #clock {
-  color: #abb2bf;
-  background: #282a36;
+  background: @bg;
+  color: @fg;
 }
 
+/* ------------- */
 /* RIGHT MODULES */
+/* ------------- */
 
 #custom-updates {
-  background-color: #99c379;
-  color: #282c34;
+  background: @green;
+  color: @black;
 }
 
 #cpu {
-  color: #282c34;
-  background: #e5c07b;
+  background: @yellow;
+  color: @black;
 
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -117,8 +117,8 @@ white: #ABB2BF;
 }
 
 #memory {
-  color: #282c34;
-  background: #e5c07b;
+  background: @yellow;
+  color: @black;
 
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
@@ -129,16 +129,11 @@ white: #ABB2BF;
 }
 
 #pulseaudio {
-  color: #282c34;
-  background: #61afef;
-}
-
-#pulseaudio {
-  color: #282c34;
-  background: #61afef;
+  background: @blue;
+  color: @black;
 }
 
 #tray {
-  color: #abb2bf;
-  background: #e06b74;
+  background: @red;
+  color: @black;
 }

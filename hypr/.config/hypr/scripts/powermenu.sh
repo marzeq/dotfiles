@@ -3,7 +3,8 @@
 MODE=$(echo "sleep
 logout
 reboot
-shutdown" | rofi -dmenu -p "Power menu")
+shutdown
+restartbar" | rofi -dmenu -p "Power menu")
 
 if [[ ! -z "$MODE" ]]; then
   if [ $MODE == "logout" ]; then
@@ -14,5 +15,7 @@ if [[ ! -z "$MODE" ]]; then
     systemctl poweroff
   elif [ $MODE == "sleep" ]; then
     systemctl suspend
+  elif [ $MODE == "restartbar" ]; then
+    pkill waybar; hyprctl dispatch exec waybar
   fi
 fi

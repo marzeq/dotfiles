@@ -2,7 +2,7 @@
 /* Author: Newman Sanchez (https://github.com/newmanls) */
 
 * {
-    font:   "Roboto 12";
+    font:   "Cascadia Code 12";
 
     background-color:   transparent;
     text-color:         @fg0;
