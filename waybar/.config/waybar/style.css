@@ -116,6 +116,11 @@
   margin-right: 0;
 }
 
+#cpu.critical {
+  color: @red;
+  font-weight: bold;
+}
+
 #memory {
   background: @yellow;
   color: @black;
@@ -128,8 +133,18 @@
   margin-left: 0;
 }
 
+#memory.critical {
+  color: @red;
+  font-weight: bold;
+}
+
 #pulseaudio {
   background: @blue;
+  color: @black;
+}
+
+#custom-mediacontrol {
+  background: @purple;
   color: @black;
 }
 
