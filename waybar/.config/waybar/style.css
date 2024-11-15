@@ -1,6 +1,8 @@
-/* --------------- */
-/* GLOBAL SETTINGS */
-/* --------------- */
+/*
+* ┌─────────────────┐
+* │ GLOBAL SETTINGS │
+* └─────────────────┘
+*/
 
 @define-color bg #282A36;
 @define-color fg #ABB2BF;
@@ -45,9 +47,11 @@
   margin-right: 6px;
 }
 
-/* ------------ */
-/* LEFT MODULES */
-/* ------------ */
+/*
+* ┌──────────────┐
+* │ LEFT MODULES │
+* └──────────────┘
+*/
 
 #window {
   border-radius: 26px;
@@ -86,18 +90,22 @@
   background: transparent;
 }
 
-/* -------------- */
-/* MIDDLE MODULES */
-/* -------------- */
+/*
+* ┌────────────────┐
+* │ MIDDLE MODULES │
+* └────────────────┘
+*/
 
 #clock {
   background: @bg;
   color: @fg;
 }
 
-/* ------------- */
-/* RIGHT MODULES */
-/* ------------- */
+/*
+* ┌───────────────┐
+* │ RIGHT MODULES │
+* └───────────────┘
+*/
 
 #custom-updates {
   background: @green;

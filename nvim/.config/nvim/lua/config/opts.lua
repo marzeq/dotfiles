@@ -56,6 +56,8 @@ o.title = true
 o.ignorecase = true
 o.smartcase = true
 
+vim.cmd('let @t="yypwv$hr─i└─\\<Esc>$a─┘\\<Esc>yyka │\\<Esc>^wi│ \\<Esc>Pwxi┌\\<Esc>$xa┐\\<Esc>j^ww"') -- neat macro for making a title header comment
+
 return {
   ---@type "telescope" | "builtin" | "none"
   startup = "none",
