@@ -23,8 +23,7 @@ stow <program_name_1> <program_name_2> # ...
 ![image](https://github.com/user-attachments/assets/0c18cafa-16af-48b3-b4d9-166a70e10a78)
 
 #### hyprland desktop
-
-![image](https://github.com/user-attachments/assets/ab368bf0-f620-4f3e-aa50-6b92a33784bf)
+![image](https://github.com/user-attachments/assets/0283f725-00c0-4a56-be03-f481b61e7cce)
 
 ---
 
