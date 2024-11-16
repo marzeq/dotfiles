@@ -3,8 +3,7 @@
 MODE=$(echo "sleep
 logout
 reboot
-shutdown
-restartbar" | rofi -dmenu -p "Power menu")
+shutdown" | rofi -dmenu -p "Power menu")
 
 if [[ ! -z "$MODE" ]]; then
   if [ $MODE == "logout" ]; then
