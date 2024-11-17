@@ -71,6 +71,7 @@
     "format-bluetooth": "{volume}% 󰋋",
     "format-bluetooth-muted": "󰟎",
     "on-click": "pavucontrol",
+    "on-click-right": "blueberry",
   },
   "custom/mediacontrol": {
     "format": "󰝚 {}",

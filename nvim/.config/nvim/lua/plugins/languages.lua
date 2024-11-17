@@ -13,6 +13,13 @@ return {
       vim.filetype.add({
         pattern = { [".*%.mconf"] = "mconf" },
       })
+
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "mconf",
+        callback = function()
+          vim.api.nvim_command("set commentstring=#\\ %s")
+        end,
+      })
     end,
   },
 }
