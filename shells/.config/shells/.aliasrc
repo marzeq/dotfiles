@@ -6,27 +6,26 @@ alias grep="grep --color=auto"
 
 alias c="clear"
 
+hascmd() {
+  command -v $1 &> /dev/null
+  return $?
+}
+
 if [ -f /etc/arch-release ]; then
-  function remove-orphans() {
+  remove-orphans() {
     orphans=$(pacman -Qdtq)
     if [ -n "$orphans" ]; then
       sudo pacman -Rns $(pacman -Qdtq)
     fi
   }
 
-  if ! command -v paru &> /dev/null; then
-    git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin
-    cd /tmp/paru-bin
-    makepkg -si
-    cd -
+  if hascmd paru; then
+    alias update-system="paru && remove-orphans"
   fi
-
-  alias update-system="paru && remove-orphans"
 fi
 
-# check if `mconf` command is available
-if command -v mconf &> /dev/null; then
-  function mconftojson() {
+if hascmd mconf; then
+   mconftojson() {
     if [ -z "$1" ]; then
       echo "mconftojson: no file specified"
       return 1
@@ -47,16 +46,18 @@ if command -v mconf &> /dev/null; then
   }
 fi
 
-function sudo() {
-  if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
-    shift
-    sudoedit "$@"
-  else
-    command sudo "$@"
-  fi
-}
+if hascmd vim || hascmd nvim; then
+   sudo() {
+    if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
+      shift
+      sudoedit "$@"
+    else
+      command sudo "$@"
+    fi
+  }
+fi
 
-function scratch() {
+ scratch() {
   local dir=$(mktemp -d)
 
   (cd $dir && $SHELL)
@@ -159,15 +160,5 @@ extract() {
 
 cl() {
   cd $1 && ls
-}
-
-editmkdir() {
-  if [ -z "$1" ]; then
-    echo "maybedit: no file specified"
-    return 1
-  fi
-
-  mkdir -p $(dirname ${1})
-  $EDITOR ${1}
 }
 

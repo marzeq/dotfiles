@@ -8,6 +8,7 @@
     "memory",
     "pulseaudio",
     "custom/mediacontrol",
+    "network",
     "tray",
   ],
   "hyprland/window": {
@@ -72,6 +73,12 @@
     "format-bluetooth-muted": "󰟎",
     "on-click": "pavucontrol",
     "on-click-right": "blueberry",
+    "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+  },
+  "network": {
+    "format": "󰱓 {ipaddr}",
+    "format-disconnected": "󰅛",
+    "on-click": "nm-connection-editor",
   },
   "custom/mediacontrol": {
     "format": "󰝚 {}",
