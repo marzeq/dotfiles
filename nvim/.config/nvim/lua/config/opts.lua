@@ -56,6 +56,13 @@ o.title = true
 o.ignorecase = true
 o.smartcase = true
 
+o.foldmethod = "expr"
+o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+o.foldtext = "v:lua.vim.treesitter.foldtext()"
+vim.api.nvim_command(
+  "autocmd BufEnter * if !exists('b:entered_once') | let b:entered_once = 1 | set nofoldenable | endif"
+)
+
 vim.cmd('let @t="yypwv$hr─i└─\\<Esc>$a─┘\\<Esc>yyka │\\<Esc>^wi│ \\<Esc>Pwxi┌\\<Esc>$xa┐\\<Esc>j^ww"') -- neat macro for making a title header comment
 
 return {
