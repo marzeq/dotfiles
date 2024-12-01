@@ -36,7 +36,7 @@
     "on-click-right": "swaync-client -t",
   },
   "custom/updates": {
-    "format": " {}",
+    "format": "{}",
     "tooltip": false,
     "interval": 1800,
     "exec": "~/.config/waybar/updates.sh",
@@ -76,14 +76,9 @@
     "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
   },
   "network": {
-    "format": "󰱓",
+    "format": "",
     "format-disconnected": "󰅛",
     "format-disabled": "󰲛",
-    "tooltip": true,
-    "tooltip-format": "{ipaddr}",
-    "tooltip-format-disconnected": "",
-    "tooltip-format-disabled": "",
-    "on-click": "nm-connection-editor",
     "interval": 30,
   },
   "custom/mediacontrol": {

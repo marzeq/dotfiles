@@ -87,7 +87,15 @@ then
         RPROMPT="${red}${untracked_files}?${reset} $RPROMPT"
       fi
     fi
-    PROMPT="${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"
+
+    local ENV_FORMAT=""
+    if [[ -v DISTROBOX_ENTER_PATH ]]; then
+      ENV_FORMAT="(distrobox) "
+    elif [[ -v VIRTUAL_ENV ]]; then
+      ENV_FORMAT="(venv) "
+    fi
+
+    PROMPT="${dim}${ENV_FORMAT}${reset}${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"
   }
   precmd_functions+=(prompt)
 elif [[ $PROMPT_TYPE == "bash_like" ]];

@@ -57,6 +57,14 @@ if hascmd vim || hascmd nvim; then
   }
 fi
 
+if hascmd ollama; then
+  DEFAULT_MODEL="assistant"
+
+  help() {
+    ollama run $DEFAULT_MODEL $@
+  }
+fi
+
  scratch() {
   local dir=$(mktemp -d)
 
