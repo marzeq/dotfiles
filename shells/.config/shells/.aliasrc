@@ -65,7 +65,11 @@ if hascmd ollama; then
   }
 fi
 
- scratch() {
+if hascmd git; then
+  alias glg="git log --graph --decorate --all --pretty=format:'%C(auto)%h%d%C(#888888)(%an; %ar)%Creset %s'"
+fi
+
+scratch() {
   local dir=$(mktemp -d)
 
   (cd $dir && $SHELL)
