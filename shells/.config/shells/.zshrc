@@ -118,21 +118,6 @@ plug "zsh-users/zsh-syntax-highlighting"
 #          Shell stuff
 # ------------------------------
 
-# cool update title so it can be hijacked by the WM to change decoration name
-
-function update_title() {
-  local user_host="${USER}@${HOST%%.*}"
-  local current_dir
-  if [ "$PWD" = "$HOME" ]; then
-    current_dir="~"
-  else
-    current_dir="${PWD:t}"
-  fi
-  echo -ne "\033]0;${user_host}:${current_dir} - zsh\007"
-}
-
-precmd_functions+=("update_title")
-
 # vi mode and related
 
 bindkey -v

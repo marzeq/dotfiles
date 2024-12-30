@@ -35,10 +35,10 @@ NEOVIM_DEPS=(
   "curl"                                            # for downloading stuff
 )
 
-ALACRITTY_DEPS=(
+GHOSTTY_DEPS=(
   "stow"
 
-  "alacritty"                                       # duh
+  "ghostty"                                         # duh
 )
 
 FONTS_DEPS=(
@@ -83,7 +83,6 @@ HYPRLAND_DEPS=(
   # my apps
   "nautilus"                                        # file manager
   "firefox"                                         # web browser
-  "thunderbird"                                     # email client
 )
 
 GAMING_DEPS=(
@@ -91,6 +90,7 @@ GAMING_DEPS=(
   ".AUR:proton-ge-custom-bin"                       # latest proton-ge
   "gamemode"                                        # cpu governor optimisation, to squeeze out a couple more framses
   "gamescope"                                       # game compositor
+  "mangohud"                                        # performance monitoring hud
 )
 
 install_paru() {
@@ -134,7 +134,13 @@ install_packages() {
   fi
 }
 
+
+fonts_installed=false
 install_fonts() {
+  if $fonts_installed; then
+    return
+  fi
+  fonts_installed=true
   local twemojilinkcmd="sudo ln -sf /usr/share/fontconfig/conf.avail/75-twemoji.conf /etc/fonts/conf.d/75-twemoji.conf"
 
   install_packages "${FONTS_DEPS[@]}" && \
@@ -149,7 +155,12 @@ install_fonts() {
   fc-cache -f
 }
 
+shells_installed=false
 install_shells() {
+  if $shells_installed; then
+    return
+  fi
+  shells_installed=true
   install_packages "${SHELLS_DEPS[@]}"
   if [[ -f "$HOME/.bashrc" ]]; then
     mv "$HOME/.bashrc" "$HOME/.bashrc.bak"
@@ -162,23 +173,38 @@ install_shells() {
   stow -t "$HOME" shells
 }
 
+neovim_installed=false
 install_neovim() {
+  if $neovim_installed; then
+    return
+  fi
+  neovim_installed=true
   install_packages "${NEOVIM_DEPS[@]}" && \
   install_fonts && \
   stow -t "$HOME" nvim
 }
 
-install_alacritty() {
-  install_packages "${ALACRITTY_DEPS[@]}" && \
+ghostty_installed=false
+install_ghostty() {
+  if $ghostty_installed; then
+    return
+  fi
+  ghostty_installed=true
+  install_packages "${GHOSTTY_DEPS[@]}" && \
   install_fonts && \
-  stow -t "$HOME" alacritty
+  stow -t "$HOME" ghostty
 }
 
+hyprland_installed=false
 install_hyprland() {
+  if $hyprland_installed; then
+    return
+  fi
+  hyprland_installed=true
   install_gpu_drivers && \ # hyprland relies on gpu acceleration
   install_packages "${HYPRLAND_DEPS[@]}" && \
   install_fonts && \
-  install_alacritty && \
+  install_ghostty && \
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3 && \
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
@@ -238,7 +264,7 @@ install_gpu_drivers() {
         check_yn "Do you want to install these packages?" && install_packages "nvidia" "${common_packages[@]}"
       fi
     else
-      echo "Unknown GPU vendor, install them in this shell and exit to continue the process"
+      echo "Unknown GPU vendor, install GPU drivers in this shell and exit to continue the process"
       bash
     fi
   fi
@@ -260,7 +286,7 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, alacritty, hyprland, fonts, gaming"
+    echo "Available packages: shells, neovim, ghostty, hyprland, fonts, gaming"
     echo "Or run $0 all to install all packages"
     exit 1
   fi
@@ -272,8 +298,8 @@ main() {
     "neovim")
       install_neovim
       ;;
-    "alacritty")
-      install_alacritty
+    "ghostty")
+      install_ghostty
       ;;
     "hyprland")
       install_hyprland

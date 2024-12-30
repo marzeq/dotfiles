@@ -18,14 +18,11 @@
       "(.*) - YouTube — Mozilla Firefox": " $1",
       "(?!YouTube)(.*) — Mozilla Firefox": "󰈹 $1",
       "Mozilla Firefox": "󰈹 Firefox",
-      "(.*) - bash": " $1",
-      "(.*) - zsh": " $1",
       "(.*) - NVIM": " $1",
       "(.*) - Discord": "  $1",
       "Discord": "  Discord",
       "Steam(.+)": " $1",
       "Steam": " Steam",
-      "Alacritty(.*)": " Alacritty$1",
     },
     "max-length": 64,
   },
@@ -40,14 +37,14 @@
     "tooltip": false,
     "interval": 1800,
     "exec": "~/.config/waybar/updates.sh",
-    "on-click": "alacritty -e paru && pkill -SIGRTMIN+8 waybar",
+    "on-click": "ghostty -e paru && pkill -SIGRTMIN+8 waybar",
     "signal": 8,
   },
   "cpu": {
     "tooltip": false,
     "interval": 5,
     "format": " {usage}%",
-    "on-click": "gnome-system-monitor",
+    "on-click": "resources",
 
     "states": {
       "critical": 80,
@@ -57,7 +54,7 @@
     "tooltip": false,
     "interval": 5,
     "format": " {percentage}%",
-    "on-click": "gnome-system-monitor",
+    "on-click": "resources",
 
     "states": {
       "critical": 80,
