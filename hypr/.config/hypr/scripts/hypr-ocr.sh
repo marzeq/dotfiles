@@ -1,4 +1,5 @@
 #!/bin/bash 
+set -e
 
 PROGNAME="hypr-ocr"
 OUTDIR="/tmp"

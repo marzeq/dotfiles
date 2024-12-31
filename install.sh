@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 if [[ ! -f "/etc/arch-release" ]]; then
   echo "This script is intended for Arch Linux only!"
@@ -70,7 +71,8 @@ HYPRLAND_DEPS=(
   "hypridle"                                        # idle manager (sleep after inactivity etc.)
 
   "rofi-wayland"                                    # app launcher
-  ".AUR:grimblast-git" "grim" "slurp"               # screenshots
+  ".AUR:hyprshot" "grim" "slurp"                    # screenshots
+  "imagemagick" "tesseract" "tesseract-data-eng"    # needed for area ocr
   "waybar"                                          # status bar
   ".PARU"                                           # explicitly install aur manager
   ".AUR:clipse-bin" "wl-clipboard"                  # clipboard
@@ -143,15 +145,15 @@ install_fonts() {
   fonts_installed=true
   local twemojilinkcmd="sudo ln -sf /usr/share/fontconfig/conf.avail/75-twemoji.conf /etc/fonts/conf.d/75-twemoji.conf"
 
-  install_packages "${FONTS_DEPS[@]}" && \
-  echo "Running: $twemojilinkcmd" && \
-  echo "This will require root permissions!" && \
-  eval $twemojilinkcmd && \
+  install_packages "${FONTS_DEPS[@]}"
+  echo "Running: $twemojilinkcmd"
+  echo "This will require root permissions!"
+  eval $twemojilinkcmd
 
-  mkdir -p "$HOME/.local/share/fonts" && \
+  mkdir -p "$HOME/.local/share/fonts"
   wget -O "/tmp/CascadiaCode.zip" "https://github.com/microsoft/cascadia-code/releases/download/v2404.23/CascadiaCode-2404.23.zip" && \
-  unzip -o "/tmp/CascadiaCode.zip" -d "/tmp/CascadiaCode" && \
-  mv "/tmp/CascadiaCode/ttf"/* "$HOME/.local/share/fonts" && \
+  unzip -o "/tmp/CascadiaCode.zip" -d "/tmp/CascadiaCode"
+  mv "/tmp/CascadiaCode/ttf"/* "$HOME/.local/share/fonts"
   fc-cache -f
 }
 
@@ -179,8 +181,8 @@ install_neovim() {
     return
   fi
   neovim_installed=true
-  install_packages "${NEOVIM_DEPS[@]}" && \
-  install_fonts && \
+  install_packages "${NEOVIM_DEPS[@]}"
+  install_fonts
   stow -t "$HOME" nvim
 }
 
@@ -201,41 +203,21 @@ install_hyprland() {
     return
   fi
   hyprland_installed=true
-  install_gpu_drivers && \ # hyprland relies on gpu acceleration
-  install_packages "${HYPRLAND_DEPS[@]}" && \
-  install_fonts && \
-  install_ghostty && \
-  stow -t "$HOME" hypr waybar rofi wallpapers gtk3 && \
+  install_gpu_drivers # hyprland relies on gpu acceleration
+  install_packages "${HYPRLAND_DEPS[@]}"
+  install_fonts
+  install_ghostty
+  stow -t "$HOME" hypr waybar rofi wallpapers gtk3
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
 }
 
-check_yn() {
-  local prompt="$1"
-
-  if [[ -z "$prompt" ]]; then
-    prompt="Are you sure?"
-  fi
-
-  echo -n "$prompt [y/n]: "
-
-  while true; do
-    read -r response
-    case $response in
-      [Yy]*)
-        return 0
-        ;;
-      [Nn]*)
-        return 1
-        ;;
-      *)
-        echo -n "$prompt [y/n]: "
-        ;;
-    esac
-  done
-}
-
+multilib_enabled=false
 enable_multilib() {
+  if $multilib_enabled; then
+    return
+  fi
+  multilib_enabled=true
   if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
     echo "Enabling multilib repository"
     echo "[multilib]" | sudo tee -a /etc/pacman.conf
@@ -245,29 +227,31 @@ enable_multilib() {
   fi
 }
 
+gpu_dr_installed=false
 install_gpu_drivers() {
-  if [[ -f "/sys/class/drm/card0/device/vendor" ]]; then
-    if [[ "$(cat /sys/class/drm/card0/device/vendor)" == "0x1002" ]]; then
-      local pkglist=("mesa" "vulkan-radeon" "libva-mesa-driver" "mesa-vdpau")
-
-      echo "AMD GPU detected, installing packages: ${pkglist[@]}"
-      check_yn "Do you want to install these packages?" && install_packages "${pkglist[@]}"
-    elif [[ "$(cat /sys/class/drm/card0/device/vendor)" == "0x10de" ]]; then
-      local lspci_output=$(lspci -k | grep -A 2 -E "(VGA|3D)")
-      local common_packages=("nvidia-utils" "nvidia-settings")
-      
-      if echo "$lspci_output" | grep -qE "GTX 1650|20[0-9]{2}|30[0-9]{2}|40[0-9]{2}"; then
-        echo "Modern NVIDIA GPU (1650, 20xx, 30xx, or 40xx series) detected, installing these packages: nvidia-open ${common_packages[@]}"
-        check_yn "Do you want to install these packages?" && install_packages "nvidia-open" "${common_packages[@]}"
-      else
-        echo "Older NVIDIA GPU detected, installing these packages: nvidia ${common_packages[@]}"
-        check_yn "Do you want to install these packages?" && install_packages "nvidia" "${common_packages[@]}"
-      fi
-    else
-      echo "Unknown GPU vendor, install GPU drivers in this shell and exit to continue the process"
-      bash
-    fi
+  if $gpu_dr_installed; then
+    return
   fi
+  gpu_dr_installed=true
+  install_packages "mesa" "libva-mesa-driver" "mesa-vdpau"
+  for gpu in /sys/class/drm/card[0-9]/device; do
+    if [[ -d $gpu ]]; then
+      vendor_id="$(cat $gpu/vendor)"
+
+      if [[ $vendor_id == "0x1002" ]]; then
+        echo "AMD GPU detected"
+        install_packages "vulkan-radeon"
+      elif [[ $vendor_id == "0x8086" ]]; then
+        echo "Intel GPU detected"
+        install_packages "vulkan-intel" "intel-media-driver"
+      elif [[ $vendor_id == "0x10de" ]]; then
+        install_packages "nvidia-dkms" "nvidia-utils"
+      else
+        echo "Unknown GPU vendor for GPU $gpu, install drivers in this shell and exit to continue the process"
+        bash
+      fi
+    fi
+  done
 }
 
 install_gaming() {
@@ -291,37 +275,28 @@ main() {
     exit 1
   fi
 
-  case $1 in
-    "shells")
-      install_shells
-      ;;
-    "neovim")
-      install_neovim
-      ;;
-    "ghostty")
-      install_ghostty
-      ;;
-    "hyprland")
-      install_hyprland
-      ;;
-    "fonts")
-      install_fonts
-      ;;
-    "gaming")
-      install_gaming
-      ;;
-    "all")
-      install_gaming && \
-      install_shells && \
-      install_neovim && \
-      install_hyprland
-      ;;
-    *)
-      echo "Unknown package: $1"
-      cd "$first_dir"
-      exit 1
-      ;;
-  esac
+  if [[ $1 == "shells" ]]; then
+    install_shells
+  elif [[ $1 == "neovim" ]]; then
+    install_neovim
+  elif [[ $1 == "ghostty" ]]; then
+    install_ghostty
+  elif [[ $1 == "hyprland" ]]; then
+    install_hyprland
+  elif [[ $1 == "fonts" ]]; then
+    install_fonts
+  elif [[ $1 == "gaming" ]]; then
+    install_gaming
+  elif [[ $1 == "all" ]]; then
+    install_gaming
+    install_shells
+    install_neovim
+    install_hyprland
+  else
+    echo "Unknown package: $1"
+    cd "$first_dir"
+    exit 1
+  fi
 
   cd "$first_dir"
 }

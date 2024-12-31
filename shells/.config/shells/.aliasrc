@@ -57,12 +57,8 @@ if hascmd vim || hascmd nvim; then
   }
 fi
 
-if hascmd ollama; then
-  DEFAULT_MODEL="assistant"
-
-  help() {
-    ollama run $DEFAULT_MODEL $@
-  }
+if hascmd rg; then
+  alias grep="rg"
 fi
 
 if hascmd git; then
