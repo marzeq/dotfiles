@@ -109,6 +109,12 @@ fi
 #           Plugins
 # ------------------------------
 
+if [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh" ]; then
+  source "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh"
+else
+  zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1 --keep
+fi
+
 plug "zap-zsh/supercharge"
 plug "zsh-users/zsh-autosuggestions"
 

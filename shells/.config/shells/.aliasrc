@@ -57,12 +57,12 @@ if hascmd vim || hascmd nvim; then
   }
 fi
 
-if hascmd rg; then
-  alias grep="rg"
-fi
-
 if hascmd git; then
   alias glg="git log --graph --decorate --all --pretty=format:'%C(auto)%h%d%C(#888888)(%an; %ar)%Creset %s'"
+fi
+
+if hascmd fastfetch; then
+  alias neofetch="fastfetch"
 fi
 
 scratch() {
