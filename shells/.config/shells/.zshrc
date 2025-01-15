@@ -1,3 +1,4 @@
+# vi: ft=bash
 HISTSIZE=10000
 SAVEHIST=1000
 setopt SHARE_HISTORY
@@ -90,9 +91,13 @@ then
 
     local ENV_FORMAT=""
     if [[ -v DISTROBOX_ENTER_PATH ]]; then
-      ENV_FORMAT="(distrobox) "
-    elif [[ -v VIRTUAL_ENV ]]; then
-      ENV_FORMAT="(venv) "
+      ENV_FORMAT+="(distrobox) "
+    fi
+    if [[ -v VIRTUAL_ENV ]]; then
+      ENV_FORMAT+="(venv) "
+    fi
+    if [[ -v SSH_CONNECTION ]]; then
+      ENV_FORMAT+="(ssh) "
     fi
 
     PROMPT="${dim}${ENV_FORMAT}${reset}${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"

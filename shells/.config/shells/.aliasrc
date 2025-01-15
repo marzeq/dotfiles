@@ -47,12 +47,12 @@ if hascmd mconf; then
 fi
 
 if hascmd vim || hascmd nvim; then
-   sudo() {
+  sudo() {
     if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
       shift
-      sudoedit "$@"
+      sudoedit $@
     else
-      command sudo "$@"
+      command sudo $@
     fi
   }
 fi
@@ -61,7 +61,7 @@ if hascmd git; then
   alias glg="git log --graph --decorate --all --pretty=format:'%C(auto)%h%d%C(#888888)(%an; %ar)%Creset %s'"
 fi
 
-if hascmd fastfetch; then
+if hascmd fastfetch && ! hascmd neofetch; then
   alias neofetch="fastfetch"
 fi
 
@@ -100,37 +100,65 @@ compress() {
     return 1
   fi
 
-  if [ "$1" = "-xz" ]; then
-    compression_flag="J"
-    extension=".tar.xz"
-    shift
-  elif [ "$1" = "-gz" ]; then
-    compression_flag="z"
-    extension=".tar.gz"
-    shift
-  elif [ "$1" = "-zip" ]; then
-    command="zip -qr ${2}.zip ${@:2}"
-    echo $command
-    eval $command
-    return
-  elif [[ "$1" = -* ]]; then
-    echo "compress: invalid flag: ${1}"
+  directory=""
+  compression_flag="z"
+  extension=".tar.gz"
+
+  for arg in "$@"; do
+    if [ "$arg" = "-xz" ]; then
+      if ! hascmd tar; then
+        echo "compress: 'tar' command not found"
+        return 1
+      fi
+      compression_flag="J"
+      extension=".tar.xz"
+    elif [ "$arg" = "-gz" ]; then
+      if ! hascmd tar; then
+        echo "compress: 'tar' command not found"
+        return 1
+      fi
+      compression_flag="z"
+      extension=".tar.gz"
+    elif [ "$arg" = "-zip" ]; then
+      if ! hascmd zip; then
+        echo "compress: 'zip' command not found"
+        return 1
+      fi
+      extension=".zip"
+    elif [ "$arg" = "-7z" ]; then
+      if ! hascmd 7z; then
+        echo "compress: '7z' command not found"
+        return 1
+      fi
+      extension=".7z"
+    elif [[ "$arg" = -* ]]; then
+      echo "compress: invalid flag: ${arg}"
+      return 1
+    else
+      directory=$arg
+    fi
+  done
+
+  if [ -z "$directory" ]; then
+    echo "compress: no directory specified"
     return 1
-  else
-    compression_flag="z"
-    extension=".tar.gz"
   fi
 
-  if [ "$#" -eq 1 ]; then
-    archive_name=$(basename ${1})
-    command="tar -c${compression_flag}f $archive_name${extension} ${1}"
+  if [ ! -d "$directory" ]; then
+    echo "compress: no such directory: ${directory}"
+    return 1
+  fi
+
+  if [[ "$extension" == ".zip" ]]; then
+    command="zip -qr ${directory}.zip ${directory}"
+  elif [[ "$extension" == ".7z" ]]; then
+    command="7z a ${directory}.7z ${directory}"
   else
-    archive_name=${1}
-    command="tar -c${compression_flag}f $archive_name${extension} ${@:2}"
+    command="tar -c${compression_flag}f ${directory}${extension} ${directory}"
   fi
 
   echo $command
-  eval $command
+  eval $command > /dev/null
 }
 
 extract() {
@@ -146,27 +174,40 @@ extract() {
     fi
 
     if [[ "$file" == *.tar.gz ]]; then
-      basename=${file%.tar.gz}
-      command="tar -xzf ${file} -C ${basename}"
+      if hascmd tar; then
+        command="tar -xzf ${file}"
+      else
+        echo "extract: 'tar' command not found"
+        continue
+      fi
     elif [[ "$file" == *.tar.xz ]]; then
-      basename=${file%.tar.xz}
-      command="tar -xf ${file} -C ${basename}"
+      if hascmd tar; then
+        command="tar -xf ${file}"
+      else
+        echo "extract: 'tar' command not found"
+        continue
+      fi
     elif [[ "$file" == *.zip ]]; then
-      basename=${file%.zip}
-      command="unzip -q ${file} -d ${basename}"
+      if hascmd unzip; then
+        command="unzip -q ${file}"
+      else
+        echo "extract: 'unzip' command not found"
+        continue
+      fi
+    elif [[ "$file" == *.7z ]]; then
+      if hascmd 7z; then
+        command="7z x ${file}"
+      else
+        echo "extract: '7z' command not found"
+        continue
+      fi
     else
       extension=".${file#*.}"
       echo "extract: unknown file type: ${extension}"
+      continue
     fi
 
-
-
     echo $command
-    eval $command
+    eval $command > /dev/null
   done
 }
-
-cl() {
-  cd $1 && ls
-}
-
