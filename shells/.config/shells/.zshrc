@@ -37,12 +37,26 @@ magenta="%{$(tput setaf 5)%}"
 cyan="%{$(tput setaf 6)%}"
 white="%{$(tput setaf 7)%}"
 
+function is_in_dot_git() {
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    result=$(git rev-parse --is-inside-work-tree)
+    if [ "$result" = "false" ]; then
+      return 0
+    fi
+
+    return 1
+  fi
+
+  return 1
+}
+
 function git_branch() {
+  if is_in_dot_git; then
+    return
+  fi
+
   branch=$(git symbolic-ref HEAD 2> /dev/null | awk 'BEGIN{FS="/"} {print $NF}')
-  if [[ $branch == "" ]];
-  then
-    :
-  else
+  if [[ $branch != "" ]]; then
     echo $branch
   fi
 }

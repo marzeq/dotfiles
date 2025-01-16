@@ -20,7 +20,11 @@ if [ -f /etc/arch-release ]; then
   }
 
   if hascmd paru; then
-    alias update-system="paru && remove-orphans"
+    if hascmd waybar; then
+      alias update-system="paru && remove-orphans && pkill -SIGRTMIN+8 waybar"
+    else
+      alias update-system="paru && remove-orphans"
+    fi
   fi
 fi
 
@@ -63,8 +67,11 @@ if hascmd git; then
   alias gs="git status"
   alias gd="git diff"
 
+  alias ga="git add"
   alias gc="git commit -m"
   alias gca="git commit -am"
+
+  alias gp="git push"
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then

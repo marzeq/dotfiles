@@ -34,6 +34,7 @@ NEOVIM_DEPS=(
   "ripgrep"                                         # same for you rg <3
   "nodejs" "npm"                                    # i think this is needed for a lot of lsp stuff
   "curl"                                            # for downloading stuff
+  "imagemagick"                                     # for image.nvim to work
 )
 
 GHOSTTY_DEPS=(
