@@ -59,6 +59,12 @@ fi
 
 if hascmd git; then
   alias glg="git log --graph --decorate --all --pretty=format:'%C(auto)%h%d%C(#888888)(%an; %ar)%Creset %s'"
+
+  alias gs="git status"
+  alias gd="git diff"
+
+  alias gc="git commit -m"
+  alias gca="git commit -am"
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then
