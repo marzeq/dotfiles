@@ -72,6 +72,8 @@ if hascmd git; then
   alias gca="git commit -am"
 
   alias gp="git push"
+  alias gpl="git pull"
+  alias gf="git fetch"
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then
