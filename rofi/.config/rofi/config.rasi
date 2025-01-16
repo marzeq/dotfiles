@@ -1,1 +1,4 @@
 @theme "rounded-blue-dark"
+configuration {
+  terminal: "ghostty";
+}
