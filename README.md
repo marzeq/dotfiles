@@ -30,13 +30,13 @@ run the `install.sh` script to stow the config files for the specified package o
 
 #### hyprland desktop
 
-![image](https://github.com/user-attachments/assets/0283f725-00c0-4a56-be03-f481b61e7cce)
+![image](https://github.com/user-attachments/assets/890a0690-4a80-4550-85da-81b080283d38)
 
 #### neovim
 
-![image](https://github.com/user-attachments/assets/ae1c454a-9351-4f3e-9228-a4f8d15b94af)
+![image](https://github.com/user-attachments/assets/f151193e-d46d-471c-9d9c-4c696212737c)
 
-![image](https://github.com/user-attachments/assets/0c18cafa-16af-48b3-b4d9-166a70e10a78)
+![image](https://github.com/user-attachments/assets/5d1d52ee-2fea-4b1d-83c5-08c044612bf2)
 
 ---
 
