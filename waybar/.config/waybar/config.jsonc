@@ -1,28 +1,12 @@
 {
   "layer": "bottom",
-  "modules-left": ["hyprland/workspaces", "hyprland/window"],
+  "modules-left": ["hyprland/workspaces"],
   "modules-center": ["clock"],
   "modules-right": ["custom/updates", "cpu", "memory", "pulseaudio", "custom/mediacontrol", "network", "tray"],
-  "hyprland/window": {
-    "format": "{}",
-    "rewrite": {
-      "YouTube — Mozilla Firefox": " YouTube",
-      "(.*) - YouTube — Mozilla Firefox": " $1",
-      "(?!YouTube)(.*) — Mozilla Firefox": "󰈹 $1",
-      "Mozilla Firefox": "󰈹 Firefox",
-      "(.*) - NVIM": " $1",
-      "(.*) - Discord": "  $1",
-      "Discord": "  Discord",
-      "Steam(.+)": " $1",
-      "Steam": " Steam"
-    },
-    "max-length": 64
-  },
   "clock": {
     "interval": 1,
-    "format": " {:%a %d %b 󰥔 %H:%M:%S}",
-    "on-click": "gnome-calendar",
-    "on-click-right": "swaync-client -t"
+    "tooltip": false,
+    "format": "{:%a %d %b %H:%M:%S}"
   },
   "custom/updates": {
     "format": "{}",

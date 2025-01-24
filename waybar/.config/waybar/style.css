@@ -40,15 +40,13 @@
 * └──────────────┘
 */
 
-#window {
-}
-
 #workspaces {
   color: @fg;
 }
 
 #workspaces button {
   color: @fg;
+  padding: 2px;
 }
 
 #workspaces button.focused,
@@ -57,7 +55,7 @@
 }
 
 #workspaces button:hover {
-  color: @purple;
+  color: @blue;
 }
 
 /*
