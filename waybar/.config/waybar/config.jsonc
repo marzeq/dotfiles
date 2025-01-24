@@ -2,15 +2,7 @@
   "layer": "bottom",
   "modules-left": ["hyprland/workspaces", "hyprland/window"],
   "modules-center": ["clock"],
-  "modules-right": [
-    "custom/updates",
-    "cpu",
-    "memory",
-    "pulseaudio",
-    "custom/mediacontrol",
-    "network",
-    "tray",
-  ],
+  "modules-right": ["custom/updates", "cpu", "memory", "pulseaudio", "custom/mediacontrol", "network", "tray"],
   "hyprland/window": {
     "format": "{}",
     "rewrite": {
@@ -22,15 +14,15 @@
       "(.*) - Discord": "  $1",
       "Discord": "  Discord",
       "Steam(.+)": " $1",
-      "Steam": " Steam",
+      "Steam": " Steam"
     },
-    "max-length": 64,
+    "max-length": 64
   },
   "clock": {
     "interval": 1,
     "format": " {:%a %d %b 󰥔 %H:%M:%S}",
     "on-click": "gnome-calendar",
-    "on-click-right": "swaync-client -t",
+    "on-click-right": "swaync-client -t"
   },
   "custom/updates": {
     "format": "{}",
@@ -38,7 +30,7 @@
     "interval": 1800,
     "exec": "~/.config/waybar/updates.sh",
     "on-click": "ghostty -e ~/.config/waybar/updatesystem.sh",
-    "signal": 8,
+    "signal": 8
   },
   "cpu": {
     "tooltip": false,
@@ -47,8 +39,8 @@
     "on-click": "resources",
 
     "states": {
-      "critical": 80,
-    },
+      "critical": 80
+    }
   },
   "memory": {
     "tooltip": false,
@@ -57,8 +49,8 @@
     "on-click": "resources",
 
     "states": {
-      "critical": 80,
-    },
+      "critical": 80
+    }
   },
   "pulseaudio": {
     "tooltip": false,
@@ -70,13 +62,13 @@
     "format-bluetooth-muted": "󰟎",
     "on-click": "pavucontrol",
     "on-click-right": "blueberry",
-    "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+    "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
   },
   "network": {
     "format": "",
     "format-disconnected": "󰅛",
     "format-disabled": "󰲛",
-    "interval": 30,
+    "interval": 30
   },
   "custom/mediacontrol": {
     "format": "󰝚 {}",
@@ -86,9 +78,9 @@
     "signal": 10,
     "on-click": "playerctl play-pause && pkill -SIGRTMIN+10 waybar",
     "on-scroll-up": "playerctl previous && pkill -SIGRTMIN+10 waybar",
-    "on-scroll-down": "playerctl next && pkill -SIGRTMIN+10 waybar",
+    "on-scroll-down": "playerctl next && pkill -SIGRTMIN+10 waybar"
   },
   "tray": {
-    "spacing": 10,
-  },
+    "spacing": 10
+  }
 }

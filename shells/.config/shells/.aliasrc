@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 
-alias ls="ls --color=auto"
-alias la="ls -A"
-alias grep="grep --color=auto"
-
-alias c="clear"
-
 hascmd() {
   command -v $1 &> /dev/null
   return $?
 }
+if hascmd lsd; then
+  alias ls="lsd"
+else
+  alias ls="ls --color=auto"
+fi
+alias la="ls -A"
+alias grep="grep --color=auto"
+
+alias c="clear"
 
 if [ -f /etc/arch-release ]; then
   remove-orphans() {
@@ -28,8 +31,15 @@ if [ -f /etc/arch-release ]; then
   fi
 fi
 
+if hascmd xdg-open; then
+  xdg-open() {
+    (command xdg-open "$@" &)
+  }
+fi
+
+
 if hascmd mconf; then
-   mconftojson() {
+  mconftojson() {
     if [ -z "$1" ]; then
       echo "mconftojson: no file specified"
       return 1
@@ -45,7 +55,7 @@ if hascmd mconf; then
 
     # replace .mconf extension with .json
     local json_file=${1%.mconf}.json
-    
+
     echo $output > $json_file
   }
 fi
@@ -74,6 +84,11 @@ if hascmd git; then
   alias gp="git push"
   alias gpl="git pull"
   alias gf="git fetch"
+
+  if hascmd gh; then
+    alias gcr="gh repo create -s . --push"
+    alias gv="gh repo view --web"
+  fi
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then

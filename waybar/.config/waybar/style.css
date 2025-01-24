@@ -4,46 +4,34 @@
 * └─────────────────┘
 */
 
-@define-color bg #282A36;
-@define-color fg #ABB2BF;
-@define-color black #282C34;
-@define-color red #E06C75;
-@define-color green #98C379;
-@define-color yellow #E5C07B;
-@define-color blue #61AFEF;
-@define-color purple #C678DD;
-@define-color cyan #56B6C2;
-@define-color white #ABB2BF;
+@define-color bg #242424;
+@define-color fg #d2d2d2;
+@define-color black #000000;
+@define-color red #ff7b63;
+@define-color green #8ff0a4;
+@define-color yellow #f8e45c;
+@define-color blue #78aeed;
+@define-color white #fafafa;
 
 * {
-  font-family: "Cascadia Code";
+  font-family: "CaskaydiaCove Nerd Font";
   font-size: 16px;
 }
 
 #waybar {
-  background: transparent;
+  background: @bg;
 }
 
 .module {
   border-radius: 26px;
 
-  margin-top: 12px;
+  margin-right: 8px;
+  margin-left: 8px;
 
-  margin-left: 6px;
-  margin-right: 6px;
+  margin-top: 4px;
+  margin-bottom: 4px;
 
-  padding-right: 16px;
-  padding-left: 16px;
-
-  min-height: 36px;
-}
-
-.modules-left {
-  margin-left: 6px;
-}
-
-.modules-right {
-  margin-right: 6px;
+  color: @fg;
 }
 
 /*
@@ -53,22 +41,14 @@
 */
 
 #window {
-  border-radius: 26px;
-  color: transparent;
-  background: transparent;
 }
 
 #workspaces {
-  padding-left: 4px;
-  padding-right: 4px;
-
-  background: @bg;
+  color: @fg;
 }
 
 #workspaces button {
   color: @fg;
-  background: transparent;
-  transition: none;
 }
 
 #workspaces button.focused,
@@ -80,15 +60,6 @@
   color: @purple;
 }
 
-#window {
-  background: @bg;
-  color: @fg;
-}
-
-#waybar.empty #window {
-  background: transparent;
-}
-
 /*
 * ┌────────────────┐
 * │ MIDDLE MODULES │
@@ -96,8 +67,6 @@
 */
 
 #clock {
-  background: @bg;
-  color: @fg;
 }
 
 /*
@@ -107,20 +76,11 @@
 */
 
 #custom-updates {
-  background: @green;
-  color: @black;
+  color: @green;
 }
 
 #cpu {
-  background: @yellow;
-  color: @black;
-
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-
-  padding-right: 6px;
-
-  margin-right: 0;
+  color: @yellow;
 }
 
 #cpu.critical {
@@ -129,15 +89,7 @@
 }
 
 #memory {
-  background: @yellow;
-  color: @black;
-
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-
-  padding-left: 6px;
-
-  margin-left: 0;
+  color: @yellow;
 }
 
 #memory.critical {
@@ -146,21 +98,17 @@
 }
 
 #pulseaudio {
-  background: @blue;
-  color: @black;
+  color: @blue;
 }
 
 #network {
-  background: @cyan;
-  color: @black;
+  color: @cyan;
 }
 
 #custom-mediacontrol {
-  background: @purple;
-  color: @black;
+  color: @purple;
 }
 
 #tray {
-  background: @red;
-  color: @black;
+  margin-right: 16px;
 }

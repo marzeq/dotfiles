@@ -1,0 +1,14 @@
+/* ROUNDED THEME FOR ROFI */
+/* Author: Newman Sanchez (https://github.com/newmanls) */
+
+* {
+  bg: #242424;
+  textbox-bg: @bg;
+  message-bg: @bg;
+  active-bg: #3584e4;
+  fg: #d2d2d2;
+  prompt-fg: @fg;
+  dark-fg: #888888;
+}
+
+@import "rounded-common.rasi"

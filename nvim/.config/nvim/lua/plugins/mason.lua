@@ -1,5 +1,7 @@
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
+vim.g.zig_fmt_autosave = 0
+
 return {
   {
     "williamboman/mason.nvim",
@@ -9,7 +11,6 @@ return {
   {
     "williamboman/mason-lspconfig.nvim",
     opts = {
-      ensure_installed = { "lua_ls", "rust_analyzer", "gopls" },
       handlers = {
         function(server_name)
           require("lspconfig")[server_name].setup({ capabilities = capabilities })

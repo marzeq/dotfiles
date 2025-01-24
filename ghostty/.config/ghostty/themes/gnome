@@ -1,0 +1,25 @@
+# vi: ft=mconf
+
+palette = "1=#c01c28"
+palette = "2=#26a269"
+palette = "3=#a2734c"
+palette = "4=#12488b"
+palette = "5=#a347ba"
+palette = "6=#2aa1b3"
+palette = "7=#cfcfcf"
+palette = "8=#5d5d5d"
+palette = "9=#f66151"
+palette = "10=#33d17a"
+palette = "11=#e9ad0c"
+palette = "12=#2a7bde"
+palette = "13=#c061cb"
+palette = "14=#33c7de"
+palette = "15=#ffffff"
+
+background = "1d1d20"
+foreground = "cfcfcf"
+
+cursor-color = "cfcfcf"
+
+selection-background = "193D66"
+selection-foreground = "cfcfcf"
