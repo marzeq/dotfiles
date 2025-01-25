@@ -2,7 +2,7 @@
   "layer": "bottom",
   "modules-left": ["hyprland/workspaces"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/updates", "cpu", "memory", "pulseaudio", "custom/mediacontrol", "network", "tray"],
+  "modules-right": ["custom/updates", "cpu", "memory", "network", "pulseaudio", "bluetooth", "custom/mediacontrol", "tray"],
   "clock": {
     "interval": 1,
     "tooltip": false,
@@ -47,6 +47,11 @@
     "on-click": "pavucontrol",
     "on-click-right": "blueberry",
     "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
+  },
+  "bluetooth": {
+    "format": "",
+    "format-connected": "󰁹 {device_battery_percentage}%",
+    "max-length": 15
   },
   "network": {
     "format": "",

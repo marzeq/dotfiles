@@ -9,7 +9,7 @@ if [[ ! -z "$MODE" ]]; then
   if [ $MODE == "Logout" ]; then
     hyprctl dispatch exit
   elif [ $MODE == "Reboot" ]; then
-    systemctl Reboot
+    systemctl reboot
   elif [ $MODE == "Shutdown" ]; then
     systemctl poweroff
   elif [ $MODE == "Sleep" ]; then
