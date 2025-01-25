@@ -33,7 +33,7 @@ fi
 
 if hascmd xdg-open; then
   xdg-open() {
-    (command xdg-open "$@" &)
+    (command xdg-open "$@" &> /dev/null &)
   }
 fi
 

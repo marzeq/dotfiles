@@ -3,11 +3,11 @@
 
 * {
   bg: #242424;
-  textbox-bg: @bg;
+  textbox-bg: #343434;
   message-bg: @bg;
-  active-bg: #3584e4;
-  fg: #d2d2d2;
-  prompt-fg: @fg;
+  active-bg: #454545;
+  active-border: #3584e4;
+  fg: #ffffff;
   dark-fg: #888888;
 }
 

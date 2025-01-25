@@ -4,8 +4,8 @@
 * └─────────────────┘
 */
 
-@define-color bg #242424;
-@define-color fg #d2d2d2;
+@define-color bg #000000;
+@define-color fg #FFFFFF;
 @define-color black #000000;
 @define-color red #ff7b63;
 @define-color green #8ff0a4;
@@ -14,7 +14,8 @@
 @define-color white #fafafa;
 
 * {
-  font-family: "CaskaydiaCove Nerd Font";
+  font-family: "Cantarell";
+  font-weight: bold;
   font-size: 16px;
 }
 
@@ -78,21 +79,29 @@
 }
 
 #cpu {
-  color: @yellow;
+  font-size: 0;
+  margin: 0;
+  padding: 0;
 }
 
 #cpu.critical {
   color: @red;
-  font-weight: bold;
+  font-size: inherit;
+  margin: inherit;
+  padding: inherit;
 }
 
 #memory {
-  color: @yellow;
+  font-size: 0;
+  margin: 0;
+  padding: 0;
 }
 
 #memory.critical {
   color: @red;
-  font-weight: bold;
+  font-size: inherit;
+  margin: inherit;
+  padding: inherit;
 }
 
 #pulseaudio {
@@ -100,11 +109,11 @@
 }
 
 #network {
-  color: @cyan;
+  color: @red;
 }
 
 #custom-mediacontrol {
-  color: @purple;
+  color: @blue;
 }
 
 #tray {

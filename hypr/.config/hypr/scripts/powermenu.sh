@@ -1,20 +1,20 @@
 #!/bin/bash
 
-MODE=$(echo "sleep
-logout
-reboot
-shutdown" | rofi -dmenu -p "Power menu")
+MODE=$(echo "Sleep
+Logout
+Reboot
+Shutdown" | rofi -dmenu -p "Power menu")
 
 if [[ ! -z "$MODE" ]]; then
-  if [ $MODE == "logout" ]; then
+  if [ $MODE == "Logout" ]; then
     hyprctl dispatch exit
-  elif [ $MODE == "reboot" ]; then
-    systemctl reboot
-  elif [ $MODE == "shutdown" ]; then
+  elif [ $MODE == "Reboot" ]; then
+    systemctl Reboot
+  elif [ $MODE == "Shutdown" ]; then
     systemctl poweroff
-  elif [ $MODE == "sleep" ]; then
+  elif [ $MODE == "Sleep" ]; then
     systemctl suspend
-  elif [ $MODE == "restartbar" ]; then
+  elif [ $MODE == "bar" ]; then
     pkill waybar; hyprctl dispatch exec waybar
   fi
 fi

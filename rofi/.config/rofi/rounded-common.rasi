@@ -2,7 +2,7 @@
 /* Author: Newman Sanchez (https://github.com/newmanls) */
 
 * {
-  font: "Cascadia Code 12";
+  font: "Cantarell 12";
 
   background-color: transparent;
   text-color: @fg;
@@ -27,18 +27,12 @@ mainbox {
 
 inputbar {
   background-color: @textbox-bg;
-  border-color: @active-bg;
 
-  border: 2px;
   border-radius: 8px;
 
   padding: 8px 16px;
   spacing: 8px;
-  children: [prompt, entry];
-}
-
-prompt {
-  text-color: @prompt-fg;
+  children: [entry];
 }
 
 entry {
@@ -83,7 +77,8 @@ element alternate active {
 
 element selected normal, element selected active {
   background-color: @active-bg;
-  text-color: @bg;
+  border: 2px;
+  border-color: @active-border;
 }
 
 element-icon {

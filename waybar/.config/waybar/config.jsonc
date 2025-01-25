@@ -55,7 +55,7 @@
     "interval": 30
   },
   "custom/mediacontrol": {
-    "format": "󰝚 {}",
+    "format": "{}",
     "tooltip": true,
     "exec": "~/.config/waybar/getplayicon.sh",
     "interval": 1,
