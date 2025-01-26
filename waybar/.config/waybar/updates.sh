@@ -5,5 +5,5 @@ SUM=$(($CHK + $CHKAUR))
 
 
 if ! [ "$SUM" -eq 0 ]; then
-  echo " ${SUM}"
+  echo ${SUM}
 fi

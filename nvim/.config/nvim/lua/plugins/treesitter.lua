@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-fields
 return {
   {
     "nvim-treesitter/nvim-treesitter",
@@ -17,10 +18,6 @@ return {
         indent = {
           enable = true,
         },
-      })
-
-      vim.filetype.add({
-        pattern = { [".*/hypr/.*%.conf"] = "hyprlang" },
       })
     end,
   },

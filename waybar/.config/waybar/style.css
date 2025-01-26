@@ -33,6 +33,10 @@
 
   font-weight: bold;
 
+  background-repeat: no-repeat;
+  background-position: left;
+  background-size: 18px 18px;
+
   color: @fg;
 }
 
@@ -76,7 +80,8 @@
 */
 
 #custom-updates {
-  color: @green;
+  background-image: url("./icons/update.svg");
+  padding-left: 20px;
 }
 
 #cpu {
@@ -87,9 +92,11 @@
 
 #cpu.critical {
   color: @red;
+  background-image: url("./icons/warn.svg");
   font-size: inherit;
-  margin: inherit;
+  margin: 4px 8px;
   padding: inherit;
+  padding-left: 20px;
 }
 
 #memory {
@@ -100,25 +107,39 @@
 
 #memory.critical {
   color: @red;
+  background-image: url("./icons/warn.svg");
   font-size: inherit;
-  margin: inherit;
+  margin: 4px 8px;
   padding: inherit;
-}
-
-#network {
-  color: @red;
+  padding-left: 20px;
 }
 
 #pulseaudio {
-  color: @blue;
+  background-image: url("./icons/audio.svg");
+  padding-left: 20px;
+}
+
+#pulseaudio.muted {
+  background-image: url("./icons/muted.svg");
+  padding-left: 0;
 }
 
 #bluetooth {
-  color: @blue;
+  background-image: url("./icons/bt-disconnected.svg");
+  padding-left: 18px;
+}
+
+#bluetooth.connected {
+  background-image: url("./icons/bluetooth.svg");
+  padding-left: 18px;
 }
 
 #custom-mediacontrol {
-  color: @blue;
+  background-image: url("./icons/pause.svg");
+}
+
+#custom-mediacontrol.paused {
+  background-image: url("./icons/play.svg");
 }
 
 #tray {

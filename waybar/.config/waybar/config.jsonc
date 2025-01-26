@@ -2,14 +2,14 @@
   "layer": "bottom",
   "modules-left": ["hyprland/workspaces"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/updates", "cpu", "memory", "network", "pulseaudio", "bluetooth", "custom/mediacontrol", "tray"],
+  "modules-right": ["custom/updates", "cpu", "memory", "pulseaudio", "bluetooth", "tray"],
   "clock": {
     "interval": 1,
     "tooltip": false,
     "format": "{:%a %d %b %H:%M:%S}"
   },
   "custom/updates": {
-    "format": "{}",
+    "format": " {}",
     "tooltip": false,
     "interval": 1800,
     "exec": "~/.config/waybar/updates.sh",
@@ -19,7 +19,7 @@
   "cpu": {
     "tooltip": false,
     "interval": 5,
-    "format": " {usage}%",
+    "format": " CPU: {usage}%",
     "on-click": "resources",
 
     "states": {
@@ -29,7 +29,7 @@
   "memory": {
     "tooltip": false,
     "interval": 5,
-    "format": " {percentage}%",
+    "format": " RAM: {percentage}%",
     "on-click": "resources",
 
     "states": {
@@ -40,34 +40,18 @@
     "tooltip": false,
     "scroll-step": 5, // %, can be a float
     "reverse-scrolling": 1,
-    "format": "󰋋 {volume}%",
-    "format-muted": "󰟎",
-    "format-bluetooth": "󰋋 {volume}%",
-    "format-bluetooth-muted": "󰟎",
+    "format": " {volume}%",
+    "format-muted": " ",
+    "format-bluetooth": " {volume}%",
+    "format-bluetooth-muted": " ",
     "on-click": "pavucontrol",
-    "on-click-right": "blueberry",
     "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
   },
   "bluetooth": {
-    "format": "",
-    "format-connected": "󰁹 {device_battery_percentage}%",
+    "format": " ",
+    "format-connected": " {device_battery_percentage}%",
+    "on-click": "blueberry",
     "max-length": 15
-  },
-  "network": {
-    "format": "",
-    "format-disconnected": "󰅛",
-    "format-disabled": "󰲛",
-    "interval": 30
-  },
-  "custom/mediacontrol": {
-    "format": "{}",
-    "tooltip": true,
-    "exec": "~/.config/waybar/getplayicon.sh",
-    "interval": 1,
-    "signal": 10,
-    "on-click": "playerctl play-pause && pkill -SIGRTMIN+10 waybar",
-    "on-scroll-up": "playerctl previous && pkill -SIGRTMIN+10 waybar",
-    "on-scroll-down": "playerctl next && pkill -SIGRTMIN+10 waybar"
   },
   "tray": {
     "spacing": 10
