@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-hascmd() {
+function hascmd() {
   command -v $1 &> /dev/null
   return $?
 }
@@ -15,7 +15,7 @@ alias grep="grep --color=auto"
 alias c="clear"
 
 if [ -f /etc/arch-release ]; then
-  remove-orphans() {
+  function remove-orphans() {
     orphans=$(pacman -Qdtq)
     if [ -n "$orphans" ]; then
       sudo pacman -Rns $(pacman -Qdtq)
@@ -32,14 +32,14 @@ if [ -f /etc/arch-release ]; then
 fi
 
 if hascmd xdg-open; then
-  xdg-open() {
+  function xdg-open() {
     (command xdg-open "$@" &> /dev/null &)
   }
 fi
 
 
 if hascmd mconf; then
-  mconftojson() {
+  function mconftojson() {
     if [ -z "$1" ]; then
       echo "mconftojson: no file specified"
       return 1
@@ -61,7 +61,7 @@ if hascmd mconf; then
 fi
 
 if hascmd vim || hascmd nvim; then
-  sudo() {
+  function sudo() {
     if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
       shift
       sudoedit $@
@@ -95,14 +95,20 @@ if hascmd fastfetch && ! hascmd neofetch; then
   alias neofetch="fastfetch"
 fi
 
-scratch() {
+if hascmd wl-copy; then
+  function cpy() {
+    cat $1 | wl-copy
+  }
+fi
+
+function scratch() {
   local dir=$(mktemp -d)
 
   (cd $dir && $SHELL)
   rm -rf $dir
 }
 
-loadenv() {
+function loadenv() {
   if [ -z "$1" ]; then
     if [ -e ".env" ]; then
       set -a; source .env; set +a
@@ -124,7 +130,7 @@ loadenv() {
   fi
 }
 
-compress() {
+function compress() {
   if [ "$#" -eq 0 ]; then
     echo "compress: no arguments specified"
     return 1
@@ -191,7 +197,7 @@ compress() {
   eval $command > /dev/null
 }
 
-extract() {
+function extract() {
   if [ "$#" -eq 0 ]; then
     echo "extract: no file(s) specified"
     return 1

@@ -1,0 +1,20 @@
+#!/bin/bash
+FILES=$(find . -maxdepth 1 -type f \( -iname "*.webp" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -printf "%f\n")
+
+if [ -z "$FILES" ]; then
+    echo "No image files found!"
+    exit 1
+fi
+
+SELECTED=$(echo "$FILES" | rofi -dmenu -p "Select wallpaper")
+
+if [ -z "$SELECTED" ]; then
+    echo "No selection made!"
+    exit 1
+fi
+
+unlink ./wallpaper 2>/dev/null
+ln -s "$SELECTED" wallpaper
+
+pkill hyprpaper ; hyprctl dispatch exec hyprpaper
+

@@ -166,7 +166,7 @@ local wk_remaps = {
     desc = "Move to the window to the right",
   },
 
-  { "<Esc>", "<cmd>nohlsearch<CR>", desc = "Clear highlights", mode = "n" },
+  { "<leader>q", "<cmd>bd<CR>", desc = "Close current buffer", mode = "n" },
 
   { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
   {

@@ -80,7 +80,7 @@
 */
 
 #custom-updates {
-  background-image: url("./icons/update.svg");
+  background-image: url("./icons/update.png");
   padding-left: 20px;
 }
 
@@ -92,7 +92,7 @@
 
 #cpu.critical {
   color: @red;
-  background-image: url("./icons/warn.svg");
+  background-image: url("./icons/warn.png");
   font-size: inherit;
   margin: 4px 8px;
   padding: inherit;
@@ -107,7 +107,7 @@
 
 #memory.critical {
   color: @red;
-  background-image: url("./icons/warn.svg");
+  background-image: url("./icons/warn.png");
   font-size: inherit;
   margin: 4px 8px;
   padding: inherit;
@@ -115,31 +115,23 @@
 }
 
 #pulseaudio {
-  background-image: url("./icons/audio.svg");
+  background-image: url("./icons/audio.png");
   padding-left: 20px;
 }
 
 #pulseaudio.muted {
-  background-image: url("./icons/muted.svg");
-  padding-left: 0;
+  background-image: url("./icons/muted.png");
+  padding-left: 18px;
 }
 
 #bluetooth {
-  background-image: url("./icons/bt-disconnected.svg");
+  background-image: url("./icons/bt-disconnected.png");
   padding-left: 18px;
 }
 
 #bluetooth.connected {
-  background-image: url("./icons/bluetooth.svg");
+  background-image: url("./icons/bluetooth.png");
   padding-left: 18px;
-}
-
-#custom-mediacontrol {
-  background-image: url("./icons/pause.svg");
-}
-
-#custom-mediacontrol.paused {
-  background-image: url("./icons/play.svg");
 }
 
 #tray {
