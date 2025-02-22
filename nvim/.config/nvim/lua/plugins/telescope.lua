@@ -123,7 +123,21 @@ end
 return {
   {
     "nvim-telescope/telescope.nvim",
-    dependencies = { "nvim-lua/plenary.nvim", "BurntSushi/ripgrep", { "3rd/image.nvim", build = false, opts = {} } },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "BurntSushi/ripgrep",
+      {
+        "3rd/image.nvim",
+        dependencies = {
+          {
+            "vhyrro/luarocks.nvim",
+            priority = 1000,
+            config = true,
+          },
+        },
+        opts = {},
+      },
+    },
     config = function()
       local fb_actions = require("telescope._extensions.file_browser.actions")
       local image_preview = telescope_image_preview()

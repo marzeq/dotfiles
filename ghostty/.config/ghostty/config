@@ -4,7 +4,7 @@
 # │ GUI STUFF │
 # └───────────┘
 
-window-decoration = false
+window-decoration = true
 resize-overlay = never
 confirm-close-surface = false
 gtk-single-instance = true
