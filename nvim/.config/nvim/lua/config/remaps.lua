@@ -65,32 +65,6 @@ local wk_remaps = {
     desc = "Run arbitrary command",
   },
 
-  {
-    mode = { "v" },
-    { "<leader>s", group = "Screenshot" },
-    {
-      "<leader>sc",
-      function()
-        require("nvim-silicon").clip()
-      end,
-      desc = "Copy code screenshot to clipboard",
-    },
-    {
-      "<leader>sf",
-      function()
-        require("nvim-silicon").file()
-      end,
-      desc = "Save code screenshot as file",
-    },
-    {
-      "<leader>ss",
-      function()
-        require("nvim-silicon").shoot()
-      end,
-      desc = "Create code screenshot",
-    },
-  },
-
   { "<leader>t", group = "terminal" },
   {
     "<leader>tt",
