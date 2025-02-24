@@ -22,6 +22,10 @@
   background: @bg;
 }
 
+#waybar > box {
+  padding-right: 6px;
+}
+
 .module {
   border-radius: 26px;
 
@@ -135,5 +139,4 @@
 }
 
 #tray {
-  margin-right: 16px;
 }

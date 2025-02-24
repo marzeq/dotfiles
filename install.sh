@@ -44,11 +44,10 @@ GHOSTTY_DEPS=(
 )
 
 FONTS_DEPS=(
-  "wget"                                            # for downloading stuff (again)
-  "unzip"                                           # why is .zip still a thinggg
   "fontconfig"                                      # duh
   
   ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
+  "ttf-cascadia-code" "ttf-cascadia-code-nerd"      # main mono font
   ".AUR:ttf-twemoji"                                # our emoji font of choice
 )
 
@@ -56,6 +55,8 @@ HYPRLAND_DEPS=(
   "stow"
 
   "hyprland"                                        # duh
+  
+  "gdm"                                             # login manager of choice
 
   "xdg-desktop-portal-hyprland"                     # portals for hyprland
   "xdg-desktop-portal-gtk"                          # for gtk darkmode
@@ -150,12 +151,6 @@ install_fonts() {
   echo "Running: $twemojilinkcmd"
   echo "This will require root permissions!"
   eval $twemojilinkcmd
-
-  mkdir -p "$HOME/.local/share/fonts"
-  wget -O "/tmp/CascadiaCode.zip" "https://github.com/microsoft/cascadia-code/releases/download/v2404.23/CascadiaCode-2404.23.zip" && \
-  unzip -o "/tmp/CascadiaCode.zip" -d "/tmp/CascadiaCode"
-  mv "/tmp/CascadiaCode/ttf"/* "$HOME/.local/share/fonts"
-  fc-cache -f
 }
 
 shells_installed=false
@@ -193,8 +188,8 @@ install_ghostty() {
     return
   fi
   ghostty_installed=true
-  install_packages "${GHOSTTY_DEPS[@]}" && \
-  install_fonts && \
+  install_packages "${GHOSTTY_DEPS[@]}"
+  install_fonts
   stow -t "$HOME" ghostty
 }
 
@@ -209,6 +204,8 @@ install_hyprland() {
   install_fonts
   install_ghostty
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3
+
+  sudo systemctl enable gdm
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
 }
