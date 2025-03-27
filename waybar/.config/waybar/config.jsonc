@@ -49,7 +49,7 @@
   },
   "bluetooth": {
     "format": " ",
-    "format-connected": " {device_battery_percentage}%",
+    "format-connected-battery": " {device_battery_percentage}%",
     "on-click": "blueberry",
     "max-length": 15
   },
