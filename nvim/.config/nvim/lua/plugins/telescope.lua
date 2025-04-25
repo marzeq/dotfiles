@@ -1,5 +1,5 @@
 -- CREDIT: https://github.com/3rd/image.nvim/issues/183#issuecomment-2284979815 @sand4rt
-function telescope_image_preview()
+local function telescope_image_preview()
   local supported_images = { "svg", "png", "jpg", "jpeg", "gif", "webp", "avif" }
   local from_entry = require("telescope.from_entry")
   local Path = require("plenary.path")
@@ -139,32 +139,10 @@ return {
       },
     },
     config = function()
-      local fb_actions = require("telescope._extensions.file_browser.actions")
       local image_preview = telescope_image_preview()
 
       require("telescope").setup({
         extensions = {
-          file_browser = {
-            hijack_netrw = true,
-            initial_mode = "normal",
-            mappings = {
-              n = {
-                ["n"] = fb_actions.create,
-                ["r"] = fb_actions.rename,
-                ["m"] = fb_actions.move,
-                ["c"] = fb_actions.copy,
-                ["d"] = fb_actions.remove,
-                ["x"] = fb_actions.open,
-                ["g"] = fb_actions.goto_parent_dir,
-                ["`"] = fb_actions.goto_home_dir,
-                ["-"] = fb_actions.goto_cwd,
-                ["t"] = fb_actions.change_cwd,
-                ["f"] = fb_actions.toggle_browser,
-                ["h"] = fb_actions.toggle_hidden,
-                ["s"] = fb_actions.toggle_all,
-              },
-            },
-          },
           ["ui-select"] = require("telescope.themes").get_dropdown({}),
         },
         defaults = {
@@ -180,16 +158,11 @@ return {
         },
       })
 
-      require("telescope").load_extension("file_browser")
       require("telescope").load_extension("ui-select")
     end,
   },
 
   {
     "nvim-telescope/telescope-ui-select.nvim",
-  },
-
-  {
-    "nvim-telescope/telescope-file-browser.nvim",
   },
 }

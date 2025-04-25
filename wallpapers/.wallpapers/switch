@@ -1,5 +1,6 @@
 #!/bin/bash
-FILES=$(find . -maxdepth 1 -type f \( -iname "*.webp" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -printf "%f\n")
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+FILES=$(find $SCRIPT_DIR -maxdepth 1 -type f \( -iname "*.webp" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -printf "%f\n")
 
 if [ -z "$FILES" ]; then
     echo "No image files found!"
@@ -13,8 +14,8 @@ if [ -z "$SELECTED" ]; then
     exit 1
 fi
 
-unlink ./wallpaper 2>/dev/null
-ln -s "$SELECTED" wallpaper
+unlink $SCRIPT_DIR/wallpaper
+ln -s "$SELECTED" $SCRIPT_DIR/wallpaper
 
 pkill hyprpaper ; hyprctl dispatch exec hyprpaper
 

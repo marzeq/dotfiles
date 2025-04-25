@@ -57,6 +57,7 @@
 #workspaces button {
   color: @fg;
   padding: 2px;
+  min-width: 24px;
 }
 
 #workspaces button.focused,

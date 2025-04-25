@@ -32,7 +32,7 @@ if [ -f /etc/arch-release ]; then
 fi
 
 if hascmd xdg-open; then
-  function xdg-open() {
+  function open() {
     (command xdg-open "$@" &> /dev/null &)
   }
 fi

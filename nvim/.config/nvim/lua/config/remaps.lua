@@ -31,13 +31,13 @@ local wk_remaps = {
   { "<leader>f", group = "file" },
   {
     "<leader>ff",
-    "<cmd>lua require'telescope.builtin'.find_files({ find_command = {'rg', '--files', '--hidden', '-g', '!.git' }})<cr>",
+    require("telescope.builtin").find_files,
     desc = "Find file",
   },
-  { "<leader>fg", "<cmd>Telescope live_grep<cr>", desc = "Grep" },
-  { "<leader>fb", "<cmd>Telescope file_browser path=%:p:help |select_buffer=true<cr>", desc = "File browser" },
+  { "<leader>fg", require("telescope.builtin").live_grep, desc = "Grep" },
+  { "<leader>fb", Snacks.explorer.reveal, desc = "File browser" },
   { "<leader>fw", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
-  { "<leader>fc", "<cmd>bd<cr>", desc = "Close current buffer" },
+  { "<leader>fc", Snacks.bufdelete, desc = "Delete current buffer" },
 
   { "<leader>l", group = "lsp" },
   { "<leader>lm", "<cmd>Mason<cr>", desc = "Mason menu" },
@@ -209,6 +209,7 @@ local wk_remaps = {
 
       smart_goto_file()
     end,
+    desc = "Go to file",
   },
 }
 

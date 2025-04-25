@@ -1,5 +1,6 @@
 /* ROUNDED THEME FOR ROFI */
 /* Author: Newman Sanchez (https://github.com/newmanls) */
+/* Modified by: marzeq (https://github.com/marzeq) */
 
 * {
   font: "Cantarell 12";
@@ -32,11 +33,11 @@ inputbar {
 
   padding: 8px 16px;
   spacing: 8px;
-  children: [entry];
+  children: [prompt, entry];
 }
 
 entry {
-  placeholder: "Search";
+  placeholder: "";
   placeholder-color: @dark-fg;
 }
 
