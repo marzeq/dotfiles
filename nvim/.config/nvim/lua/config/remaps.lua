@@ -37,7 +37,6 @@ local wk_remaps = {
   { "<leader>fg", require("telescope.builtin").live_grep, desc = "Grep" },
   { "<leader>fb", Snacks.explorer.reveal, desc = "File browser" },
   { "<leader>fw", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
-  { "<leader>fc", Snacks.bufdelete, desc = "Delete current buffer" },
 
   { "<leader>l", group = "lsp" },
   { "<leader>lm", "<cmd>Mason<cr>", desc = "Mason menu" },

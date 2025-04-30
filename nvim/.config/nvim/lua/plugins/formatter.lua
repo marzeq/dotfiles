@@ -22,7 +22,7 @@ return {
         }] = require("formatter.defaults.prettierd"),
         rust = require("formatter.filetypes.rust").rustfmt,
         [{ "lua", "luau" }] = require("formatter.filetypes.lua").stylua,
-        [{ "c", "cpp" }] = require("formatter.defaults.clangformat"),
+        -- [{ "c", "cpp" }] = require("formatter.defaults.clangformat"),
         go = require("formatter.filetypes.go").gofumpt,
         python = require("formatter.filetypes.python").black,
         zig = require("formatter.filetypes.zig").zigfmt,

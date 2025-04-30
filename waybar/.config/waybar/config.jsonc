@@ -44,7 +44,7 @@
     "format-muted": " ",
     "format-bluetooth": " {volume}%",
     "format-bluetooth-muted": " ",
-    "on-click": "pavucontrol",
+    "on-click": "pavucontrol -t 3",
     "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
   },
   "bluetooth": {
