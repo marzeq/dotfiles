@@ -206,6 +206,7 @@ install_hyprland() {
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3
 
   sudo systemctl enable gdm
+  gsettings set org.gnome.desktop.wm.preferences button-layout :
 
   echo "Make sure you run nwg-displays to configure your displays graphically"
 }

@@ -13,7 +13,7 @@
     "tooltip": false,
     "interval": 1800,
     "exec": "~/.config/waybar/update_count.sh",
-    "on-click": "ghostty -e ~/.config/waybar/update_wrapper.sh",
+    "on-click": "ghostty -e 'bash ~/.config/waybar/update_wrapper.sh'",
     "signal": 8
   },
   "cpu": {

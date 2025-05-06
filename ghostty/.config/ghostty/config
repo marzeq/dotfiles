@@ -14,6 +14,7 @@ gtk-single-instance = true
 # └──────┘
 
 font-family = "Cascadia Code"
+font-family = "Twemoji"
 font-size = 12
 
 # ┌────────────────────┐
