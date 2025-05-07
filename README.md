@@ -16,12 +16,14 @@ stow <program_name_1> <program_name_2> # ...
 
 ### automatic install script
 
+**fyi - this script was made for my personal use and you should probably not run it yourself**
+
 run the `install.sh` script to stow the config files for the specified package of programs and install the necessary dependencies:
 
 ```bash
 ./install.sh [package]
-# packages: shells, neovim, ghostty, hyprland, fonts, gaming
-# or `all` to install all packages
+# Available packages: shells, neovim, terminal, desktop, fonts, gaming
+# Or run ./install.sh all to install all packages
 ```
 
 ---

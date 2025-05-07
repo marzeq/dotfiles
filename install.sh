@@ -12,9 +12,13 @@ if [[ -f "/run/archiso/cowspace" ]]; then
 fi
 
 if [[ $EUID -eq 0 ]]; then
-  echo "This script shall not be run as root!"
+  echo "Don't run this script as root, you will be asked for sudo permissions when necessary."
   exit 1
 fi
+
+RED_BOLD="\033[1;31m"
+BLUE="\033[0;34m"
+RESET="\033[0m"
 
 SHELLS_DEPS=(
   "stow"
@@ -29,18 +33,16 @@ NEOVIM_DEPS=(
 
   "neovim"                                          # duh
 
-  "python"                                          # honestly i dont remember why but its probably important if its here
   "fzf"                                             # fzf is a godsend
   "ripgrep"                                         # same for you rg <3
-  "nodejs" "npm"                                    # i think this is needed for a lot of lsp stuff
   "curl"                                            # for downloading stuff
   "imagemagick"                                     # for image.nvim to work
 )
 
-GHOSTTY_DEPS=(
+TERMINAL_DEPS=(
   "stow"
 
-  "ghostty"                                         # duh
+  "ghostty"                                         # really couldnt care less about my term, only picked it because ligatures work and nerd fonts arent fucked up
 )
 
 FONTS_DEPS=(
@@ -51,7 +53,7 @@ FONTS_DEPS=(
   ".AUR:ttf-twemoji"                                # our emoji font of choice
 )
 
-HYPRLAND_DEPS=(
+DESKTOP_DEPS=(
   "stow"
 
   "hyprland"                                        # duh
@@ -144,11 +146,12 @@ install_fonts() {
   if $fonts_installed; then
     return
   fi
+  echo -e "${BLUE}Installing fonts...${RESET}"
   fonts_installed=true
   local twemojilinkcmd="sudo ln -sf /usr/share/fontconfig/conf.avail/75-twemoji.conf /etc/fonts/conf.d/75-twemoji.conf"
 
   install_packages "${FONTS_DEPS[@]}"
-  echo "Running: $twemojilinkcmd"
+  echo -e "${BLUE}Running: $twemojilinkcmd${RESET}"
   echo "This will require root permissions!"
   eval $twemojilinkcmd
 }
@@ -158,6 +161,7 @@ install_shells() {
   if $shells_installed; then
     return
   fi
+  echo -e "${BLUE}Installing shells...${RESET}"
   shells_installed=true
   install_packages "${SHELLS_DEPS[@]}"
   if [[ -f "$HOME/.bashrc" ]]; then
@@ -176,39 +180,41 @@ install_neovim() {
   if $neovim_installed; then
     return
   fi
+  echo -e "${BLUE}Installing neovim...${RESET}"
   neovim_installed=true
   install_packages "${NEOVIM_DEPS[@]}"
   install_fonts
   stow -t "$HOME" nvim
 }
 
-ghostty_installed=false
-install_ghostty() {
-  if $ghostty_installed; then
+terminal_installed=false
+install_terminal() {
+  if $terminal_installed; then
     return
   fi
-  ghostty_installed=true
-  install_packages "${GHOSTTY_DEPS[@]}"
+  echo -e "${BLUE}Installing terminal...${RESET}"
+  terminal_installed=true
+  install_packages "${TERMINAL_DEPS[@]}"
   install_fonts
-  stow -t "$HOME" ghostty
+  stow -t "$HOME" terminal
 }
 
-hyprland_installed=false
-install_hyprland() {
-  if $hyprland_installed; then
+desktop_installed=false
+install_desktop() {
+  if $desktop_installed; then
     return
   fi
-  hyprland_installed=true
-  install_gpu_drivers # hyprland relies on gpu acceleration
-  install_packages "${HYPRLAND_DEPS[@]}"
+  echo -e "${BLUE}Installing desktop...${RESET}"
+  desktop_installed=true
+  install_packages "${DESKTOP_DEPS[@]}"
   install_fonts
-  install_ghostty
+  install_terminal
   stow -t "$HOME" hypr waybar rofi wallpapers gtk3
 
   sudo systemctl enable gdm
   gsettings set org.gnome.desktop.wm.preferences button-layout :
 
-  echo "Make sure you run nwg-displays to configure your displays graphically"
+  echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically${RESET}"
 }
 
 multilib_enabled=false
@@ -218,7 +224,7 @@ enable_multilib() {
   fi
   multilib_enabled=true
   if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-    echo "Enabling multilib repository"
+    echo -e "${BLUE}Enabling multilib repository...${RESET}"
     echo "[multilib]" | sudo tee -a /etc/pacman.conf
     echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
 
@@ -226,37 +232,14 @@ enable_multilib() {
   fi
 }
 
-gpu_dr_installed=false
-install_gpu_drivers() {
-  if $gpu_dr_installed; then
+gaming_installed=false
+install_gaming() {
+  if $gaming_installed; then
     return
   fi
-  gpu_dr_installed=true
-  install_packages "mesa" "libva-mesa-driver" "mesa-vdpau"
-  for gpu in /sys/class/drm/card[0-9]/device; do
-    if [[ -d $gpu ]]; then
-      vendor_id="$(cat $gpu/vendor)"
-
-      if [[ $vendor_id == "0x1002" ]]; then
-        echo "AMD GPU detected"
-        install_packages "vulkan-radeon"
-      elif [[ $vendor_id == "0x8086" ]]; then
-        echo "Intel GPU detected"
-        install_packages "vulkan-intel" "intel-media-driver"
-      elif [[ $vendor_id == "0x10de" ]]; then
-        install_packages "nvidia-dkms" "nvidia-utils"
-      else
-        echo "Unknown GPU vendor for GPU $gpu, install drivers in this shell and exit to continue the process"
-        bash
-      fi
-    fi
-  done
-}
-
-install_gaming() {
+  echo -e "${BLUE}Installing gaming packages...${RESET}"
+  gaming_installed=true
   enable_multilib
-
-  install_gpu_drivers
 
   install_packages "${GAMING_DEPS[@]}"
 }
@@ -269,19 +252,29 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, ghostty, hyprland, fonts, gaming"
+    echo "Available packages: shells, neovim, terminal, desktop, fonts, gaming"
     echo "Or run $0 all to install all packages"
     exit 1
+  fi
+
+  echo -e "${RED_BOLD}ATTENTION!${RESET}"
+  echo "This script was made for my personal use. You should probably not run it yourself."
+  echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
+  read -p "Proceed? (y/n) " -n 1 -r
+  echo
+
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit
   fi
 
   if [[ $1 == "shells" ]]; then
     install_shells
   elif [[ $1 == "neovim" ]]; then
     install_neovim
-  elif [[ $1 == "ghostty" ]]; then
-    install_ghostty
-  elif [[ $1 == "hyprland" ]]; then
-    install_hyprland
+  elif [[ $1 == "terminal" ]]; then
+    install_terminal
+  elif [[ $1 == "desktop" ]]; then
+    install_desktop
   elif [[ $1 == "fonts" ]]; then
     install_fonts
   elif [[ $1 == "gaming" ]]; then
@@ -290,7 +283,7 @@ main() {
     install_gaming
     install_shells
     install_neovim
-    install_hyprland
+    install_desktop
   else
     echo "Unknown package: $1"
     cd "$first_dir"
