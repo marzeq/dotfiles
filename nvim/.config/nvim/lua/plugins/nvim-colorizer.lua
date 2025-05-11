@@ -12,6 +12,7 @@ return {
         json = { names = false },
         jsonc = { names = false },
         mconf = { names = false },
+        conf = { names = false },
       }, {
         RRGGBBAA = true,
       })
