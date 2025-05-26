@@ -7,7 +7,7 @@ return {
 
       parser_config.mconf = {
         install_info = {
-          url = "~/.local/share/nvim/lazy/tree-sitter-mconf",
+          url = vim.fn.stdpath("data") .. "/lazy/tree-sitter-mconf",
           files = { "src/parser.c" },
         },
       }

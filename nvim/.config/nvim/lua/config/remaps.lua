@@ -1,31 +1,37 @@
-local function resizeToPercent(type, n)
-  if n < 0 or n > 100 or n == nil then
-    error(n .. " is not a valid percentage")
-  end
-
-  if type ~= "vertical" and type ~= "horizontal" then
-    error("type must be either `vertical` or `horizontal`")
-  end
-
-  local total_width = type == "vertical" and vim.o.columns or vim.o.lines
-
-  local new_width = math.floor(total_width * n / 100)
-
-  local prefix = type == "vertical" and "vertical " or ""
-
-  vim.cmd(prefix .. "resize " .. new_width)
-end
-
+---@diagnostic disable: missing-fields
 local wk_remaps = {
   { "<leader>g", "<cmd>Format<cr>", desc = "Format current file" },
 
   { "<leader>a", group = "codeactions" },
   { "<leader>ah", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], desc = "Find and replace word" },
   { "<leader>ae", vim.diagnostic.open_float, desc = "Inspect error(s)" },
-  { "<leader>ac", vim.diagnostic.goto_next, desc = "Cycle errors" },
+  {
+    "<leader>ac",
+    function()
+      vim.diagnostic.jump({ count = 1, float = true })
+    end,
+    desc = "Cycle errors",
+  },
   { "<leader>ar", vim.lsp.buf.rename, desc = "Rename symbol" },
-  { "<leader>ad", "<cmd>Trouble diagnostics toggle<cr>", desc = "Project diagnostics" },
-  { "<leader>aD", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "File diagnostics" },
+  {
+    "<leader>ad",
+    function()
+      require("trouble").toggle("diagnostics")
+    end,
+    desc = "Project diagnostics",
+  },
+  {
+    "<leader>aD",
+    function()
+      require("trouble").toggle({
+        mode = "diagnostics",
+        filter = {
+          buf = 0,
+        },
+      })
+    end,
+    desc = "File diagnostics",
+  },
   { "<leader>aa", vim.lsp.buf.code_action, desc = "Code action" },
 
   { "<leader>f", group = "file" },
@@ -35,12 +41,9 @@ local wk_remaps = {
     desc = "Find file",
   },
   { "<leader>fg", require("telescope.builtin").live_grep, desc = "Grep" },
-  { "<leader>fb", Snacks.explorer.reveal, desc = "File browser" },
-  { "<leader>fw", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
 
   { "<leader>l", group = "lsp" },
   { "<leader>lm", "<cmd>Mason<cr>", desc = "Mason menu" },
-  { "<leader>li", "<cmd>LspInfo<cr>", desc = "LSP info" },
 
   { "<leader>p", group = "plugins" },
   { "<leader>pm", "<cmd>Lazy<cr>", desc = "Lazy menu" },
@@ -74,46 +77,25 @@ local wk_remaps = {
   { "<leader>w", group = "window" },
   { "<leader>wh", "<cmd>split<cr><C-w>j", desc = "Horizontal split" },
   { "<leader>wv", "<cmd>vsplit<cr><C-w>l", desc = "Vertical split" },
-  { "<leader>wr", group = "resize" },
-  {
-    "<leader>wrh",
-    function()
-      vim.ui.input({ prompt = "Value for horizontal resize: " }, function(result)
-        local n = tonumber(result)
-
-        resizeToPercent("horizontal", n)
-      end)
-    end,
-    desc = "Resize horizontal",
-  },
-  {
-    "<leader>wrv",
-    function()
-      vim.ui.input({ prompt = "Value for vertical resize: " }, function(result)
-        local n = tonumber(result)
-
-        resizeToPercent("vertical", n)
-      end)
-    end,
-    desc = "Resize vertical",
-  },
 
   { "<S-Tab>", "<cmd>BufferPrevious<cr>", desc = "Cycle buffers in reverse" },
   { "<Tab>", "<cmd>BufferNext<cr>", desc = "Cycle buffers" },
 
   { "<leader>p", '"_dP', desc = "Paste and keep buffer", mode = "x" },
 
-  { "<c-k>", "<cmd>WhichKey<cr>", desc = "Which Keys", mode = { "n", "v", "x", "s" } },
-
   {
     "<C-Space>",
-    "<cmd>lua vim.snippet.jump(1)<cr>",
+    function()
+      vim.snippet.jump(1)
+    end,
     desc = "Go to next field or completion",
     mode = { "i", "s", "n" },
   },
   {
     "<C-S-Space>",
-    "<cmd>lua vim.snippet.jump(-1)<cr>",
+    function()
+      vim.snippet.jump(-1)
+    end,
     desc = "Go to previous field or completion",
     mode = { "i", "s", "n" },
   },
@@ -142,74 +124,6 @@ local wk_remaps = {
   { "<leader>q", "<cmd>bd<CR>", desc = "Close current buffer", mode = "n" },
 
   { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
-  {
-    "gf",
-    function()
-      local function find_locations(str, pattern)
-        local results = {}
-        local start_pos = 1
-
-        while true do
-          local s, e, _ = string.find(str, pattern, start_pos)
-          if not s then
-            break
-          end
-          table.insert(results, { start_index = s, end_index = e })
-          start_pos = e + 1
-        end
-
-        return results
-      end
-
-      local function smart_goto_file()
-        local line = vim.fn.getline(".")
-        local col = vim.fn.col(".")
-
-        local pattern_full = "([^:%s]+):(%d+):(%d+)"
-        local pattern_partial = "([^:%s]+):(%d+)"
-
-        local open_file = function(filename, linenum, columnnum)
-          vim.cmd("silent! normal! " .. linenum .. "G")
-          if columnnum then
-            if columnnum > vim.fn.strdisplaywidth(vim.fn.getline(linenum)) then
-              columnnum = vim.fn.strdisplaywidth(vim.fn.getline(linenum))
-            elseif columnnum < 1 then
-              columnnum = 1
-            end
-            vim.cmd(string.format("normal! %d|", columnnum))
-          end
-        end
-
-        local finds = find_locations(line, pattern_full)
-        for _, find_info in ipairs(finds) do
-          if col >= find_info.start_index and col <= find_info.end_index then
-            local match = string.sub(line, find_info.start_index, find_info.end_index)
-            local filename, l, c = string.match(match, pattern_full)
-            open_file(filename, tonumber(l), tonumber(c))
-            return
-          end
-        end
-
-        finds = find_locations(line, pattern_partial)
-        for _, find_info in ipairs(finds) do
-          if col >= find_info.start_index and col <= find_info.end_index then
-            local match = string.sub(line, find_info.start_index, find_info.end_index)
-            local filename, l = string.match(match, pattern_partial)
-            open_file(filename, tonumber(l))
-            return
-          end
-        end
-
-        local cfile = vim.fn.expand("<cfile>")
-        if cfile ~= "" then
-          vim.cmd("edit " .. cfile)
-        end
-      end
-
-      smart_goto_file()
-    end,
-    desc = "Go to file",
-  },
 }
 
 local remap = function()
@@ -227,8 +141,6 @@ local remap = function()
   key("x", "<", "<gv")
   key("x", ">", ">gv")
 
-  -- START credit: ThePrimeagen
-
   -- move lines in visual mode
   key("v", "J", ":m '>+1<CR>gv=gv")
   key("v", "K", ":m '<-2<CR>gv=gv")
@@ -240,8 +152,6 @@ local remap = function()
   key("t", "<Esc>", [[<C-\><C-n>]])
 
   key("n", "Q", "<nop>")
-
-  -- END credit: ThePrimeagen
 end
 
 return { wk_remaps = wk_remaps, remap = remap }

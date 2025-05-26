@@ -89,28 +89,13 @@
   padding-left: 20px;
 }
 
-#cpu {
+#temperature {
   font-size: 0;
   margin: 0;
   padding: 0;
 }
 
-#cpu.critical {
-  color: @red;
-  background-image: url("./icons/warn.png");
-  font-size: inherit;
-  margin: 4px 8px;
-  padding: inherit;
-  padding-left: 20px;
-}
-
-#memory {
-  font-size: 0;
-  margin: 0;
-  padding: 0;
-}
-
-#memory.critical {
+#temperature.critical {
   color: @red;
   background-image: url("./icons/warn.png");
   font-size: inherit;

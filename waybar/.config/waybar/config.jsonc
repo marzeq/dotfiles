@@ -2,7 +2,7 @@
   "layer": "bottom",
   "modules-left": ["hyprland/workspaces"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/updates", "cpu", "memory", "pulseaudio", "bluetooth", "tray"],
+  "modules-right": ["custom/updates", "temperature", "pulseaudio", "bluetooth", "tray"],
   "clock": {
     "interval": 1,
     "tooltip": false,
@@ -16,36 +16,21 @@
     "on-click": "ghostty -e 'bash ~/.config/waybar/update_wrapper.sh'",
     "signal": 8
   },
-  "cpu": {
-    "tooltip": false,
-    "interval": 5,
-    "format": " CPU: {usage}%",
-    "on-click": "resources",
-
-    "states": {
-      "critical": 80
-    }
-  },
-  "memory": {
-    "tooltip": false,
-    "interval": 5,
-    "format": " RAM: {percentage}%",
-    "on-click": "resources",
-
-    "states": {
-      "critical": 80
-    }
+  "temperature": {
+    "hwmon-path": "/sys/class/hwmon/hwmon6/temp1_input",
+    "format": " CPU: {temperatureC}°C",
+    "critical-threshold": 60
   },
   "pulseaudio": {
     "tooltip": false,
-    "scroll-step": 5, // %, can be a float
+    "scroll-step": 2, // %, can be a float
     "reverse-scrolling": 1,
     "format": " {volume}%",
     "format-muted": " ",
     "format-bluetooth": " {volume}%",
     "format-bluetooth-muted": " ",
     "on-click": "pavucontrol -t 3",
-    "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
+    "on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
   },
   "bluetooth": {
     "format": " ",

@@ -7,9 +7,5 @@ return {
       enabled = true,
       max_size = 2 * 1024 * 1024, -- 2MB
     },
-    explorer = {
-      enabled = true,
-      replace_netrw = true,
-    },
   },
 }

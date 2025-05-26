@@ -14,6 +14,9 @@ return {
           accept = "<S-CR>",
         },
       },
+      filetypes = {
+        markdown = true,
+      },
     },
   },
 }

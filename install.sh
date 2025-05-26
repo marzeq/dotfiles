@@ -51,6 +51,7 @@ FONTS_DEPS=(
   ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
   "ttf-cascadia-code" "ttf-cascadia-code-nerd"      # main mono font
   ".AUR:ttf-twemoji"                                # our emoji font of choice
+  "cantarell-fonts"                                 # main sans font
 )
 
 DESKTOP_DEPS=(
