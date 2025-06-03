@@ -8,20 +8,22 @@ inc_volume() {
   wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
 
   if [[ -z "$1" ]]; then
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+
+    vol="2%+"
   else
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ $1%+
+    vol="$1%+"
   fi
+  wpctl set-volume @DEFAULT_AUDIO_SINK@ $vol -l 1.0  # -l 1.0 limits the volume to 100%
 }
 
 dec_volume() {
   wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
 
   if [[ -z "$1" ]]; then
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-
+    vol="2%-"
   else
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ $1%-
+    vol="$1%-"
   fi
+  wpctl set-volume @DEFAULT_AUDIO_SINK@ $vol
 }
 
 toggle_mic_mute() {

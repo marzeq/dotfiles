@@ -100,6 +100,12 @@ GAMING_DEPS=(
   "mangohud"                                        # performance monitoring hud
 )
 
+WINDIGO_DEPS=(
+  "stow"
+
+  ".AUR:windigo"                                         # fan control daemon
+)
+
 install_paru() {
   git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin
   cd /tmp/paru-bin
@@ -245,6 +251,18 @@ install_gaming() {
   install_packages "${GAMING_DEPS[@]}"
 }
 
+windigo_installed=false
+install_windigo() {
+  if $windigo_installed; then
+    return
+  fi
+  echo -e "${BLUE}Installing windigo...${RESET}"
+  windigo_installed=true
+  install_packages "${WINDIGO_DEPS[@]}"
+
+  sudo stow -t / windigo
+}
+
 main() {
   first_dir="$(pwd)"
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
@@ -280,11 +298,14 @@ main() {
     install_fonts
   elif [[ $1 == "gaming" ]]; then
     install_gaming
+  elif [[ $1 == "windigo" ]]; then
+    install_windigo
   elif [[ $1 == "all" ]]; then
     install_gaming
     install_shells
     install_neovim
     install_desktop
+    install_windigo
   else
     echo "Unknown package: $1"
     cd "$first_dir"
