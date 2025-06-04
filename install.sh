@@ -259,8 +259,6 @@ install_windigo() {
   echo -e "${BLUE}Installing windigo...${RESET}"
   windigo_installed=true
   install_packages "${WINDIGO_DEPS[@]}"
-
-  sudo stow -t / windigo
 }
 
 main() {
