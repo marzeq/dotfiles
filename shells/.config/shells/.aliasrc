@@ -102,6 +102,7 @@ if hascmd git; then
       remote_url=${remote_url//:/\/}
       remote_url="https://github.com/${remote_url}"
     elif [[ "$remote_url" == https://* ]]; then
+      :
     else
       echo "gv: invalid remote url: ${remote_url}"
       return 1

@@ -1,33 +1,19 @@
 #!/bin/bash
 
-SLEEP="Sleep"
-LOGOUT="Logout"
-REBOOT="Reboot"
-REBOOT_WINDOWS="Reboot into Windows"
-SHUTDOWN="Shutdown"
-UEFI="UEFI Settings"
+entries=(
+  "Sleep"         "systemctl suspend"
+  "Logout"        "hyprctl dispatch exit"
+  "Reboot"        "systemctl reboot"
+  "Shutdown"      "systemctl poweroff"
+  "UEFI Settings" "systemctl reboot --firmware-setup"
+)
 
-MODE=$(echo "$SLEEP
-$LOGOUT
-$REBOOT
-$REBOOT_WINDOWS
-$SHUTDOWN
-$UEFI" | rofi -dmenu -p "Power menu" -i)
+options=()
+commands=()
+for ((i = 0; i < ${#entries[@]}; i += 2)); do
+  options+=("${entries[i]}")
+  commands+=("${entries[i + 1]}")
+done
 
-if [[ ! -z "$MODE" ]]; then
-  if [ "$MODE" == "$LOGOUT" ]; then
-    hyprctl dispatch exit
-  elif [ "$MODE" == "$REBOOT" ]; then
-    systemctl reboot
-  elif [ "$MODE" == "$REBOOT_WINDOWS" ]; then
-    systemctl reboot --boot-loader-entry="auto-windows"
-  elif [ "$MODE" == "$SHUTDOWN" ]; then
-    systemctl poweroff
-  elif [ "$MODE" == "$SLEEP" ]; then
-    systemctl suspend
-  elif [ "$MODE" == "$UEFI" ]; then
-    systemctl reboot --firmware-setup
-  elif [ "$MODE" == "bar" ]; then
-    pkill waybar; hyprctl dispatch exec waybar
-  fi
-fi
+selected=$(printf "%s\n" "${options[@]}" | rofi -dmenu -p "Power menu" -i -format i)
+eval "${commands[$selected]}"

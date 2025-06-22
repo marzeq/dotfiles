@@ -5,12 +5,25 @@ setopt SHARE_HISTORY
 
 unsetopt beep
 
+# ------------------------------
+#        Plugins & Config
+# ------------------------------
+
+if [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh" ]; then
+  source "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh"
+else
+  zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1 --keep
+fi
+
+plug "zap-zsh/supercharge"
+plug "zsh-users/zsh-autosuggestions"
+plug "zsh-users/zsh-syntax-highlighting"
+autoload -U compinit; compinit
+plug "Aloxaf/fzf-tab"
+export FZF_DEFAULT_OPTS="--color=16"
+zstyle ":fzf-tab:*" fzf-flags ${(Q)${(Z:nC:)FZF_DEFAULT_OPTS}}
+
 zstyle :compinstall filename "$HOME/.config/shells/.zshrc"
-
-autoload -Uz compinit
-compinit
-
-zstyle ":completion:*" menu select
 
 # ------------------------------
 #           Variables
@@ -66,6 +79,7 @@ PROMPT_TYPE="minimal"
 if [[ $PROMPT_TYPE == "minimal" ]];
 then
   setopt prompt_subst
+  setopt transient_rprompt
   prompt() {
     local LAST_EXIT_CODE=$?
     local EXIT_CODE_COLOR
@@ -123,21 +137,6 @@ then
 else
   echo "$(tput setaf 1)Invalid prompt type $(tput bold)\"$PROMPT_TYPE\"$(tput sgr0)"
 fi
-
-# ------------------------------
-#           Plugins
-# ------------------------------
-
-if [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh" ]; then
-  source "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh"
-else
-  zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1 --keep
-fi
-
-plug "zap-zsh/supercharge"
-plug "zsh-users/zsh-autosuggestions"
-
-plug "zsh-users/zsh-syntax-highlighting"
 
 # ------------------------------
 #          Shell stuff

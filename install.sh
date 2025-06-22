@@ -148,7 +148,7 @@ install_packages() {
 }
 
 
-fonts_installed=false
+fonts_installed=true
 install_fonts() {
   if $fonts_installed; then
     return
