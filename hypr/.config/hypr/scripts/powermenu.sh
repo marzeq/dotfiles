@@ -16,4 +16,7 @@ for ((i = 0; i < ${#entries[@]}; i += 2)); do
 done
 
 selected=$(printf "%s\n" "${options[@]}" | rofi -dmenu -p "Power menu" -i -format i)
+if [[ -z "$selected" ]]; then
+  exit 0
+fi
 eval "${commands[$selected]}"
