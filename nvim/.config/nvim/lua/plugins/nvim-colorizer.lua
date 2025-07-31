@@ -6,6 +6,7 @@ return {
 
       require("colorizer").setup({
         css = { css = true, css_fn = true },
+        hyprlang = { css = true, css_fn = true, names = false },
         scss = { css = true, css_fn = true },
         html = { names = false },
         javascriptreact = { names = false },

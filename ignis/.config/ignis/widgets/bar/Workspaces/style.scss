@@ -1,0 +1,24 @@
+.workspaces {
+  @include bar-item;
+  .box {
+    padding: 0.5rem;
+    margin-left: 0;
+  }
+}
+
+.workspace {
+  background-color: $fg-inactive;
+  border-radius: 1rem;
+  margin: 0 0.25rem;
+  min-width: 0.45rem;
+  min-height: 0.45rem;
+  transition: 0.3s;
+
+  &.active {
+    background-color: $fg;
+  }
+  &.visible {
+    min-width: 2rem;
+    min-height: 0.5rem;
+  }
+}

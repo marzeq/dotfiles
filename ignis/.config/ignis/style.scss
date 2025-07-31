@@ -1,0 +1,36 @@
+* {
+  all: unset;
+}
+
+switch {
+  background-color: #545457;
+  padding: 0.2em;
+  border-radius: 1rem;
+
+  slider {
+    background-color: #D7D7D8;
+    border-radius: 100%;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+  }
+}
+
+switch:checked {
+  background-color: #3584E4;
+}
+
+:root {
+  font-family: Cantarell, Adwaita Sans, sans-serif;
+}
+
+@import "./colours.scss";
+
+@import "./widgets/bar/ControlCentre/style.scss";
+@import "./widgets/shared/Notification/style.scss";
+@import "./widgets/misc/NotificationPopup/style.scss";
+@import "./widgets/bar/NotifsCalendar/style.scss";
+@import "./widgets/bar/Bar/style.scss";
+@import "./widgets/bar/Workspaces/style.scss";
+@import "./widgets/bar/Clock/style.scss";
+@import "./widgets/bar/Tray/style.scss";
+@import "./widgets/bar/Workspaces/style.scss";

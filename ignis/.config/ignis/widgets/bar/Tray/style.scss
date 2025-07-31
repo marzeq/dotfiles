@@ -1,0 +1,13 @@
+.tray {
+  @include bar-item;
+  .box {
+    padding-left: 1rem;
+    padding-right: 0;
+  }
+}
+
+.tray-icon {
+  margin-right: 1rem;
+  min-width: 0.5rem;
+  min-height: 0.5rem;
+}

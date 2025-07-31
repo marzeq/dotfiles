@@ -1,0 +1,138 @@
+.notifs-calendar-container {
+  margin-top: 0.5rem;
+}
+
+.notifs-calendar {
+  background-color: $bg;
+  border-radius: 2rem;
+  padding: 1rem;
+  padding-left: 0;
+  font-size: 16px;
+  border: $popup-border;
+  box-shadow: $popup-shadow;
+}
+
+.nc-calendar {
+  border-left: $separator;
+  min-width: 20.25rem;
+  padding-left: 1.75rem;
+}
+
+.nc-calendar-dow {
+  margin-top: 1rem;
+  font-weight: 700;
+}
+
+.nc-calendar-date {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.nc-calendar-dow,
+.nc-calendar-date {
+  color: $fg-inactive;
+  padding: 0 0.75rem;
+}
+
+.nc-calendar-month-switcher {
+  padding-top: 1.5rem;
+}
+
+.nc-calendar-month {
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4rem;
+  &:hover {
+    background-color: $button-bg;
+  }
+  &:active {
+    background-color: $button-bg-hover;
+  }
+}
+
+.nc-calendar-arrow {
+  padding: 0.75rem;
+  border-radius: 100%;
+  &:hover {
+    background-color: $button-bg;
+  }
+  &:active {
+    background-color: $button-bg-hover;
+  }
+}
+
+.nc-calendar-dow-label {
+  padding-top: 1rem;
+  color: $fg-inactive;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nc-calendar-day {
+  font-size: 0.95rem;
+  border-radius: 100%;
+  padding: 1rem;
+  color: $fg-inactive;
+}
+
+.nc-calendar-day-workday,
+.nc-calendar-day-today {
+  color: $fg;
+}
+
+.nc-calendar-day-today {
+  background-color: $accent;
+}
+
+.nc-calendar-day-currmo {
+  font-weight: 700;
+}
+
+.nc-calendar-day-notcurrmo {
+}
+
+.nc-notifications {
+  min-width: 30rem;
+  padding: 0 1rem;
+}
+
+.nc-notifications-empty-label,
+.nc-notifications-empty-icon {
+  color: $fg-inactive;
+}
+
+.nc-notifications-empty-label {
+  font-size: 1.25rem;
+  padding: 1rem;
+  font-weight: 700;
+}
+
+.nc-notifications .notification {
+  margin-bottom: 1rem;
+}
+
+.nc-notifications-bottom {
+  font-weight: 600;
+  padding: 0.5rem;
+}
+
+.nc-notifications-dnd-label {
+  margin-right: 0.5rem;
+}
+
+.nc-notifications-clear {
+  background-color: $button-bg;
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+  &:active {
+    background-color: $button-bg-active;
+  }
+  padding: 0 2rem;
+  border-radius: 0.5rem;
+  margin-top: -0.5rem;
+}
+
+.nc-notifications-scroll {
+  margin-bottom: 4rem;
+}

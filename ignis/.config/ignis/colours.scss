@@ -1,0 +1,22 @@
+$fg: #FDFDFD;
+$fg-inactive: #959595;
+$bg: #36363A;
+$bg-light: #444449;
+$popup-border: 1px solid #424247;
+$popup-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+$separator: 1px solid #4A4A4D;
+
+$button-bg: #48484B;
+$button-bg-hover: lighten($button-bg, 5%);
+$button-bg-active: lighten($button-bg-hover, 5%);
+$button-bg-active-more: lighten($button-bg-active, 5%);
+
+$accent: #3584E4;
+$accent-secondary: #458DE4;
+
+$accent-hover: lighten($accent, 5%);
+$accent-secondary-hover: lighten($accent-secondary, 5%);
+
+$accent-active: lighten($accent-hover, 5%);
+$accent-secondary-active: lighten($accent-secondary-hover, 5%);

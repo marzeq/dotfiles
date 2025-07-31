@@ -19,6 +19,13 @@ return {
             },
           },
         },
+        pickers = {
+          live_grep = {
+            additional_args = {
+              "-i" -- case insensitive
+            }
+          }
+        }
       })
 
       require("telescope").load_extension("ui-select")

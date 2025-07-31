@@ -1,0 +1,46 @@
+$transparency: 60%;
+
+$_transparency: calc(100% - $transparency);
+$_ele-tnpc: max($_transparency, 30%);
+
+window {
+  background: none;
+}
+
+$bar-bg: #000;
+
+.bar {
+  background-color: rgba($bar-bg, $_transparency);
+  color: $fg;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+@mixin bar-item {
+  padding: 0.3rem 0.3rem;
+
+  .box {
+    background-color: transparent;
+    padding: 0.3rem 0.8rem;
+    border-radius: 1rem;
+  }
+
+  &:hover {
+    // the more transparent the bar, the lighter the hover effect must be
+    $hover-lighten: 15%;
+    .box {
+      background-color: rgba(lighten($bar-bg, calc($hover-lighten + (100% - $_transparency) / 2)), $_ele-tnpc);
+    }
+  }
+  &:active {
+    $active-lighten: 35%;
+    .box {
+      background-color: rgba(lighten($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $_ele-tnpc);
+    }
+  }
+}
+
+
+.bar-eb {
+  background-color: red;
+}

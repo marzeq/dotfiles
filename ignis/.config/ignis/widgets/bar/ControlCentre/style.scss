@@ -1,0 +1,189 @@
+.control-centre-container {
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.control-centre {
+  background-color: $bg;
+  border-radius: 2rem;
+  padding: 1.5rem;
+  padding-left: 0;
+  font-size: 16px;
+  border: $popup-border;
+  box-shadow: $popup-shadow;
+}
+
+.control-centre-top {
+  margin-left: 0.75rem;
+}
+
+.control-centre-audio {
+  margin-top: 0.75rem;
+  margin-left: 1.5rem;
+}
+
+.cc-audio-icon {
+  padding: 0.5rem;
+  margin: 0.25rem;
+  &:hover {
+    background-color: $button-bg;
+  }
+  &:active {
+    background-color: $button-bg-hover;
+  }
+  border-radius: 100%;
+}
+
+.cc-audio-slider trough {
+  margin: 0.75rem;
+  background-color: #5C5C5F;
+  min-height: 0.3rem;
+  border-radius: 1rem;
+
+  highlight {
+    background-color: $accent;
+  }
+
+  slider {
+    background-color: $fg;
+    min-height: 20px;
+    min-width: 20px;
+    margin: -8px;
+    border-radius: 1rem;
+  }
+}
+
+.cc-top-button {
+  padding: 0.75rem;
+  background-color: $button-bg;
+  color: $fg;
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+  &:active {
+    background-color: $button-bg-active;
+  }
+  border-radius: 100%;
+  margin-left: 0.75rem;
+}
+
+.control-centre-widgets {
+  margin-left: 0.5rem;
+}
+
+.cc-widget {
+  font-weight: 700;
+  margin-left: 1rem;
+  margin-top: 0.75rem;
+
+  .cc-widget-left {
+    background-color: $accent;
+    padding: 0 1rem;
+    padding-left: 1rem;
+    min-width: 8rem;
+    min-height: 3.3rem;
+
+    &:hover {
+      background-color: $accent-hover;
+    }
+    &:active {
+      background-color: $accent-active;
+    }
+
+    border-top-left-radius: 2rem;
+    border-bottom-left-radius: 2rem;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .cc-widget-left-full {
+    border-top-right-radius: 2rem;
+    border-bottom-right-radius: 2rem;
+  }
+
+  .cc-widget-right {
+    background-color: lighten($accent, 10%);
+    padding: 0 1rem;
+
+    &:hover {
+      background-color: lighten($accent-hover, 10%);
+    }
+    &:active {
+      background-color: lighten($accent-active, 10%);
+    }
+
+    border-top-right-radius: 2rem;
+    border-bottom-right-radius: 2rem;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid lighten($accent, 15%);
+  }
+}
+
+.cc-widget-label {
+  margin-left: 0.6rem;
+}
+
+.cc-widget-disabled {
+  .cc-widget-left {
+    background-color: $button-bg;
+    &:hover {
+      background-color: $button-bg-hover;
+    }
+    &:active {
+      background-color: $button-bg-active;
+    }
+  }
+  .cc-widget-right {
+    background-color: lighten($button-bg, 10%);
+    &:hover {
+      background-color: lighten($button-bg-hover, 10%);
+    }
+    &:active {
+      background-color: lighten($button-bg-active, 10%);
+    }
+    border-left: 1px solid lighten($button-bg, 15%);
+  }
+}
+
+.cc-popup {
+  margin-top: 1rem;
+  margin-left: 1.5rem;
+  padding: 1rem;
+  background-color: #48484B;
+  border-radius: 1.5rem;
+}
+
+.cc-popup-icon {
+  background-color: #6D6D6F;
+  padding: 0.5rem;
+  border-radius: 100%;
+}
+
+.cc-popup-label {
+  margin-left: 0.75rem;
+  color: $fg;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.cc-popup-header{
+  margin-bottom: 1rem;
+}
+
+.cc-power-menu-option {
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  margin-left: 0.5rem;
+  background-color: $button-bg;
+  color: $fg;
+  border-radius: 1rem;
+
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+  
+  &:active {
+    background-color: $button-bg-active;
+  }
+}

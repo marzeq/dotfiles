@@ -58,6 +58,8 @@ DESKTOP_DEPS=(
   "stow"
 
   "hyprland"                                        # duh
+
+  ".AUR:python-ignis"                               # our shell framework
   
   "gdm"                                             # login manager of choice
 
@@ -81,7 +83,6 @@ DESKTOP_DEPS=(
   "waybar"                                          # status bar
   ".PARU"                                           # explicitly install aur manager
   ".AUR:clipse-bin" "wl-clipboard"                  # clipboard
-  "swaync"                                          # notifications
   "pamixer" "pavucontrol"                           # audio control
   "nwg-displays"                                    # gui monitor configuration
   "adw-gtk-theme"                                   # gtk3 theme
@@ -216,7 +217,7 @@ install_desktop() {
   install_packages "${DESKTOP_DEPS[@]}"
   install_fonts
   install_terminal
-  stow -t "$HOME" hypr waybar rofi wallpapers gtk3
+  stow -t "$HOME" hypr waybar rofi wallpapers ignis
 
   sudo systemctl enable gdm
   gsettings set org.gnome.desktop.wm.preferences button-layout :

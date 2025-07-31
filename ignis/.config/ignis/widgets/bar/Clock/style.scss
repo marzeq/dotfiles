@@ -1,0 +1,11 @@
+.clock {
+  @include bar-item;
+}
+
+.clock-dnd {
+  margin-left: 1.5rem;
+}
+
+.dnd-icon {
+  margin-left: 0.5rem;
+}
