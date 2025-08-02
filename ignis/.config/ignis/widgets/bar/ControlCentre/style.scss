@@ -196,7 +196,7 @@
 }
 
 .system-tray-item-icon {
-  margin-left: 0.25rem;
+  margin-left: 0.5rem;
   margin-right: 0.75rem;
 }
 
@@ -205,7 +205,8 @@
   font-weight: 700;
 }
 
-.system-tray-item-more-icon {
+.system-tray-item-button {
+  margin-left: 0.5rem;
   background-color: #6D6D6F;
   padding: 0.75rem;
   border-radius: 100%;

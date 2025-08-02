@@ -72,26 +72,38 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
             child=[
                 Widget.Icon(
                     image=item.bind("icon"),
-                    pixel_size=24,
+                    pixel_size=28,
                     css_classes=["system-tray-item-icon"]
                 ),
                 Widget.Label(
-                    label=item.bind("title"),
+                    label=
+                    item.bind_many(
+                        ["title", "tooltip"],
+                        lambda title, tooltip: title if title else tooltip if tooltip else "---"
+                    ),
                     css_classes=["system-tray-item-label"]
                 ),
             ],
         ),
         end_widget=Widget.Box(
             child=[
+                Widget.Button(
+                    child=Widget.Icon(
+                        image="view-fullscreen-symbolic",
+                    ),
+                    css_classes=["system-tray-item-button"],
+                    on_click=lambda _: item.activate() or app.close_window("ignis_control_centre"),
+                )
+            ] + ([
                 menu,
                 Widget.Button(
                     child=Widget.Icon(
                         image="view-more-symbolic",
-                        css_classes=["system-tray-item-more-icon"],
                     ),
-                    on_click=lambda _: menu.popup() if menu else None,
+                    css_classes=["system-tray-item-button"],
+                    on_click=lambda _: menu.popup(),
                 ),
-            ],
+            ] if menu else []),
         ),
         setup=lambda self: item.connect("removed", lambda _: self.unparent()),
         css_classes=["system-tray-item"],
