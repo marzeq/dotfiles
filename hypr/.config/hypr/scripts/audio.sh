@@ -13,21 +13,29 @@ inc_volume() {
     vol="$1%+"
   fi
   wpctl set-volume @DEFAULT_AUDIO_SINK@ $vol -l 1.0  # -l 1.0 limits the volume to 100%
+  goignis open-window ignis_osd
 }
 
 dec_volume() {
-  wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
-
   if [[ -z "$1" ]]; then
     vol="2%-"
   else
     vol="$1%-"
   fi
   wpctl set-volume @DEFAULT_AUDIO_SINK@ $vol
+
+  current_volume=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print $2}' | sed 's/%//')
+  current_volume=$(echo "$current_volume * 100" | bc)
+
+  if [[ "$current_volume" -le 0 ]]; then
+    wpctl set-mute @DEFAULT_AUDIO_SINK@ 1
+  fi
+  goignis open-window ignis_osd
 }
 
 toggle_mic_mute() {
   wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+  goignis open-window ignis_osd
 }
 
 play_pause() {

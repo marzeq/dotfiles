@@ -59,7 +59,7 @@ DESKTOP_DEPS=(
 
   "hyprland"                                        # duh
 
-  ".AUR:python-ignis"                               # our shell framework
+  ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
   
   "gdm"                                             # login manager of choice
 

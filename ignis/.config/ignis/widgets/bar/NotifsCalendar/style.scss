@@ -3,13 +3,7 @@
 }
 
 .notifs-calendar {
-  background-color: $bg;
-  border-radius: 2rem;
-  padding: 1rem;
-  padding-left: 0;
-  font-size: 16px;
-  border: $popup-border;
-  box-shadow: $popup-shadow;
+  @include popup;
 }
 
 .nc-calendar {

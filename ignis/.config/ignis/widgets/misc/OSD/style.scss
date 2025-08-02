@@ -1,0 +1,21 @@
+.osd {
+  min-width: 18rem;
+  @include popup;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.osd-audio-slider trough {
+  background-color: #5C5C5F;
+  min-height: 0.3rem;
+  border-radius: 1rem;
+  margin-left: 0.25rem;
+
+  highlight {
+    background-color: $accent;
+  }
+
+  slider {
+    background-color: red;
+  }
+}

@@ -1,10 +1,13 @@
 from typing import Any, Callable
 from ignis.app import IgnisApp
-from ignis.utils import Utils
 from ignis.widgets import Widget
 from ignis.services.audio import AudioService
 from ignis.services.network import NetworkService
 from ignis.services.bluetooth import BluetoothService
+from ignis.services.system_tray import SystemTrayService, SystemTrayItem
+
+system_tray = SystemTrayService.get_default()
+
 import utils
 
 import os
@@ -57,6 +60,42 @@ def ControlCentreWidget(
             ],
             css_classes=["cc-widget"] if not disabled else ["cc-widget", "cc-widget-disabled"],
         )
+
+def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
+    if item.menu:
+        menu = item.menu.copy()
+    else:
+        menu = None
+
+    return Widget.CenterBox(
+        start_widget=Widget.Box(
+            child=[
+                Widget.Icon(
+                    image=item.bind("icon"),
+                    pixel_size=24,
+                    css_classes=["system-tray-item-icon"]
+                ),
+                Widget.Label(
+                    label=item.bind("title"),
+                    css_classes=["system-tray-item-label"]
+                ),
+            ],
+        ),
+        end_widget=Widget.Box(
+            child=[
+                menu,
+                Widget.Button(
+                    child=Widget.Icon(
+                        image="view-more-symbolic",
+                        css_classes=["system-tray-item-more-icon"],
+                    ),
+                    on_click=lambda _: menu.popup() if menu else None,
+                ),
+            ],
+        ),
+        setup=lambda self: item.connect("removed", lambda _: self.unparent()),
+        css_classes=["system-tray-item"],
+    )
 
 def ControlCentre():
     widgets = Widget.Grid(
@@ -123,6 +162,7 @@ def ControlCentre():
 
     power_menu = Widget.Revealer(
         transition_type="slide_down",
+        transition_duration=100,
         child=Widget.Box(
             vertical=True,
             child=[
@@ -142,28 +182,40 @@ def ControlCentre():
                     halign="start",
                 ),
                 Widget.Button(
-                    label="Suspend",
+                    child=Widget.Label(
+                        label="Suspend",
+                        halign="start",
+                        css_classes=["cc-power-menu-opt-label"],
+                    ),
                     css_classes=["cc-power-menu-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl suspend", lambda: app.close_window("ignis_control_centre")),
-                    halign="start",
                 ),
                 Widget.Button(
-                    label="Restart",
+                    child=Widget.Label(
+                        label="Restart",
+                        halign="start",
+                        css_classes=["cc-power-menu-opt-label"],
+                    ),
                     css_classes=["cc-power-menu-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl reboot", lambda: app.close_window("ignis_control_centre")),
-                    halign="start",
                 ),
                 Widget.Button(
-                    label="Power Off",
+                    child=Widget.Label(
+                        label="Power Off",
+                        halign="start",
+                        css_classes=["cc-power-menu-opt-label"],
+                    ),
                     css_classes=["cc-power-menu-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl poweroff", lambda: app.close_window("ignis_control_centre")),
-                    halign="start",
                 ),
                 Widget.Button(
-                    label="Log Out",
+                    child=Widget.Label(
+                        label="Log Out",
+                        halign="start",
+                        css_classes=["cc-power-menu-opt-label"],
+                    ),
                     css_classes=["cc-power-menu-option"],
-                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("hyprctl exit", lambda: app.close_window("ignis_control_centre")),
-                    halign="start",
+                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("hyprctl dispatch exit", lambda: app.close_window("ignis_control_centre")),
                 ),
             ],
             css_classes=["cc-popup"],
@@ -176,11 +228,11 @@ def ControlCentre():
 
         if power_menu_toggled:
             power_menu_toggled = False
-            Utils.Timeout(100, power_menu.set_reveal_child, False) # type: ignore
+            power_menu.set_reveal_child(False) # type: ignore
             return
 
         power_menu_toggled = True
-        Utils.Timeout(100, power_menu.set_reveal_child, True) # type: ignore
+        power_menu.set_reveal_child(True) # type: ignore
 
     def force_close_power_menu():
         nonlocal power_menu_toggled
@@ -250,6 +302,13 @@ def ControlCentre():
                 ],
             ),
             widgets,
+            Widget.Box(
+                vertical=True,
+                css_classes=["control-centre-tray-items"],
+                setup=lambda self: system_tray.connect(
+                    "added", lambda _, item: self.append(SystemTrayApp(item))
+                ),
+            ),
         ]
     )
 

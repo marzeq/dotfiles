@@ -23,14 +23,25 @@ switch:checked {
   font-family: Cantarell, Adwaita Sans, sans-serif;
 }
 
+@mixin popup {
+  background-color: $bg;
+  padding: 1.5rem;
+  padding-left: 0;
+  font-size: 16px;
+  border-radius: 2rem;
+  border: $popup-border;
+  box-shadow: $popup-shadow;
+}
+
 @import "./colours.scss";
 
+@import "./widgets/bar/Bar/style.scss";
 @import "./widgets/bar/ControlCentre/style.scss";
 @import "./widgets/shared/Notification/style.scss";
 @import "./widgets/misc/NotificationPopup/style.scss";
 @import "./widgets/bar/NotifsCalendar/style.scss";
-@import "./widgets/bar/Bar/style.scss";
 @import "./widgets/bar/Workspaces/style.scss";
 @import "./widgets/bar/Clock/style.scss";
 @import "./widgets/bar/Tray/style.scss";
 @import "./widgets/bar/Workspaces/style.scss";
+@import "./widgets/misc/OSD/style.scss";
