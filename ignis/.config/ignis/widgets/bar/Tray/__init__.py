@@ -1,3 +1,4 @@
+from typing import Any, Callable
 from ignis.app import IgnisApp
 from ignis.services.system_tray import SystemTrayItem, SystemTrayService
 from ignis.services.network import NetworkService
@@ -29,7 +30,10 @@ def TrayItem(item: SystemTrayItem) -> Widget.Button:
         css_classes=["tray-item"],
     )
 
-def Tray():
+def Tray(
+    on_hover: Callable[..., Any],
+    on_hover_lost: Callable[..., Any]
+):
     network_icon = Widget.Icon(
         css_classes=["tray-icon"],
         image="network-wired-disconnected-symbolic"
@@ -43,24 +47,30 @@ def Tray():
         else:
             network_icon.image = "network-wired-disconnected-symbolic" # type: ignore
 
-    network.ethernet.connect("notify::is-connected", lambda ethernet, _: update_network_icon())
-    network.wifi.connect("notify::is-connected", lambda wifi, _: update_network_icon())
+    network.ethernet.connect("notify::is-connected", lambda *_: update_network_icon())
+    network.wifi.connect("notify::is-connected", lambda *_: update_network_icon())
 
-    return Widget.Button(
+    return Widget.EventBox(
         css_classes=["tray"],
-        child=Widget.Box(child=[
-            network_icon,
-            Widget.Icon(
-                css_classes=["tray-icon"],
-                image=audio.speaker.bind( # type: ignore
-                    "icon_name", lambda icon: icon if icon != "image-missing" else "audio-volume-muted-symbolic" # type: ignore
-                ),
-            ),
-            Widget.Icon(
-                css_classes=["tray-icon"],
-                image="system-shutdown-symbolic"
+        child=[
+            Widget.Box(
+                child=[
+                    network_icon,
+                    Widget.Icon(
+                        css_classes=["tray-icon"],
+                        image=audio.speaker.bind( # type: ignore
+                            "icon_name", lambda icon: icon if icon != "image-missing" else "audio-volume-muted-symbolic" # type: ignore
+                        ),
+                    ),
+                    Widget.Icon(
+                        css_classes=["tray-icon"],
+                        image="system-shutdown-symbolic"
+                    )
+                ],
+                css_classes=["box"]
             )
-        ], css_classes=["box"]),
-        on_click=lambda _: app.toggle_window("ignis_control_centre") or app.close_window("ignis_notifs_calendar"),
+        ],
+        on_hover=on_hover,
+        on_hover_lost=on_hover_lost,
     )
 

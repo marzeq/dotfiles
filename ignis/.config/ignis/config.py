@@ -1,6 +1,7 @@
 from ignis.utils import Utils
 from ignis.app import IgnisApp
 from widgets.bar.Bar import Bar
+from widgets.bar.ClosePopupers import ClosePopuper
 from widgets.bar.ControlCentre import ControlCentre
 from widgets.bar.NotifsCalendar import NotifsCalendar
 from widgets.misc.NotificationPopup import NotificationPopup
@@ -14,6 +15,7 @@ NotifsCalendar()
 ControlCentre()
 
 for i in range(Utils.get_n_monitors()): # type: ignore
+    ClosePopuper(i)
     Bar(i)
     NotificationPopup(i)
 

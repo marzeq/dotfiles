@@ -1,31 +1,35 @@
 from datetime import datetime
-from ignis.app import IgnisApp
+from typing import Any, Callable
 from ignis.utils import Utils
 from ignis.widgets import Widget
 from ignis.options import options
 
-app = IgnisApp.get_default()
-
-def Clock(display_seconds: bool = True):
-    root = Widget.Button(
+def Clock(
+    on_hover: Callable[..., Any],
+    on_hover_lost: Callable[..., Any]
+):
+    root = Widget.EventBox(
         css_classes=["clock"],
-        child=Widget.Box(
-            child=[
-                Widget.Box(
-                    child=[
-                        Widget.Label(
-                            label=Utils.Poll(1_000, lambda _: datetime.now().strftime("%a %-d %b  %H:%M" + (":%S" if display_seconds else ""))).bind("output"))
-                    ],
-                    css_classes=["box"],
-                ),
-                Widget.Icon(
-                    image="notifications-disabled-symbolic",
-                    css_classes=["dnd-icon"],
-                    visible=options.notifications.bind("dnd") # type: ignore
-                ),
-            ],
-        ),
-        on_click=lambda _: app.toggle_window("ignis_notifs_calendar") or app.close_window("ignis_control_centre")
+        child=[
+            Widget.Box(
+                child=[
+                    Widget.Box(
+                        child=[
+                            Widget.Label(
+                                label=Utils.Poll(1_000, lambda _: datetime.now().strftime("%a %-d %b  %H:%M:%S")).bind("output"))
+                        ],
+                        css_classes=["box"],
+                    ),
+                    Widget.Icon(
+                        image="notifications-disabled-symbolic",
+                        css_classes=["dnd-icon"],
+                        visible=options.notifications.bind("dnd") # type: ignore
+                    ),
+                ],
+            ),
+        ], 
+        on_hover=on_hover,
+        on_hover_lost=on_hover_lost,
     )
 
     def set_root_css_classes(*_):

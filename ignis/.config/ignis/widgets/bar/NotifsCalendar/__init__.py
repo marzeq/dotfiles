@@ -4,6 +4,7 @@ from ignis.app import IgnisApp
 from ignis.widgets import Widget
 from ignis.utils import Utils
 from ignis.services.notifications import NotificationService
+import utils
 from widgets.shared.Notification import NotificationWidget
 from ignis.options import options
 
@@ -248,7 +249,7 @@ def NotifsCalendar():
             css_classes=["notifs-calendar-container"],
             child=[box],
         ),
-        transition_duration=100,
+        transition_duration=utils.popup_anim_speed,
         reveal_child=True,
     )
 
@@ -264,7 +265,7 @@ def NotifsCalendar():
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: app.close_window("ignis_notifs_calendar"),
+                    on_click=lambda _: utils.close_any_popup(),
                 ),
                 Widget.Box(
                     vertical=True,
@@ -272,14 +273,14 @@ def NotifsCalendar():
                         revealer,
                         Widget.Button(
                             vexpand=True,
-                            on_click=lambda _: app.close_window("ignis_notifs_calendar"),
+                            on_click=lambda _: utils.close_any_popup(),
                         ),
                     ],
                 ),
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: app.close_window("ignis_notifs_calendar"),
+                    on_click=lambda _: utils.close_any_popup(),
                 ),
             ],
         ),

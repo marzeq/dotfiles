@@ -159,10 +159,10 @@ def ControlCentre():
 
     update_widgets()
 
-    network.ethernet.connect("notify::is-connected", lambda _, __: update_widgets())
-    network.wifi.connect("notify::is-connected", lambda _, __: update_widgets())
-    network.wifi.connect("notify::enabled", lambda _, __: update_widgets())
-    bluetooth.connect("notify::state", lambda _, __: update_widgets())
+    network.ethernet.connect("notify::is-connected", lambda *_: update_widgets())
+    network.wifi.connect("notify::is-connected", lambda *_: update_widgets())
+    network.wifi.connect("notify::enabled", lambda *_: update_widgets())
+    bluetooth.connect("notify::state", lambda *_: update_widgets())
 
     def adjust_volume(x: int):
         if x > 0:
@@ -178,7 +178,7 @@ def ControlCentre():
 
     power_menu = Widget.Revealer(
         transition_type="slide_down",
-        transition_duration=100,
+        transition_duration=utils.popup_anim_speed,
         child=Widget.Box(
             vertical=True,
             child=[
@@ -335,7 +335,7 @@ def ControlCentre():
             css_classes=["control-centre-container"],
             child=[box],
         ),
-        transition_duration=100,
+        transition_duration=utils.popup_anim_speed,
         reveal_child=True,
     )
 
@@ -351,7 +351,7 @@ def ControlCentre():
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: app.close_window("ignis_control_centre"),
+                    on_click=lambda _: utils.close_any_popup(),
                 ),
                 Widget.Box(
                     vertical=True,
@@ -359,7 +359,7 @@ def ControlCentre():
                         revealer,
                         Widget.Button(
                             vexpand=True,
-                            on_click=lambda _: app.close_window("ignis_control_centre"),
+                            on_click=lambda _: utils.close_any_popup(),
                         ),
                     ],
                 )
