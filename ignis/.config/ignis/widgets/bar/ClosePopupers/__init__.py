@@ -8,8 +8,6 @@ app = IgnisApp.get_default()
 def ClosePopuper(window_id: int):
     window = Widget.Window(
         visible=False,
-        popup=True,
-        kb_mode="on_demand",
         layer="top",
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_close_popuper_{window_id}",

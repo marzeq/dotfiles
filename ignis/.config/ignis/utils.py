@@ -73,8 +73,10 @@ def close_any_popup() -> None:
 
 def clear_popupers():
     for i in range(Utils.get_n_monitors()): # type: ignore
-        app.close_window(f"ignis_close_popuper_{i}")
+        if curr_popup_monitor is None or i != curr_popup_monitor:
+            app.close_window(f"ignis_close_popuper_{i}")
 
 def open_popupers():
     for i in range(Utils.get_n_monitors()): # type: ignore
-        app.open_window(f"ignis_close_popuper_{i}")
+        if i != active_monitor():
+            app.open_window(f"ignis_close_popuper_{i}")
