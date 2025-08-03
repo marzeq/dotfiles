@@ -67,11 +67,15 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
     else:
         menu = None
 
+    icon = item.icon
+    if isinstance(icon, str) and "spotify" in icon:
+        icon = "spotify-client"
+
     return Widget.CenterBox(
         start_widget=Widget.Box(
             child=[
                 Widget.Icon(
-                    image=item.bind("icon"),
+                    image=item.bind("icon") if icon == item.icon else icon,
                     pixel_size=28,
                     css_classes=["system-tray-item-icon"]
                 ),
@@ -86,7 +90,7 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
             ],
         ),
         end_widget=Widget.Box(
-            child=[
+            child=([
                 Widget.Button(
                     child=Widget.Icon(
                         image="view-fullscreen-symbolic",
@@ -94,7 +98,7 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
                     css_classes=["system-tray-item-button"],
                     on_click=lambda _: item.activate() or app.close_window("ignis_control_centre"),
                 )
-            ] + ([
+            ]) + ([
                 menu,
                 Widget.Button(
                     child=Widget.Icon(
@@ -129,7 +133,7 @@ def ControlCentre():
                         "nmcli device disconnect $iface || "
                         "nmcli device connect $iface"
                     )),
-                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda _: app.close_window("ignis_control_centre")),
+                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: app.close_window("ignis_control_centre")),
                 disabled=not network.ethernet.is_connected
             ))
         if network.wifi.devices:
@@ -137,7 +141,7 @@ def ControlCentre():
                 Widget.Icon(image=network.wifi.bind("icon_name")),
                 Widget.Label(label="Wi-Fi", css_classes=["cc-widget-label"]),
                 lambda _: utils.run_cmd("nmcli radio wifi off") if network.wifi.enabled else utils.run_cmd("nmcli radio wifi on"),
-                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda _: app.close_window("ignis_control_centre")),
+                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: app.close_window("ignis_control_centre")),
                 disabled=not network.wifi.enabled
             ))
         if bluetooth.state != "absent":
@@ -146,7 +150,7 @@ def ControlCentre():
                     "bluetooth-active-symbolic" if state == "on" and bluetooth.powered else "bluetooth-disabled-symbolic")),
                 Widget.Label(label="Bluetooth", css_classes=["cc-widget-label"]),
                 lambda _: utils.run_cmd("bluetoothctl power off") if bluetooth.state == "on" else utils.run_cmd("bluetoothctl power on"),
-                lambda _: utils.run_cmd_and_run("blueberry", lambda _: app.close_window("ignis_control_centre")),
+                lambda _: utils.run_cmd_and_run("blueberry", lambda: app.close_window("ignis_control_centre")),
                 disabled=bluetooth.state == "absent" or not bluetooth.powered
             )) 
 
@@ -267,7 +271,7 @@ def ControlCentre():
                         Widget.Button(child=Widget.Icon(
                             image="applications-system-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run(f"xdg-open {os.getenv("HOME")}/.config", lambda _: app.close_window("ignis_control_centre")),
+                            on_click=lambda _: utils.run_cmd_and_run(f"xdg-open {os.getenv("HOME")}/.config", lambda: app.close_window("ignis_control_centre")),
                         ),
                     ]
                 ),
@@ -276,7 +280,7 @@ def ControlCentre():
                         Widget.Button(child=Widget.Icon(
                             image="system-lock-screen-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run("loginctl lock-session", lambda _: app.close_window("ignis_control_centre")),
+                            on_click=lambda _: utils.run_cmd_and_run("loginctl lock-session", lambda: app.close_window("ignis_control_centre")),
                         ),
                         Widget.Button(child=Widget.Icon(
                             image="system-shutdown-symbolic"),
