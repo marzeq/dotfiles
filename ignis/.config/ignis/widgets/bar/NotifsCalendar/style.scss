@@ -56,7 +56,9 @@
 }
 
 .nc-calendar-dow-label {
+  font-size: 0.95rem;
   padding-top: 1rem;
+  margin-bottom: 0.5rem;
   color: $fg-inactive;
   font-weight: 700;
   text-transform: uppercase;
@@ -80,9 +82,6 @@
 
 .nc-calendar-day-currmo {
   font-weight: 700;
-}
-
-.nc-calendar-day-notcurrmo {
 }
 
 .nc-notifications {
