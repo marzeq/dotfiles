@@ -17,8 +17,9 @@ def ClosePopuper(window_id: int):
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: utils.close_any_popup(),
+                    on_click=lambda _: utils.close_curr_popup(),
                     style="background-color: rgba(0,0,0,0.01);",
+                    # style="background-color: red;", # for debugging
                 ),
             ],
         ),

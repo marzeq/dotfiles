@@ -7,6 +7,7 @@ from ignis.services.notifications import NotificationService
 import utils
 from widgets.shared.Notification import NotificationWidget
 from ignis.options import options
+from gi.repository import Gtk  # type: ignore
 
 app = IgnisApp.get_default()
 notifications = NotificationService.get_default()
@@ -175,7 +176,7 @@ def Notifications():
         ],
     )
 
-def NotifsCalendar():
+def NotifsCalendar(monitor: int):
     curr_month = True
     selected_month = datetime.now().month
     selected_year = datetime.now().year
@@ -253,19 +254,20 @@ def NotifsCalendar():
         reveal_child=True,
     )
 
-    return Widget.RevealerWindow(
+    window = Widget.RevealerWindow(
         visible=False,
         popup=True,
         kb_mode="on_demand",
         layer="top",
         anchor=["top", "right", "bottom", "left"],
-        namespace="ignis_notifs_calendar",
+        monitor=monitor,
+        namespace=f"ignis_notifs_calendar_{monitor}",
         child=Widget.Box(
             child=[
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: utils.close_any_popup(),
+                    on_click=lambda _: utils.close_curr_popup(),
                 ),
                 Widget.Box(
                     vertical=True,
@@ -273,17 +275,23 @@ def NotifsCalendar():
                         revealer,
                         Widget.Button(
                             vexpand=True,
-                            on_click=lambda _: utils.close_any_popup(),
+                            on_click=lambda _: utils.close_curr_popup(),
                         ),
                     ],
                 ),
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: utils.close_any_popup(),
+                    on_click=lambda _: utils.close_curr_popup(),
                 ),
             ],
         ),
         revealer=revealer,
     )
+
+    key_controller = Gtk.EventControllerKey()
+    window.add_controller(key_controller)
+    key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
+
+    return window
 

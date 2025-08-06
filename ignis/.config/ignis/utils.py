@@ -48,26 +48,26 @@ def handle_popup_clicked(name: str) -> None:
     clear_popupers()
     if curr_popup == name:
         if curr_popup_monitor is None:
-            app.open_window(name)
+            app.open_window(f"{name}_{active_monitor()}")
             set_popup(name)
+            open_popupers()
         elif curr_popup_monitor == active_monitor():
-            app.close_window(name)
-            reset_popup()
+            close_curr_popup()
         else:
-            app.close_window(curr_popup) if curr_popup else None
-            Utils.Timeout(ms=popup_anim_speed, target=lambda: app.open_window(name))
+            close_curr_popup()
+            app.open_window(f"{name}_{active_monitor()}")
             set_popup(name)
+            open_popupers()
     else:
-        app.close_window(curr_popup) if curr_popup else None
-        app.open_window(name)
+        close_curr_popup()
+        app.open_window(f"{name}_{active_monitor()}")
         set_popup(name)
+        open_popupers()
 
-    open_popupers()
-
-def close_any_popup() -> None:
+def close_curr_popup() -> None:
     global curr_popup, curr_popup_monitor
     if curr_popup is not None:
-        app.close_window(curr_popup)
+        app.close_window(f"{curr_popup}_{curr_popup_monitor}")
         clear_popupers()
         reset_popup()
 

@@ -1,0 +1,38 @@
+.launcher {
+  @include popup;
+}
+
+.launcher-entry {
+  margin-left: 1.5rem;
+  min-width: 25rem;
+  background-color: $bg-light;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+}
+
+.launcher-entry-icon {
+  margin-right: 0.75rem;
+}
+
+.launcher-app-list {
+  margin-left: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.launcher-app {
+  background-color: $bg-light;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  margin-top: 0.75rem;
+  &:hover {
+    background-color: lighten($bg-light, 5%);
+  }
+  &:active {
+    background-color: lighten($bg-light, 10%);
+  }
+}
+
+.launcher-app-icon {
+  margin-right: 0.75rem;
+}

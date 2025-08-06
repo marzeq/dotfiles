@@ -5,6 +5,7 @@ from ignis.services.audio import AudioService
 from ignis.services.network import NetworkService
 from ignis.services.bluetooth import BluetoothService
 from ignis.services.system_tray import SystemTrayService, SystemTrayItem
+from gi.repository import Gtk  # type: ignore
 
 system_tray = SystemTrayService.get_default()
 
@@ -96,7 +97,7 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
                         image="view-fullscreen-symbolic",
                     ),
                     css_classes=["system-tray-item-button"],
-                    on_click=lambda _: item.activate() or app.close_window("ignis_control_centre"),
+                    on_click=lambda _: item.activate() or utils.close_curr_popup(),
                 )
             ]) + ([
                 menu,
@@ -113,7 +114,7 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
         css_classes=["system-tray-item"],
     )
 
-def ControlCentre():
+def ControlCentre(monitor: int):
     widgets = Widget.Grid(
         css_classes=["control-centre-widgets"],
         column_num=2,
@@ -133,7 +134,7 @@ def ControlCentre():
                         "nmcli device disconnect $iface || "
                         "nmcli device connect $iface"
                     )),
-                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: app.close_window("ignis_control_centre")),
+                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: utils.close_curr_popup()),
                 disabled=not network.ethernet.is_connected
             ))
         if network.wifi.devices:
@@ -141,7 +142,7 @@ def ControlCentre():
                 Widget.Icon(image=network.wifi.bind("icon_name")),
                 Widget.Label(label="Wi-Fi", css_classes=["cc-widget-label"]),
                 lambda _: utils.run_cmd("nmcli radio wifi off") if network.wifi.enabled else utils.run_cmd("nmcli radio wifi on"),
-                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: app.close_window("ignis_control_centre")),
+                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: utils.close_curr_popup()),
                 disabled=not network.wifi.enabled
             ))
         if bluetooth.state != "absent":
@@ -150,7 +151,7 @@ def ControlCentre():
                     "bluetooth-active-symbolic" if state == "on" and bluetooth.powered else "bluetooth-disabled-symbolic")),
                 Widget.Label(label="Bluetooth", css_classes=["cc-widget-label"]),
                 lambda _: utils.run_cmd("bluetoothctl power off") if bluetooth.state == "on" else utils.run_cmd("bluetoothctl power on"),
-                lambda _: utils.run_cmd_and_run("blueberry", lambda: app.close_window("ignis_control_centre")),
+                lambda _: utils.run_cmd_and_run("blueberry", lambda: utils.close_curr_popup()),
                 disabled=bluetooth.state == "absent" or not bluetooth.powered
             )) 
 
@@ -204,7 +205,7 @@ def ControlCentre():
                         css_classes=["cc-power-menu-opt-label"],
                     ),
                     css_classes=["cc-power-menu-option"],
-                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl suspend", lambda: app.close_window("ignis_control_centre")),
+                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl suspend", lambda: utils.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
@@ -213,7 +214,7 @@ def ControlCentre():
                         css_classes=["cc-power-menu-opt-label"],
                     ),
                     css_classes=["cc-power-menu-option"],
-                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl reboot", lambda: app.close_window("ignis_control_centre")),
+                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl reboot", lambda: utils.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
@@ -222,7 +223,7 @@ def ControlCentre():
                         css_classes=["cc-power-menu-opt-label"],
                     ),
                     css_classes=["cc-power-menu-option"],
-                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl poweroff", lambda: app.close_window("ignis_control_centre")),
+                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl poweroff", lambda: utils.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
@@ -231,7 +232,7 @@ def ControlCentre():
                         css_classes=["cc-power-menu-opt-label"],
                     ),
                     css_classes=["cc-power-menu-option"],
-                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("hyprctl dispatch exit", lambda: app.close_window("ignis_control_centre")),
+                    on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("hyprctl dispatch exit", lambda: utils.close_curr_popup()),
                 ),
             ],
             css_classes=["cc-popup"],
@@ -271,7 +272,7 @@ def ControlCentre():
                         Widget.Button(child=Widget.Icon(
                             image="applications-system-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run(f"xdg-open {os.getenv("HOME")}/.config", lambda: app.close_window("ignis_control_centre")),
+                            on_click=lambda _: utils.run_cmd_and_run(f"xdg-open {os.getenv("HOME")}/.config", lambda: utils.close_curr_popup()),
                         ),
                     ]
                 ),
@@ -280,7 +281,7 @@ def ControlCentre():
                         Widget.Button(child=Widget.Icon(
                             image="system-lock-screen-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run("loginctl lock-session", lambda: app.close_window("ignis_control_centre")),
+                            on_click=lambda _: utils.run_cmd_and_run("loginctl lock-session", lambda: utils.close_curr_popup()),
                         ),
                         Widget.Button(child=Widget.Icon(
                             image="system-shutdown-symbolic"),
@@ -343,15 +344,16 @@ def ControlCentre():
         visible=False,
         popup=True,
         kb_mode="on_demand",
+        monitor=monitor,
         layer="top",
         anchor=["top", "right", "bottom", "left"],
-        namespace="ignis_control_centre",
+        namespace=f"ignis_control_centre_{monitor}",
         child=Widget.Box(
             child=[
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: utils.close_any_popup(),
+                    on_click=lambda _: utils.close_curr_popup(),
                 ),
                 Widget.Box(
                     vertical=True,
@@ -359,7 +361,7 @@ def ControlCentre():
                         revealer,
                         Widget.Button(
                             vexpand=True,
-                            on_click=lambda _: utils.close_any_popup(),
+                            on_click=lambda _: utils.close_curr_popup(),
                         ),
                     ],
                 )
@@ -369,6 +371,9 @@ def ControlCentre():
     )
 
     window.connect("notify::visible", lambda *_: force_close_power_menu() if window.visible and power_menu_toggled else None)
+    key_controller = Gtk.EventControllerKey()
+    window.add_controller(key_controller)
+    key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
 
     return window
 

@@ -27,7 +27,7 @@ def Bar(monitor_id: int = 0) -> Widget.Window:
         elif tray_hovered:
             utils.handle_popup_clicked("ignis_control_centre")
         else:
-            utils.close_any_popup()
+            utils.close_curr_popup()
     
     return Widget.Window(
         namespace=f"ignis_bar_{monitor_id}",
