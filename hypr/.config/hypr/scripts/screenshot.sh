@@ -4,11 +4,8 @@ mkdir -p $FOLDER
 if [[ ! -z "$1" ]]; then
   MODE=$1
 else
-  MODE=$(echo "area
-window
-monitor" | rofi -dmenu -p "Screenshot")
-
-  sleep 0.2
+  echo "Usage: $0 [window|area|monitor]"
+  exit 1
 fi
 
 
