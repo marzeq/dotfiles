@@ -82,6 +82,7 @@ def Launcher(monitor: int):
         nonlocal entry
         entry.text = ""
         entry.grab_focus()
+        entry.css_classes = ["launcher-entry-empty"]
 
     def update_app_list():
         nonlocal app_list, entry
@@ -91,7 +92,10 @@ def Launcher(monitor: int):
             entry.grab_focus()
             app_list.visible = False
             window.style = default_style # type: ignore
+            reset_entry()
             return
+        
+        entry.css_classes = []
         
         apps = applications.search(applications.apps, query)[:5]
         if not apps:
@@ -104,7 +108,17 @@ def Launcher(monitor: int):
             LauncherApp(app) for app in apps
         ]
 
-        readjust_margin = 0.25 + (len(apps) * 3.875) - 7
+        # all picked by hand through trial and error to make search bar static and not move around
+        if len(apps) == 5:
+            readjust_margin = 12.625
+        elif len(apps) == 4:
+            readjust_margin = 8.625
+        elif len(apps) == 3:
+            readjust_margin = 4.8
+        elif len(apps) == 2:
+            readjust_margin = 0.9
+        else:
+            readjust_margin = -3
         window.style = f"margin-top: {readjust_margin}rem;" # type: ignore
 
     def launch():

@@ -24,7 +24,7 @@ if [ -f /etc/arch-release ]; then
 
   if hascmd paru; then
     if hascmd waybar; then
-      alias update-system="paru && remove-orphans && pkill -SIGRTMIN+8 waybar"
+      alias update-system="paru && remove-orphans"
     else
       alias update-system="paru && remove-orphans"
     fi
