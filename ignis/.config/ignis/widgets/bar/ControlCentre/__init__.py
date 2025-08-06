@@ -281,7 +281,7 @@ def ControlCentre(monitor: int):
                         Widget.Button(child=Widget.Icon(
                             image="system-lock-screen-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run("loginctl lock-session", lambda: utils.close_curr_popup()),
+                            on_click=lambda _: utils.run_cmd_and_run_delayed("loginctl lock-session", lambda: utils.close_curr_popup(), 100),
                         ),
                         Widget.Button(child=Widget.Icon(
                             image="system-shutdown-symbolic"),

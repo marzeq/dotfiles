@@ -24,6 +24,10 @@ def run_cmd_and_run(cmd: str, runnable: Callable) -> None:
     runnable()
     run_cmd(cmd)
 
+def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
+    runnable()
+    Utils.Timeout(delay, lambda *_: run_cmd(cmd))
+
 
 # Popup management
 
