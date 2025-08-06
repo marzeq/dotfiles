@@ -23,35 +23,26 @@ RESET="\033[0m"
 SHELLS_DEPS=(
   "stow"
 
-  "zsh"                                             # best shell ever
-  "bash"                                            # just in case you somehow dont have bash
+  "zsh"
+  "bash"
   "git"                                             # i guess you wouldnt get this far without git but just in case
 )
 
 NEOVIM_DEPS=(
   "stow"
 
-  "neovim"                                          # duh
+  "neovim"
 
-  "fzf"                                             # fzf is a godsend
-  "ripgrep"                                         # same for you rg <3
-  "curl"                                            # for downloading stuff
-  "imagemagick"                                     # for image.nvim to work
+  "fzf"
+  "ripgrep"
+  "curl"
 )
 
 TERMINAL_DEPS=(
   "stow"
 
   "ghostty"                                         # really couldnt care less about my term, only picked it because ligatures work and nerd fonts arent fucked up
-)
-
-FONTS_DEPS=(
-  "fontconfig"                                      # duh
-  
-  ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
   "ttf-cascadia-code" "ttf-cascadia-code-nerd"      # main mono font
-  ".AUR:ttf-twemoji"                                # our emoji font of choice
-  "cantarell-fonts"                                 # main sans font
 )
 
 DESKTOP_DEPS=(
@@ -60,6 +51,7 @@ DESKTOP_DEPS=(
   "hyprland"                                        # duh
 
   ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
+  "cantarell-fonts"                                 # sans font for the shell
   
   "gdm"                                             # login manager of choice
 
@@ -77,34 +69,23 @@ DESKTOP_DEPS=(
   "hyprpicker"                                      # colour picker
   "hypridle"                                        # idle manager (sleep after inactivity etc.)
 
-  "rofi-wayland"                                    # app launcher
   ".AUR:hyprshot" "grim" "slurp"                    # screenshots
   "imagemagick" "tesseract" "tesseract-data-eng"    # needed for area ocr
-  "waybar"                                          # status bar
   ".PARU"                                           # explicitly install aur manager
   ".AUR:clipse-bin" "wl-clipboard"                  # clipboard
   "pamixer" "pavucontrol"                           # audio control
   "nwg-displays"                                    # gui monitor configuration
   "adw-gtk-theme"                                   # gtk3 theme
-  "pacman-contrib"                                  # for update module in waybar
+  "pacman-contrib"                                  # pacman utilities
+  "fontconfig"                                      # font configuration
 
   # my apps
   "nautilus"                                        # file manager
   "firefox"                                         # web browser
-)
 
-GAMING_DEPS=(
-  "steam"                                           # duh
-  ".AUR:proton-ge-custom-bin"                       # latest proton-ge
-  "gamemode"                                        # cpu governor optimisation, to squeeze out a couple more framses
-  "gamescope"                                       # game compositor
-  "mangohud"                                        # performance monitoring hud
-)
-
-WINDIGO_DEPS=(
-  "stow"
-
-  ".AUR:windigo"                                         # fan control daemon
+  # fonts
+  ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
+  ".AUR:ttf-twemoji"                                # our emoji font of choice
 )
 
 install_paru() {
@@ -149,21 +130,6 @@ install_packages() {
 }
 
 
-fonts_installed=true
-install_fonts() {
-  if $fonts_installed; then
-    return
-  fi
-  echo -e "${BLUE}Installing fonts...${RESET}"
-  fonts_installed=true
-  local twemojilinkcmd="sudo ln -sf /usr/share/fontconfig/conf.avail/75-twemoji.conf /etc/fonts/conf.d/75-twemoji.conf"
-
-  install_packages "${FONTS_DEPS[@]}"
-  echo -e "${BLUE}Running: $twemojilinkcmd${RESET}"
-  echo "This will require root permissions!"
-  eval $twemojilinkcmd
-}
-
 shells_installed=false
 install_shells() {
   if $shells_installed; then
@@ -191,7 +157,6 @@ install_neovim() {
   echo -e "${BLUE}Installing neovim...${RESET}"
   neovim_installed=true
   install_packages "${NEOVIM_DEPS[@]}"
-  install_fonts
   stow -t "$HOME" nvim
 }
 
@@ -203,7 +168,6 @@ install_terminal() {
   echo -e "${BLUE}Installing terminal...${RESET}"
   terminal_installed=true
   install_packages "${TERMINAL_DEPS[@]}"
-  install_fonts
   stow -t "$HOME" terminal
 }
 
@@ -215,51 +179,13 @@ install_desktop() {
   echo -e "${BLUE}Installing desktop...${RESET}"
   desktop_installed=true
   install_packages "${DESKTOP_DEPS[@]}"
-  install_fonts
   install_terminal
-  stow -t "$HOME" hypr waybar rofi wallpapers ignis
+  stow -t "$HOME" hypr wallpapers ignis
 
   sudo systemctl enable gdm
   gsettings set org.gnome.desktop.wm.preferences button-layout :
 
   echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically${RESET}"
-}
-
-multilib_enabled=false
-enable_multilib() {
-  if $multilib_enabled; then
-    return
-  fi
-  multilib_enabled=true
-  if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-    echo -e "${BLUE}Enabling multilib repository...${RESET}"
-    echo "[multilib]" | sudo tee -a /etc/pacman.conf
-    echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
-
-    sudo pacman -Sy --noconfirm
-  fi
-}
-
-gaming_installed=false
-install_gaming() {
-  if $gaming_installed; then
-    return
-  fi
-  echo -e "${BLUE}Installing gaming packages...${RESET}"
-  gaming_installed=true
-  enable_multilib
-
-  install_packages "${GAMING_DEPS[@]}"
-}
-
-windigo_installed=false
-install_windigo() {
-  if $windigo_installed; then
-    return
-  fi
-  echo -e "${BLUE}Installing windigo...${RESET}"
-  windigo_installed=true
-  install_packages "${WINDIGO_DEPS[@]}"
 }
 
 main() {
@@ -270,7 +196,7 @@ main() {
 
   if [[ $# -eq 0 ]]; then
     echo "Usage: $0 <package>"
-    echo "Available packages: shells, neovim, terminal, desktop, fonts, gaming"
+    echo "Available packages: shells, neovim, terminal, desktop"
     echo "Or run $0 all to install all packages"
     exit 1
   fi
@@ -293,18 +219,10 @@ main() {
     install_terminal
   elif [[ $1 == "desktop" ]]; then
     install_desktop
-  elif [[ $1 == "fonts" ]]; then
-    install_fonts
-  elif [[ $1 == "gaming" ]]; then
-    install_gaming
-  elif [[ $1 == "windigo" ]]; then
-    install_windigo
   elif [[ $1 == "all" ]]; then
-    install_gaming
     install_shells
     install_neovim
     install_desktop
-    install_windigo
   else
     echo "Unknown package: $1"
     cd "$first_dir"
