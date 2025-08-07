@@ -1,14 +1,16 @@
+@import "./colours.scss";
+
 * {
   all: unset;
 }
 
 switch {
-  background-color: #545457;
+  background-color: adjust-color($bg, $lightness: 12%);
   padding: 0.2em;
   border-radius: 1rem;
 
   slider {
-    background-color: #D7D7D8;
+    background-color: adjust-color($bg, $lightness: 63%);
     border-radius: 100%;
     min-width: 1.5rem;
     min-height: 1.5rem;
@@ -16,7 +18,7 @@ switch {
 }
 
 switch:checked {
-  background-color: #3584E4;
+  background-color: $accent;
 }
 
 :root {
@@ -33,7 +35,6 @@ switch:checked {
   box-shadow: $popup-shadow;
 }
 
-@import "./colours.scss";
 
 @import "./widgets/bar/Bar/style.scss";
 @import "./widgets/bar/ClosePopupers/style.scss";

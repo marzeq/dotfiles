@@ -6,7 +6,7 @@
 }
 
 .osd-audio-slider trough {
-  background-color: #5C5C5F;
+  background-color: adjust-color($bg, $lightness: 15%);
   min-height: 0.3rem;
   border-radius: 1rem;
   margin-left: 0.25rem;

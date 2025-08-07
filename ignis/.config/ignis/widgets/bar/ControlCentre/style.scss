@@ -30,7 +30,7 @@
 
 .cc-audio-slider trough {
   margin: 0.75rem;
-  background-color: #5C5C5F;
+  background-color: adjust-color($bg, $lightness: 15%);
   min-height: 0.3rem;
   border-radius: 1rem;
 
@@ -144,12 +144,12 @@
   margin-top: 1rem;
   margin-left: 1.5rem;
   padding: 1rem;
-  background-color: #48484B;
+  background-color: $button-bg;
   border-radius: 1.5rem;
 }
 
 .cc-popup-icon {
-  background-color: #6D6D6F;
+  background-color: $button-bg-active;
   padding: 0.5rem;
   border-radius: 100%;
 }
@@ -192,7 +192,7 @@
   margin-top: 1rem;
   padding: 0.75rem;
   border-radius: 4rem;
-  background-color: #48484B;
+  background-color: $button-bg;
 }
 
 .system-tray-item-icon {
@@ -206,15 +206,16 @@
 }
 
 .system-tray-item-button {
+  $_bg: adjust-color($bg, $lightness: 20%);
   margin-left: 0.5rem;
-  background-color: #6D6D6F;
+  background-color: $_bg;
   padding: 0.75rem;
   border-radius: 100%;
   &:hover {
-    background-color: lighten(#6D6D6F, 5%);
+    background-color: adjust-color($_bg, $lightness: 5%);
   }
   &:active {
-    background-color: lighten(#6D6D6F, 10%);
+    background-color: adjust-color($_bg, $lightness: 10%);
   }
 }
 
