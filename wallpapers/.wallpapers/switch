@@ -3,8 +3,8 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 SELECTED_REL="$1"
 
 if [ -z "$SELECTED_REL" ]; then
-    echo "Usage: $0 <path_to_image>"
-    exit 1
+  SELECTED_FILE=$(find "$SCRIPT_DIR" -type f \( -name "*.jpg" -o -name "*.png" \) -printf '%P\n' | fzf)
+  SELECTED_REL="$SCRIPT_DIR/$SELECTED_FILE"
 fi
 if [ ! -f "$SELECTED_REL" ]; then
     echo "File not found: $SELECTED_REL"
@@ -12,8 +12,8 @@ if [ ! -f "$SELECTED_REL" ]; then
 fi
 SELECTED=$(readlink -f "$SELECTED_REL")
 
-unlink $SCRIPT_DIR/wallpaper
-ln -s "$SELECTED" $SCRIPT_DIR/wallpaper
+unlink $SCRIPT_DIR/.wallpaper
+ln -s "$SELECTED" $SCRIPT_DIR/.wallpaper
 
 pkill hyprpaper ; hyprctl dispatch exec hyprpaper
 

@@ -135,6 +135,7 @@ def Notifications():
                             Widget.Switch(
                                 active=options.notifications.dnd, # type: ignore
                                 on_change=lambda _, active: options.notifications.set_dnd(active), # type: ignore
+                                css_classes=["switch"],
                             ),
                         ]
                     ),
@@ -262,6 +263,7 @@ def NotifsCalendar(monitor: int):
         anchor=["top", "right", "bottom", "left"],
         monitor=monitor,
         namespace=f"ignis_notifs_calendar_{monitor}",
+        css_classes=["runset"],
         child=Widget.Box(
             child=[
                 Widget.Button(

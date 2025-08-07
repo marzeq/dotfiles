@@ -4,11 +4,11 @@
   border-radius: 1rem;
 
   &:hover {
-    background-color: lighten($bg-light, 4%);
+    background-color: adjust-color($bg-light, $lightness: 4%);
   }
 
   &:active {
-    background-color: lighten($bg-light, 8%);
+    background-color: adjust-color($bg-light, $lightness: 8%);
   }
 }
 

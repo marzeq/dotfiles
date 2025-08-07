@@ -29,13 +29,13 @@ $bar-bg: #000000;
     // the more transparent the bar, the lighter the hover effect must be
     $hover-lighten: 15%;
     .box {
-      background-color: rgba(lighten($bar-bg, calc($hover-lighten + (100% - $_transparency) / 2)), $_ele-tnpc);
+      background-color: adjust-color(rgba($bar-bg, calc($hover-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
     }
   }
   &:active {
     $active-lighten: 35%;
     .box {
-      background-color: rgba(lighten($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $_ele-tnpc);
+      background-color: adjust-color(rgba($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
     }
   }
 }

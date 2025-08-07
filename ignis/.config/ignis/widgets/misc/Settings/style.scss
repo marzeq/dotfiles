@@ -1,0 +1,72 @@
+.settings {
+  background-color: $window-bg;
+  padding: 2rem;
+}
+
+.settings-section {
+  background-color: $bg;
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.settings-subtitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  margin-right: 1rem;
+}
+
+.settings-description {
+  color: $fg-subtle;
+}
+
+.settings-wallpaper {
+  margin-top: 2rem;
+  border-radius: 2rem;
+
+  &:hover {
+    outline: 4px solid $accent;
+  }
+
+  &:active {
+    outline: 4px solid $accent-hover;
+  }
+}
+
+.settings-wallpaper-image {
+  border-radius: 2rem;
+}
+
+.settings-suggested-accent-colours {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-suggested-accent-colour {
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 100%;
+  margin-right: 1rem;
+
+  &:hover {
+    outline: 4px solid #3584E4;
+  }
+  &:active {
+    outline: 4px solid adjust-color(#3584E4, $lightness: 5%);
+  }
+}
+
+.change-accent-colour-button {
+  background-color: $button-bg;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+  &:active {
+    background-color: $button-bg-active;
+  }
+}

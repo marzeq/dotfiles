@@ -30,10 +30,10 @@
   border-radius: 1rem;
   margin-top: 0.75rem;
   &:hover {
-    background-color: lighten($bg-light, 5%);
+    background-color: adjust-color($bg-light, $lightness: 5%);
   }
   &:active {
-    background-color: lighten($bg-light, 10%);
+    background-color: adjust-color($bg-light, $lightness: 10%);
   }
 }
 

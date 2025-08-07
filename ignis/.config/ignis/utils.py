@@ -6,6 +6,10 @@ from ignis.app import IgnisApp
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 
+from PIL import Image
+import numpy as np
+from sklearn.cluster import KMeans
+
 app = IgnisApp.get_default()
 hyprland = HyprlandService.get_default()
 
@@ -27,6 +31,40 @@ def run_cmd_and_run(cmd: str, runnable: Callable) -> None:
 def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
     runnable()
     Utils.Timeout(delay, lambda *_: run_cmd(cmd))
+
+async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50):
+  def rgb_distance(c1, c2):
+    return np.linalg.norm(np.array(c1) - np.array(c2))
+
+  img = Image.open(image_path).convert("RGB")
+  img = img.resize((200, 200))
+  pixels = list(img.getdata())
+
+  kmeans = KMeans(n_clusters=num_colours, random_state=0)
+  kmeans.fit(pixels)
+  colours = kmeans.cluster_centers_
+
+  def saturation(rgb):
+    r, g, b = [x / 255.0 for x in rgb]
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    return 0 if mx == 0 else (mx - mn) / mx
+
+  sorted_colours = sorted(colours, key=saturation, reverse=True)
+
+  diverse_colours = []
+  for c in sorted_colours:
+    if all(rgb_distance(c, dc) >= min_distance for dc in diverse_colours):
+      diverse_colours.append(c)
+    if len(diverse_colours) >= top_n:
+      break
+
+  hex_colours = [
+    f'#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}'
+    for c in diverse_colours
+  ]
+
+  return hex_colours
 
 
 # Popup management

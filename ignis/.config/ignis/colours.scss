@@ -1,9 +1,13 @@
+@use "sass:color";
+
 $fg: #FDFDFD;
 $fg-inactive: #959595;
+$fg-subtle: #9C9C9D;
 $bg: #36363A;
 $bg-light: adjust-color($bg, $lightness: 5%);
 $popup-border: 1px solid $bg-light;
 $popup-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+$window-bg: #1D1D20;
 
 $separator: 1px solid $bg-light;
 
@@ -12,11 +16,27 @@ $button-bg-hover: adjust-color($button-bg, $lightness: 5%);
 $button-bg-active: adjust-color($button-bg-hover, $lightness: 5%);
 $button-bg-active-more: adjust-color($button-bg-active, $lightness: 5%);
 
-$accent: #3584E4;
-$accent-secondary: adjust-color($accent, $lightness: -3%);
+$accent: #3584E4 !default;
 
-$accent-hover: adjust-color($accent, $lightness: 5%);
-$accent-secondary-hover: adjust-color($accent-secondary, $lightness: 5%);
+$al: if(
+  color.channel($accent, "lightness", $space: hsl) > 90%,
+  -1,
+  1
+);
 
-$accent-active: adjust-color($accent-hover, $lightness: 5%);
-$accent-secondary-active: adjust-color($accent-secondary-hover, $lightness: 5%);
+$fg-on-accent: if(
+  color.channel($accent, "lightness", $space: hsl) > 70%,
+  $bg-light,
+  $fg
+);
+
+$accent-secondary: adjust-color($accent, $lightness: -3%*$al);
+$accent-tertiary: adjust-color($accent, $lightness: 10%*$al);
+
+$accent-hover: adjust-color($accent, $lightness: 5%*$al);
+$accent-secondary-hover: adjust-color($accent-secondary, $lightness: 5%*$al);
+$accent-tertiary-hover: adjust-color($accent-tertiary, $lightness: 5%*$al);
+
+$accent-active: adjust-color($accent-hover, $lightness: 5%*$al);
+$accent-secondary-active: adjust-color($accent-secondary-hover, $lightness: 5%*$al);
+$accent-tertiary-active: adjust-color($accent-tertiary-hover, $lightness: 5%*$al);

@@ -1,5 +1,6 @@
 from ignis.utils import Utils
 from ignis.app import IgnisApp
+import utils
 from widgets.bar.Bar import Bar
 from widgets.bar.ClosePopupers import ClosePopuper
 from widgets.bar.ControlCentre import ControlCentre
@@ -7,6 +8,7 @@ from widgets.bar.NotifsCalendar import NotifsCalendar
 from widgets.misc.Launcher import LauncherProxy, Launcher
 from widgets.misc.NotificationPopup import NotificationPopup
 from widgets.misc.OSD import OSD
+from widgets.misc.Settings import Settings
 
 app = IgnisApp().get_default()
 dir = Utils.get_current_dir() # type: ignore
@@ -24,3 +26,4 @@ for i in range(Utils.get_n_monitors()): # type: ignore
 
 OSD()
 LauncherProxy()
+Settings()

@@ -69,6 +69,7 @@
   font-weight: 700;
   margin-left: 1rem;
   margin-top: 0.75rem;
+  color: $fg-on-accent;
 
   .cc-widget-left {
     background-color: $accent;
@@ -96,21 +97,21 @@
   }
 
   .cc-widget-right {
-    background-color: lighten($accent, 10%);
+    background-color: $accent-tertiary;
     padding: 0 1rem;
 
     &:hover {
-      background-color: lighten($accent-hover, 10%);
+      background-color: $accent-tertiary-hover;
     }
     &:active {
-      background-color: lighten($accent-active, 10%);
+      background-color: $accent-tertiary-active;
     }
 
     border-top-right-radius: 2rem;
     border-bottom-right-radius: 2rem;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
-    border-left: 1px solid lighten($accent, 15%);
+    border-left: 1px solid adjust-color($accent, $lightness: 15%);
   }
 }
 
@@ -129,14 +130,14 @@
     }
   }
   .cc-widget-right {
-    background-color: lighten($button-bg, 10%);
+    background-color: adjust-color($button-bg, $lightness: 10%);
     &:hover {
-      background-color: lighten($button-bg-hover, 10%);
+      background-color: adjust-color($button-bg-hover, $lightness: 10%);
     }
     &:active {
-      background-color: lighten($button-bg-active, 10%);
+      background-color: adjust-color($button-bg-active, $lightness: 10%);
     }
-    border-left: 1px solid lighten($button-bg, 15%);
+    border-left: 1px solid adjust-color($button-bg, $lightness: 15%);
   }
 }
 

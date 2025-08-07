@@ -9,9 +9,9 @@ if [ ! -f $THROWAWAY ]; then
 fi
  
 source "$THROWAWAY"
-if [ -z "$_fastfetch" ]; then
-  export _fastfetch=1
-  if command -v fastfetch &> /dev/null; then
-    fastfetch
-  fi
-fi
+# if [ -z "$_fastfetch" ]; then
+#   export _fastfetch=1
+#   if command -v fastfetch &> /dev/null; then
+#     fastfetch
+#   fi
+# fi

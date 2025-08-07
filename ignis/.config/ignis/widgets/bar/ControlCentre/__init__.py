@@ -272,7 +272,7 @@ def ControlCentre(monitor: int):
                         Widget.Button(child=Widget.Icon(
                             image="applications-system-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run(f"xdg-open {os.getenv("HOME")}/.config", lambda: utils.close_curr_popup()),
+                            on_click=lambda _: app.open_window("ignis_settings") or utils.close_curr_popup(),
                         ),
                     ]
                 ),
@@ -348,6 +348,7 @@ def ControlCentre(monitor: int):
         layer="top",
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_control_centre_{monitor}",
+        css_classes=["runset"],
         child=Widget.Box(
             child=[
                 Widget.Button(
