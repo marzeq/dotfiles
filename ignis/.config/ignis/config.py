@@ -1,6 +1,6 @@
+import os
 from ignis.utils import Utils
 from ignis.app import IgnisApp
-import utils
 from widgets.bar.Bar import Bar
 from widgets.bar.ClosePopupers import ClosePopuper
 from widgets.bar.ControlCentre import ControlCentre

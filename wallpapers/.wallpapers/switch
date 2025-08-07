@@ -12,6 +12,11 @@ if [ ! -f "$SELECTED_REL" ]; then
 fi
 SELECTED=$(readlink -f "$SELECTED_REL")
 
+if [[ "$SELECTED" != "$SCRIPT_DIR/"* ]]; then
+  cp "$SELECTED" "$SCRIPT_DIR/"
+  SELECTED="$SCRIPT_DIR/$(basename "$SELECTED")"
+fi
+
 unlink $SCRIPT_DIR/.wallpaper
 ln -s "$SELECTED" $SCRIPT_DIR/.wallpaper
 

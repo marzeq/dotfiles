@@ -13,6 +13,8 @@ from sklearn.cluster import KMeans
 app = IgnisApp.get_default()
 hyprland = HyprlandService.get_default()
 
+root_dir = Utils.get_current_dir() # type: ignore
+
 def active_monitor() -> int:
     return hyprland.active_workspace.monitor_id
 

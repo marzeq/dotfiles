@@ -19,13 +19,13 @@ $button-bg-active-more: adjust-color($button-bg-active, $lightness: 5%);
 $accent: #3584E4 !default;
 
 $al: if(
-  color.channel($accent, "lightness", $space: hsl) > 90%,
+  color.channel($accent, "lightness", $space: hsl) > 80%,
   -1,
   1
 );
 
 $fg-on-accent: if(
-  color.channel($accent, "lightness", $space: hsl) > 70%,
+  color.channel($accent, "lightness", $space: hsl) > 80%,
   $bg-light,
   $fg
 );
@@ -33,10 +33,10 @@ $fg-on-accent: if(
 $accent-secondary: adjust-color($accent, $lightness: -3%*$al);
 $accent-tertiary: adjust-color($accent, $lightness: 10%*$al);
 
-$accent-hover: adjust-color($accent, $lightness: 5%*$al);
-$accent-secondary-hover: adjust-color($accent-secondary, $lightness: 5%*$al);
-$accent-tertiary-hover: adjust-color($accent-tertiary, $lightness: 5%*$al);
+$accent-hover: adjust-color($accent, $lightness: 5%);
+$accent-secondary-hover: adjust-color($accent-secondary, $lightness: 5%);
+$accent-tertiary-hover: adjust-color($accent-tertiary, $lightness: 5%);
 
-$accent-active: adjust-color($accent-hover, $lightness: 5%*$al);
-$accent-secondary-active: adjust-color($accent-secondary-hover, $lightness: 5%*$al);
-$accent-tertiary-active: adjust-color($accent-tertiary-hover, $lightness: 5%*$al);
+$accent-active: adjust-color($accent-hover, $lightness: 5%);
+$accent-secondary-active: adjust-color($accent-secondary-hover, $lightness: 5%);
+$accent-tertiary-active: adjust-color($accent-tertiary-hover, $lightness: 5%);

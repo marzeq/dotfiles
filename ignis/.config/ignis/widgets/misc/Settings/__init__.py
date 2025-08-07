@@ -14,9 +14,16 @@ def AccentColourPicker(colour: str):
     )
 
 def set_accent_colour(colour: str):
-    print(colour)
     with open(os.path.expanduser("~/.config/ignis/accent.scss"), "w") as f:
         f.write(f"$accent: {colour};\n")
+
+    utils.run_cmd(f"{utils.root_dir}/scripts/change_accent.sh \"{colour}\"")
+
+def restore_accent_colour():
+    with open(os.path.expanduser("~/.config/ignis/accent.scss"), "w") as f:
+        f.write("\n")
+
+    utils.run_cmd(f"{utils.root_dir}/scripts/restore_accent.sh") # type: ignore
 
 def Settings():
     wallpaper_pic = Widget.Picture(
@@ -52,7 +59,7 @@ def Settings():
     asyncio.create_task(set_suggested_accent_colours(os.path.expanduser("~/.wallpapers/.wallpaper")))
 
     def on_wallpaper_picked(_, file):
-        utils.run_cmd(f"~/.wallpapers/switch {file.get_path()}")
+        utils.run_cmd(f"~/.wallpapers/switch \"{file.get_path()}\"")
         wallpaper_pic.set_image(file.get_path())
         asyncio.create_task(set_suggested_accent_colours(file.get_path()))
 
@@ -73,6 +80,7 @@ def Settings():
         child=Widget.Scroll(
             child=Widget.Box(
                 vertical=True,
+                vexpand=True,
                 child=[
                     Widget.Box(
                         vertical=True,
@@ -115,11 +123,21 @@ def Settings():
                                 css_classes=["settings-description"],
                                 halign="start",
                             ),
-                            Widget.Button(
-                                halign="start",
-                                label="Set custom accent colour",
-                                on_click=lambda _: color_chooser.choose_rgba(parent=None, cancellable=None, callback=on_color_chosen),
-                                css_classes=["change-accent-colour-button"],
+                            Widget.Box(
+                                child=[
+                                    Widget.Button(
+                                        halign="start",
+                                        label="Set custom accent colour",
+                                        on_click=lambda _: color_chooser.choose_rgba(parent=None, cancellable=None, callback=on_color_chosen),
+                                        css_classes=["change-accent-colour-button"],
+                                    ),
+                                    Widget.Button(
+                                        halign="start",
+                                        label="Restore default accent colour",
+                                        on_click=lambda _: restore_accent_colour(),
+                                        css_classes=["change-accent-colour-button"],
+                                    ),
+                                ],
                             ),
                         ],
                         css_classes=["settings-section"],
