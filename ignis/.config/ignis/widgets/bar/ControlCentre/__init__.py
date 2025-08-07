@@ -267,8 +267,9 @@ def ControlCentre(monitor: int):
                     child=[
                         Widget.Button(child=Widget.Icon(
                             image=f"screenshooter-symbolic"), # type: ignore 
-                            css_classes=["cc-top-button"]
-                        ), # TODO: Launch screenshot tool
+                            css_classes=["cc-top-button"],
+                            on_click=lambda _: utils.run_cmd_and_run_delayed("hyprshot -szm region -o ~/pictures/screenshots/", lambda: utils.close_curr_popup(), 100),
+                        ),
                         Widget.Button(child=Widget.Icon(
                             image="applications-system-symbolic"),
                             css_classes=["cc-top-button"],
