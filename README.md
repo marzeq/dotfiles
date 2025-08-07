@@ -32,9 +32,13 @@ run the `install.sh` script to stow the config files for the specified package o
 
 #### hyprland desktop
 
-i tried to replicate gnome as much as i could
+incredibly gnome inspired
 
-![image](https://github.com/user-attachments/assets/03b4ee0d-85d3-4a02-8c35-03fae709959b)
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/e7c42e54-3455-4e6a-9805-6a37f3ee414a" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/f4d82f3c-59b4-4cbf-82f2-4c0799b9984d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/921a80c6-3a19-45b2-96f7-621a83e782d0" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/f0fecaff-34b1-4bf5-aabe-eed3badc0f82" />
+
 
 #### neovim
 
