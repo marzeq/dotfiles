@@ -1,37 +1,6 @@
 @import "./accent.scss";
 @import "./colours.scss";
 
-.runset {
-  * {
-    all: unset;
-  }
-}
-
-button {
-  min-width: unset;
-  min-height: unset;
-  background-color: $button-bg;
-  &:hover {
-    background-color: $button-bg-hover;
-  }
-  &:active {
-    background-color: $button-bg-active;
-  }
-}
-
-.switch {
-  background-color: adjust-color($bg, $lightness: 12%);
-
-  slider {
-    background-color: adjust-color($bg, $lightness: 63%);
-  }
-
-  &:checked {
-    background-color: $accent;
-  }
-}
-
-
 :root {
   font-family: Cantarell, Adwaita Sans, sans-serif;
 }
@@ -46,6 +15,17 @@ button {
   box-shadow: $popup-shadow;
 }
 
+@mixin custom-button {
+  min-height: unset;
+  min-width: unset;
+  background-color: $button-bg;
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+  &:active {
+    background-color: $button-bg-active;
+  }
+}
 
 @import "./widgets/bar/Bar/style.scss";
 @import "./widgets/bar/ClosePopupers/style.scss";

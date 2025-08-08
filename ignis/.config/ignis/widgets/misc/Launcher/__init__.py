@@ -29,6 +29,7 @@ def Launcher(monitor: int):
     entry = Widget.Entry(
         hexpand=True,
         placeholder_text="Search",
+        css_classes=["launcher-entry-input"],
     )
 
     app_list = Widget.Box(
@@ -61,7 +62,7 @@ def Launcher(monitor: int):
                     css_classes=["launcher"],
                     child=[
                         Widget.Box(
-                            css_classes=["runset", "launcher-entry"],
+                            css_classes=["launcher-entry"],
                             child=[
                                 Widget.Icon(
                                     icon_name="system-search-symbolic",
@@ -82,7 +83,7 @@ def Launcher(monitor: int):
         nonlocal entry
         entry.text = ""
         entry.grab_focus()
-        entry.css_classes = ["launcher-entry-empty"]
+        entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
 
     def update_app_list():
         nonlocal app_list, entry
@@ -95,7 +96,7 @@ def Launcher(monitor: int):
             reset_entry()
             return
         
-        entry.css_classes = []
+        entry.css_classes = ["launcher-entry-input"]
         
         apps = applications.search(applications.apps, query)[:5]
         if not apps:

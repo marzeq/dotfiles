@@ -21,13 +21,13 @@ def Workspaces(monitor_name: str) -> Widget.EventBox:
 
     return Widget.Box(
         child=[
-            Widget.Box(
-                child=hyprland.bind_many(
+            Widget.Button(
+                child=Widget.Box(child=hyprland.bind_many(
                     ["workspaces", "active_workspace"],
                     transform=lambda workspaces, *_: [
                         WorkspaceButton(i) for i in workspaces
                     ],
-                ),
+                )),
                 css_classes=["box"],
             ),
         ],

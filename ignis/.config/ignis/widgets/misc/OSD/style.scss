@@ -5,6 +5,11 @@
   margin-bottom: 2rem;
 }
 
+.osd-audio-slider {
+  padding: unset;
+  margin: unset;
+}
+
 .osd-audio-slider trough {
   background-color: adjust-color($bg, $lightness: 15%);
   min-height: 0.3rem;

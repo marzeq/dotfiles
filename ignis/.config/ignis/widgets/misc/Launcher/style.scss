@@ -10,6 +10,10 @@
   border-radius: 1rem;
 }
 
+.launcher-entry-input {
+  all: unset;
+}
+
 .launcher-entry-empty {
   color: $fg-inactive;
 }

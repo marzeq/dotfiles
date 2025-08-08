@@ -20,6 +20,7 @@ $bar-bg: #000000;
   padding: 0.3rem 0.3rem;
 
   .box {
+    @include custom-button;
     background-color: transparent;
     padding: 0.3rem 0.8rem;
     border-radius: 1rem;

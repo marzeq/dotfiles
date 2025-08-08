@@ -53,8 +53,8 @@ def Tray(
     return Widget.EventBox(
         css_classes=["tray"],
         child=[
-            Widget.Box(
-                child=[
+            Widget.Button(
+                child=Widget.Box(child=[
                     network_icon,
                     Widget.Icon(
                         css_classes=["tray-icon"],
@@ -66,7 +66,7 @@ def Tray(
                         css_classes=["tray-icon"],
                         image="system-shutdown-symbolic"
                     )
-                ],
+                ]),
                 css_classes=["box"]
             )
         ],

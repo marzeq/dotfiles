@@ -13,11 +13,10 @@ def Clock(
         child=[
             Widget.Box(
                 child=[
-                    Widget.Box(
-                        child=[
-                            Widget.Label(
-                                label=Utils.Poll(1_000, lambda _: datetime.now().strftime("%a %-d %b  %H:%M:%S")).bind("output"))
-                        ],
+                    Widget.Button(
+                        child=Widget.Label(
+                            label=Utils.Poll(1_000, lambda _: datetime.now().strftime("%a %-d %b  %H:%M:%S")).bind("output")
+                        ),
                         css_classes=["box"],
                     ),
                     Widget.Icon(
