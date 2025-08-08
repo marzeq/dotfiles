@@ -82,13 +82,12 @@ if hascmd git; then
   alias gc="git commit -m"
   alias gca="git commit -am"
 
+  alias gsb="git switch"
+  alias gcb="git switch -c"
+
   alias gp="git push"
   alias gpl="git pull"
   alias gf="git fetch"
-
-  if hascmd gh; then
-    alias gcr="gh repo create -s . --push"
-  fi
   
   function gv() {
     local remote_url=$(git config --get remote.origin.url)
