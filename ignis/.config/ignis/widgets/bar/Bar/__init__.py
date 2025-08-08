@@ -31,7 +31,6 @@ def Bar(monitor_id: int = 0) -> Widget.Window:
     
     return Widget.Window(
         namespace=f"ignis_bar_{monitor_id}",
-        css_classes=["runset"],
         monitor=monitor_id,
         anchor=["left", "top", "right"],
         exclusivity="exclusive",

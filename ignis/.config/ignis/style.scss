@@ -1,25 +1,29 @@
 @import "./accent.scss";
 @import "./colours.scss";
 
-.unset {
-  all: unset;
-}
 .runset {
   * {
     all: unset;
   }
 }
 
+button {
+  min-width: unset;
+  min-height: unset;
+  background-color: $button-bg;
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+  &:active {
+    background-color: $button-bg-active;
+  }
+}
+
 .switch {
   background-color: adjust-color($bg, $lightness: 12%);
-  padding: 0.2em;
-  border-radius: 1rem;
 
   slider {
     background-color: adjust-color($bg, $lightness: 63%);
-    border-radius: 100%;
-    min-width: 1.5rem;
-    min-height: 1.5rem;
   }
 
   &:checked {

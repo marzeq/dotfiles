@@ -11,8 +11,6 @@ system_tray = SystemTrayService.get_default()
 
 import utils
 
-import os
-
 app = IgnisApp.get_default()
 audio = AudioService.get_default()
 network = NetworkService.get_default()
@@ -33,8 +31,8 @@ def ControlCentreWidget(
                 Widget.Button(
                     child=Widget.Box(
                         child=[icon, label],
-                        css_classes=["cc-widget-left"]
                     ),
+                    css_classes=["cc-widget-left"],
                     on_click=on_click,
                     hexpand=True,
                 ),
@@ -294,7 +292,7 @@ def ControlCentre(monitor: int):
             ),
             power_menu,
             Widget.Box(
-                css_classes=["control-centre-audio"],
+                css_classes=["runset", "control-centre-audio"],
                 child=[
                     Widget.Button(
                         child=Widget.Icon(
@@ -349,7 +347,6 @@ def ControlCentre(monitor: int):
         layer="top",
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_control_centre_{monitor}",
-        css_classes=["runset"],
             child=Widget.Overlay(
             child=Widget.EventBox(
                 vexpand=True,

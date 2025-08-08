@@ -22,6 +22,7 @@
 }
 
 .settings-wallpaper {
+  padding: 0;
   margin-top: 2rem;
   border-radius: 2rem;
 
@@ -44,30 +45,22 @@
 }
 
 .settings-suggested-accent-colour {
+  padding: 0;
   min-width: 2rem;
   min-height: 2rem;
   border-radius: 100%;
   margin-right: 1rem;
 
   &:hover {
-    outline: 4px solid #3584E4;
+    outline: 4px solid $accent;
   }
   &:active {
-    outline: 4px solid adjust-color(#3584E4, $lightness: 5%);
+    outline: 4px solid $accent-hover;
   }
 }
 
 .change-accent-colour-button {
-  background-color: $button-bg;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   margin-right: 1rem;
-
-  &:hover {
-    background-color: $button-bg-hover;
-  }
-  &:active {
-    background-color: $button-bg-active;
-  }
 }

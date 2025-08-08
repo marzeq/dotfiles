@@ -36,6 +36,8 @@
   font-weight: 700;
   padding: 0.25rem 0.75rem;
   border-radius: 4rem;
+
+  background-color: transparent;
   &:hover {
     background-color: $button-bg;
   }
@@ -47,6 +49,7 @@
 .nc-calendar-arrow {
   padding: 0.75rem;
   border-radius: 100%;
+  background-color: transparent;
   &:hover {
     background-color: $button-bg;
   }

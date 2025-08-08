@@ -47,9 +47,8 @@ def Launcher(monitor: int):
         layer="top",
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_launcher_{monitor}",
-        css_classes=["runset"],
         child=Widget.Overlay(
-            child=Widget.Button(
+            child=Widget.EventBox(
                 vexpand=True,
                 hexpand=True,
                 on_click=lambda _: utils.close_curr_popup(),
@@ -62,7 +61,7 @@ def Launcher(monitor: int):
                     css_classes=["launcher"],
                     child=[
                         Widget.Box(
-                            css_classes=["launcher-entry"],
+                            css_classes=["runset", "launcher-entry"],
                             child=[
                                 Widget.Icon(
                                     icon_name="system-search-symbolic",

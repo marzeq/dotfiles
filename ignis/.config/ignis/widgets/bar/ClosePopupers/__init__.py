@@ -11,7 +11,6 @@ def ClosePopuper(window_id: int):
         layer="top",
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_close_popuper_{window_id}",
-        css_classes=["runset"],
         monitor=window_id,
         child=Widget.Box(
             child=[

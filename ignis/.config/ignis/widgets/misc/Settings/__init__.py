@@ -147,7 +147,6 @@ def Settings():
             ),
         ),
         namespace="ignis_settings",
-        css_classes=["runset"],
         visible=False,
         hide_on_close=True,
     )

@@ -62,22 +62,22 @@ def Calendar(month: int, year: int, on_prev: Callable[..., Any], on_next: Callab
                 start_widget=Widget.Button(
                     child=Widget.Icon(
                         image="pan-start-symbolic",
-                        css_classes=["nc-calendar-arrow"],
                     ),
+                    css_classes=["nc-calendar-arrow"],
                     on_click=on_prev,
                 ),
                 center_widget=Widget.Button(
                     child=Widget.Label(
                         label=datetime(year, month, 1).strftime("%B") if year == datetime.now().year else datetime(year, month, 1).strftime("%B %Y"),
-                        css_classes=["nc-calendar-month"],
                     ),
+                    css_classes=["nc-calendar-month"],
                     on_click=on_reset_month,
                 ),
                 end_widget=Widget.Button(
                     child=Widget.Icon(
                         image="pan-end-symbolic",
-                        css_classes=["nc-calendar-arrow"],
                     ),
+                    css_classes=["nc-calendar-arrow"],
                     on_click=on_next,
                 ),
                 css_classes=["nc-calendar-month-switcher"],
@@ -263,7 +263,6 @@ def NotifsCalendar(monitor: int):
         anchor=["top", "right", "bottom", "left"],
         monitor=monitor,
         namespace=f"ignis_notifs_calendar_{monitor}",
-        css_classes=["runset"],
         child=Widget.Overlay(
             child=Widget.EventBox(
                 vexpand=True,
