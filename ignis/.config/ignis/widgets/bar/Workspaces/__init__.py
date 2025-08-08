@@ -7,7 +7,7 @@ workspaces_last = 10
 
 def Workspaces(monitor_name: str) -> Widget.EventBox:
     def WorkspaceButton(workspace: HyprlandWorkspace) -> Widget.Button:
-        widget = Widget.Button(
+        widget = Widget.Box(
             css_classes=["workspace"],
             halign="start",
             valign="center",

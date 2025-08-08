@@ -350,23 +350,19 @@ def ControlCentre(monitor: int):
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_control_centre_{monitor}",
         css_classes=["runset"],
-        child=Widget.Box(
-            child=[
-                Widget.Button(
-                    vexpand=True,
-                    hexpand=True,
-                    on_click=lambda _: utils.close_curr_popup(),
-                ),
+            child=Widget.Overlay(
+            child=Widget.EventBox(
+                vexpand=True,
+                hexpand=True,
+                on_click=lambda _: utils.close_curr_popup(),
+            ),
+            overlays=[
                 Widget.Box(
                     vertical=True,
-                    child=[
-                        revealer,
-                        Widget.Button(
-                            vexpand=True,
-                            on_click=lambda _: utils.close_curr_popup(),
-                        ),
-                    ],
-                )
+                    valign="start",
+                    halign="end",
+                    child=[revealer],
+                ),
             ],
         ),
         revealer=revealer,
