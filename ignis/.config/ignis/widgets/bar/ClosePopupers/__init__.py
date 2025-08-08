@@ -12,6 +12,7 @@ def ClosePopuper(window_id: int):
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_close_popuper_{window_id}",
         monitor=window_id,
+        css_classes=["window"],
         child=Widget.Box(
             child=[
                 Widget.Button(
@@ -19,7 +20,6 @@ def ClosePopuper(window_id: int):
                     hexpand=True,
                     on_click=lambda _: utils.close_curr_popup(),
                     style="background-color: rgba(0,0,0,0.01);",
-                    # style="background-color: red;", # for debugging
                 ),
             ],
         ),

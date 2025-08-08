@@ -3,7 +3,7 @@ $transparency: 60%;
 $_transparency: calc(100% - $transparency);
 $_ele-tnpc: max($_transparency, 30%);
 
-window {
+.window {
   background: none;
 }
 

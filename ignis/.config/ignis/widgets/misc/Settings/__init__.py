@@ -147,6 +147,7 @@ def Settings():
             ),
         ),
         namespace="ignis_settings",
+        css_classes=["window"],
         visible=False,
         hide_on_close=True,
     )

@@ -263,6 +263,7 @@ def NotifsCalendar(monitor: int):
         anchor=["top", "right", "bottom", "left"],
         monitor=monitor,
         namespace=f"ignis_notifs_calendar_{monitor}",
+        css_classes=["window"],
         child=Widget.Overlay(
             child=Widget.EventBox(
                 vexpand=True,

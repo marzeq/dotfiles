@@ -48,6 +48,7 @@ def Launcher(monitor: int):
         layer="top",
         anchor=["top", "right", "bottom", "left"],
         namespace=f"ignis_launcher_{monitor}",
+        css_classes=["window"],
         child=Widget.Overlay(
             child=Widget.EventBox(
                 vexpand=True,
@@ -143,6 +144,7 @@ def LauncherProxy():
     window = Widget.Window(
         namespace="ignis_launcher_proxy",
         layer="background",
+        css_classes=["window"],
         visible=False,
     )
 

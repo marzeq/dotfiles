@@ -10,6 +10,7 @@ class OSD(Widget.Window):
             namespace="ignis_osd",
             layer="overlay",
             anchor=["bottom"],
+            css_classes=["window"],
             visible=False,
             child=Widget.Box(
                 css_classes=["osd", "runset"],

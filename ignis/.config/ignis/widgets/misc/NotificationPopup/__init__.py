@@ -61,7 +61,7 @@ def NotificationPopup(monitor: int):
         layer="top",
         visible=False,
         style="min-width: 35rem;",
-        css_classes=["notification-popups"],
+        css_classes=["notification-popups", "window"],
     )
     window.child = PopupBox(window=window)
     window.dynamic_input_region = True
