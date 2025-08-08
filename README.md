@@ -9,7 +9,6 @@ the repo utilises `GNU stow`. make sure you install the [stow package](https://a
 ```bash
 cd dotfiles # or wherever you cloned the repository
 stow <program_name_1> <program_name_2> # ...
-# for example: stow nvim/ ghostty/
 ```
 
 ---
@@ -22,8 +21,6 @@ run the `install.sh` script to stow the config files for the specified package o
 
 ```bash
 ./install.sh [package]
-# Available packages: shells, neovim, terminal, desktop, fonts, gaming
-# Or run ./install.sh all to install all packages
 ```
 
 ---
@@ -31,8 +28,6 @@ run the `install.sh` script to stow the config files for the specified package o
 ### gallery
 
 #### hyprland desktop
-
-incredibly gnome inspired
 
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/e7c42e54-3455-4e6a-9805-6a37f3ee414a" />
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/f4d82f3c-59b4-4cbf-82f2-4c0799b9984d" />
