@@ -5,6 +5,8 @@ from ignis.services.network import NetworkService
 from ignis.services.audio import AudioService
 from ignis.widgets import Widget
 
+import utils
+
 app = IgnisApp.get_default()
 system_tray = SystemTrayService.get_default()
 network = NetworkService.get_default()
@@ -31,6 +33,7 @@ def TrayItem(item: SystemTrayItem) -> Widget.Button:
     )
 
 def Tray(
+    monitor: int,
     on_hover: Callable[..., Any],
     on_hover_lost: Callable[..., Any]
 ):
@@ -50,7 +53,7 @@ def Tray(
     network.ethernet.connect("notify::is-connected", lambda *_: update_network_icon())
     network.wifi.connect("notify::is-connected", lambda *_: update_network_icon())
 
-    return Widget.EventBox(
+    box = Widget.EventBox(
         css_classes=["tray"],
         child=[
             Widget.Button(
@@ -73,4 +76,8 @@ def Tray(
         on_hover=on_hover,
         on_hover_lost=on_hover_lost,
     )
+
+    utils.popup_triggers_by_name[f"ignis_control_centre_{monitor}"] = box
+
+    return box
 

@@ -47,6 +47,7 @@ def Bar(monitor_id: int = 0) -> Widget.Window:
                     center_widget=Widget.Box(
                         child=[
                             Clock(
+                                monitor=monitor_id,
                                 on_hover=lambda *_: set_clock_hovered(True),
                                 on_hover_lost=lambda *_: set_clock_hovered(False),
                             ),
@@ -55,6 +56,7 @@ def Bar(monitor_id: int = 0) -> Widget.Window:
                     end_widget=Widget.Box(
                         child=[
                             Tray(
+                                monitor=monitor_id,
                                 on_hover=lambda *_: set_tray_hovered(True),
                                 on_hover_lost=lambda *_: set_tray_hovered(False),
                             ),

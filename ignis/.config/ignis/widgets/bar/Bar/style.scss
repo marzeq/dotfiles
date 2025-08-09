@@ -39,9 +39,11 @@ $bar-bg: #000000;
       background-color: adjust-color(rgba($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
     }
   }
-}
 
-
-.bar-eb {
-  background-color: red;
+  &.active {
+    $active-lighten: 35%;
+    .box {
+      background-color: adjust-color(rgba($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
+    }
+  }
 }

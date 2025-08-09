@@ -7,6 +7,7 @@ from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 
 from PIL import Image
+from ignis.widgets import Widget
 import numpy as np
 from sklearn.cluster import KMeans
 
@@ -35,38 +36,38 @@ def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
     Utils.Timeout(delay, lambda *_: run_cmd(cmd))
 
 async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50):
-  def rgb_distance(c1, c2):
-    return np.linalg.norm(np.array(c1) - np.array(c2))
+    def rgb_distance(c1, c2):
+        return np.linalg.norm(np.array(c1) - np.array(c2))
 
-  img = Image.open(image_path).convert("RGB")
-  img = img.resize((200, 200))
-  pixels = list(img.getdata())
+    img = Image.open(image_path).convert("RGB")
+    img = img.resize((200, 200))
+    pixels = list(img.getdata())
 
-  kmeans = KMeans(n_clusters=num_colours, random_state=0)
-  kmeans.fit(pixels)
-  colours = kmeans.cluster_centers_
+    kmeans = KMeans(n_clusters=num_colours, random_state=0)
+    kmeans.fit(pixels)
+    colours = kmeans.cluster_centers_
 
-  def saturation(rgb):
-    r, g, b = [x / 255.0 for x in rgb]
-    mx = max(r, g, b)
-    mn = min(r, g, b)
-    return 0 if mx == 0 else (mx - mn) / mx
+    def saturation(rgb):
+        r, g, b = [x / 255.0 for x in rgb]
+        mx = max(r, g, b)
+        mn = min(r, g, b)
+        return 0 if mx == 0 else (mx - mn) / mx
 
-  sorted_colours = sorted(colours, key=saturation, reverse=True)
+    sorted_colours = sorted(colours, key=saturation, reverse=True)
 
-  diverse_colours = []
-  for c in sorted_colours:
-    if all(rgb_distance(c, dc) >= min_distance for dc in diverse_colours):
-      diverse_colours.append(c)
-    if len(diverse_colours) >= top_n:
-      break
+    diverse_colours = []
+    for c in sorted_colours:
+        if all(rgb_distance(c, dc) >= min_distance for dc in diverse_colours):
+            diverse_colours.append(c)
+        if len(diverse_colours) >= top_n:
+            break
 
-  hex_colours = [
-    f'#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}'
-    for c in diverse_colours
-  ]
+    hex_colours = [
+        f'#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}'
+        for c in diverse_colours
+    ]
 
-  return hex_colours
+    return hex_colours
 
 
 # Popup management
@@ -76,13 +77,27 @@ popup_anim_speed = 100
 curr_popup = None
 curr_popup_monitor = None
 
+popup_triggers_by_name: dict[str, Widget.Box] = {}
+def set_active(name: str, monitor: int, active: bool):
+    popup_name = f"{name}_{monitor}"
+    box = popup_triggers_by_name.get(popup_name)
+    if box is None:
+        return
+    if active:
+        box.css_classes = box.css_classes + ["active"]
+    else:
+        box.css_classes = [clas for clas in box.css_classes if clas != "active"]
+
 def set_popup(name: str) -> None:
     global curr_popup, curr_popup_monitor
     curr_popup = name
     curr_popup_monitor = active_monitor()
+    set_active(curr_popup, curr_popup_monitor, True)
 
 def reset_popup() -> None:
     global curr_popup, curr_popup_monitor
+    if curr_popup is not None and curr_popup_monitor is not None:
+        set_active(curr_popup, curr_popup_monitor, False)
     curr_popup = None
     curr_popup_monitor = None
 
