@@ -43,84 +43,6 @@ def ending_dow_for_month(month: int, year: int) -> int:
     return (starting_dow_for_month(month, year) + last_day - 1) % 7
 
 
-def Calendar(month: int, year: int, on_prev: Callable[..., Any], on_next: Callable[..., Any], on_reset_month: Callable[..., Any]) -> Widget.Box:
-    return Widget.Box(
-        vertical=True,
-        css_classes=["nc-calendar"],
-        child=[
-            Widget.Label(
-                label=datetime.now().strftime("%A"),
-                css_classes=["nc-calendar-dow"],
-                halign="start",
-            ),
-            Widget.Label(
-                label=datetime.now().strftime("%d %B %Y"),
-                css_classes=["nc-calendar-date"],
-                halign="start",
-            ),
-            Widget.CenterBox(
-                start_widget=Widget.Button(
-                    child=Widget.Icon(
-                        image="pan-start-symbolic",
-                    ),
-                    css_classes=["nc-calendar-arrow"],
-                    on_click=on_prev,
-                ),
-                center_widget=Widget.Button(
-                    child=Widget.Label(
-                        label=datetime(year, month, 1).strftime("%B") if year == datetime.now().year else datetime(year, month, 1).strftime("%B %Y"),
-                    ),
-                    css_classes=["nc-calendar-month"],
-                    on_click=on_reset_month,
-                ),
-                end_widget=Widget.Button(
-                    child=Widget.Icon(
-                        image="pan-end-symbolic",
-                    ),
-                    css_classes=["nc-calendar-arrow"],
-                    on_click=on_next,
-                ),
-                css_classes=["nc-calendar-month-switcher"],
-            ),
-            Widget.Grid(
-                column_num=7,
-                child=([
-                    Widget.Label(
-                        label=day,
-                        css_classes=["nc-calendar-dow-label"],
-                        halign="center",
-                    ) for day in ["M", "T", "W", "T", "F", "S", "S"]
-                ] + [
-                    # previous month days to fill out the first week
-                    Widget.Label(
-                        label=str(get_month_days(month - 1, year) - x).zfill(2),
-                        css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
-                        halign="center",
-                    ) for x in range(
-                        starting_dow_for_month(month, year)
-                    )
-                ] + [
-                    # current month days
-                    Widget.Label(
-                        label=str(day).zfill(2),
-                        css_classes=
-                            ["nc-calendar-day", "nc-calendar-day-currmo"] +
-                            (["nc-calendar-day-today"] if day == datetime.now().day and datetime.now().month == month and datetime.now().year == year else []) +
-                            (["nc-calendar-day-workday"] if (day+starting_dow_for_month(month, year) - 1) % 7 not in [5, 6] else []),
-                        halign="center",
-                    ) for day in range(1, get_month_days(month, year) + 1)
-                ] + [
-                    # next month days to fill out the last week
-                    Widget.Label(
-                        label=str(day).zfill(2),
-                        css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
-                        halign="center",
-                    ) for day in range(1, 43 - (starting_dow_for_month(month, year) + get_month_days(month, year)))
-                ])
-            )
-        ],
-    )
-
 def Notifications():
     notifs = notifications.notifications
                 
@@ -177,10 +99,87 @@ def Notifications():
         ],
     )
 
+def CalendarGrid(month: int, year: int) -> Widget.Grid:
+    return Widget.Grid(
+        column_num=7,
+        child=([
+            Widget.Label(
+                label=day,
+                css_classes=["nc-calendar-dow-label"],
+                halign="center",
+            ) for day in ["M", "T", "W", "T", "F", "S", "S"]
+        ] + [
+                # previous month days to fill out the first week
+                Widget.Label(
+                    label=str(get_month_days(month - 1, year) - x).zfill(2),
+                    css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
+                    halign="center",
+                ) for x in range(
+                    starting_dow_for_month(month, year)
+                )
+            ] + [
+                # current month days
+                Widget.Label(
+                    label=str(day).zfill(2),
+                    css_classes=
+                    ["nc-calendar-day", "nc-calendar-day-currmo"] +
+                        (["nc-calendar-day-today"] if day == datetime.now().day and datetime.now().month == month and datetime.now().year == year else []) +
+                        (["nc-calendar-day-workday"] if (day+starting_dow_for_month(month, year) - 1) % 7 not in [5, 6] else []),
+                    halign="center",
+                ) for day in range(1, get_month_days(month, year) + 1)
+            ] + [
+                # next month days to fill out the last week
+                Widget.Label(
+                    label=str(day).zfill(2),
+                    css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
+                    halign="center",
+                ) for day in range(1, 43 - (starting_dow_for_month(month, year) + get_month_days(month, year)))
+                    ])
+            )
+
 def NotifsCalendar(monitor: int):
     curr_month = True
     selected_month = datetime.now().month
     selected_year = datetime.now().year
+
+    calendar_dow = Widget.Label(
+        label=datetime.now().strftime("%A"),
+        css_classes=["nc-calendar-dow"],
+        halign="start",
+    )
+
+    calendar_date = Widget.Label(
+        label=datetime.now().strftime("%d %B %Y"),
+        css_classes=["nc-calendar-date"],
+        halign="start",
+    )
+
+    def calendar_month_reset_label(month: int, year: int) -> str:
+        return datetime(year, month, 1).strftime("%B") if year == datetime.now().year else datetime(year, month, 1).strftime("%B %Y")
+
+    calendar_month_reset = Widget.Button(
+        child=Widget.Label(
+            label=calendar_month_reset_label(selected_month, selected_year),
+        ),
+        css_classes=["nc-calendar-month"],
+    )
+
+    calendar_grid_box = Widget.Box(
+        child=[CalendarGrid(selected_month, selected_year)],
+    )
+
+    def set_month(month: int, year: int):
+        calendar_month_reset.child.label = calendar_month_reset_label(month, year)
+        calendar_grid_box.child = [CalendarGrid(month, year)] # type: ignore
+
+    def reset_month(*_):
+        nonlocal selected_month, selected_year, curr_month
+        selected_month = datetime.now().month
+        selected_year = datetime.now().year
+        curr_month = True
+        set_month(selected_month, selected_year)
+
+    calendar_month_reset.on_click = reset_month # type: ignore
 
     def increment_month(*_):
         nonlocal selected_month, selected_year, curr_month
@@ -190,7 +189,7 @@ def NotifsCalendar(monitor: int):
             selected_year += 1
         else:
             selected_month += 1
-        update_calendar()
+        set_month(selected_month, selected_year)
 
     def decrement_month(*_):
         nonlocal selected_month, selected_year, curr_month
@@ -200,36 +199,53 @@ def NotifsCalendar(monitor: int):
             selected_year -= 1
         else:
             selected_month -= 1
-        update_calendar()
+        set_month(selected_month, selected_year)
 
-    def reset_month(*_):
-        nonlocal selected_month, selected_year, curr_month
-        selected_month = datetime.now().month
-        selected_year = datetime.now().year
-        curr_month = True
-        update_calendar()
+    calendar = Widget.Box(
+        vertical=True,
+        css_classes=["nc-calendar"],
+        child=[
+            calendar_dow,
+            calendar_date,
+            Widget.CenterBox(
+                start_widget=Widget.Button(
+                    child=Widget.Icon(
+                        image="pan-start-symbolic",
+                    ),
+                    css_classes=["nc-calendar-arrow"],
+                    on_click=decrement_month,
+                ),
+                center_widget=calendar_month_reset,
+                end_widget=Widget.Button(
+                    child=Widget.Icon(
+                        image="pan-end-symbolic",
+                    ),
+                    css_classes=["nc-calendar-arrow"],
+                    on_click=increment_month,
+                ),
+                css_classes=["nc-calendar-month-switcher"],
+            ),
+            calendar_grid_box,
+        ],
+    )
 
     box = Widget.Grid(
         column_num=2,
         css_classes=["notifs-calendar"],
         child=[
             Widget.Box(),
-            Widget.Box(),
+            calendar,
         ],
     )
 
     def update_calendar():
         nonlocal selected_month, selected_year, curr_month
+        calendar_dow.label = datetime.now().strftime("%A")
+        calendar_date.label = datetime.now().strftime("%d %B %Y")
         if curr_month:
             selected_month = datetime.now().month
             selected_year = datetime.now().year
-
-        box.child = [
-            box.child[0],  # type: ignore
-            Calendar(selected_month, selected_year, on_next=increment_month, on_prev=decrement_month, on_reset_month=reset_month)
-        ]
-
-    update_calendar()
+            set_month(selected_month, selected_year)
 
     def update_notifications():
         box.child = [

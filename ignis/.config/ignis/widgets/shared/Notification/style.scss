@@ -19,6 +19,7 @@
 }
 
 .notification-button {
+  @include custom-button;
   background-color: $button-bg-hover;
   border-radius: 100%;
   padding: 0.5rem;

@@ -13,8 +13,8 @@ $separator: 1px solid $bg-light;
 
 $button-bg: #48484B;
 $button-bg-hover: adjust-color($button-bg, $lightness: 5%);
-$button-bg-active: adjust-color($button-bg-hover, $lightness: 5%);
-$button-bg-active-more: adjust-color($button-bg-active, $lightness: 5%);
+$button-bg-active: adjust-color($button-bg, $lightness: 15%);
+$button-bg-active-more: adjust-color($button-bg, $lightness: 20%);
 
 $accent: #3584E4 !default;
 
