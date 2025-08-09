@@ -60,12 +60,13 @@ def add_wallpaper(selected_rel):
     if not os.path.isfile(selected_rel):
         raise FileNotFoundError(f"File not found: {selected_rel}")
 
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    selected_abs = os.path.realpath(selected_rel)
+    selected_abs = os.path.realpath(os.path.expanduser(selected_rel))
+    if selected_abs.startswith(wallpapers_dir + os.sep):
+        return
 
-    if not selected_abs.startswith(script_dir + os.sep):
-        shutil.copy2(selected_abs, script_dir)
-
+    dest_path = os.path.join(wallpapers_dir, os.path.basename(selected_abs))
+    if not os.path.exists(dest_path) or not os.path.samefile(selected_abs, dest_path):
+        shutil.copy2(selected_abs, dest_path)
 
 def Wallpaper(path: str, on_wallpaper_picked: Callable[[str], None]):
     return Widget.Button(
@@ -132,21 +133,21 @@ def Settings():
         child=[]
     )
 
-    def on_wallpaper_picked(file):
-        set_wallpaper(file)
-        asyncio.create_task(set_suggested_accent_colours(file))
-
+    def refresh_wallpapers():
         wallpapers.child = [ # type: ignore
             Wallpaper(path, on_wallpaper_picked) for path in get_wallpapers()
         ]
 
-    wallpapers.child = [ # type: ignore
-        Wallpaper(path, on_wallpaper_picked) for path in get_wallpapers()
-    ]
+    def on_wallpaper_picked(file):
+        set_wallpaper(file)
+        asyncio.create_task(set_suggested_accent_colours(file))
 
-    add_wallpaper = Widget.FileDialog(
-        on_file_set=lambda _, file: add_wallpaper(file),
-        initial_path=wallpapers_dir,
+        refresh_wallpapers()
+
+    refresh_wallpapers()
+
+    add_wallpaper_dialog = Widget.FileDialog(
+        on_file_set=lambda _, file: add_wallpaper(file) or refresh_wallpapers(),
         select_folder=False,
         filters=[
             Widget.FileFilter(
@@ -172,7 +173,7 @@ def Settings():
                                 halign="start",
                             ),
                             Widget.Label(
-                                label="Change the wallpaper of the desktop by clicking on one of them.\nThe first one is your current wallpaper.",
+                                label="Change the wallpaper of the desktop by clicking on one of them.",
                                 css_classes=["settings-description"],
                                 halign="start",
                             ), 
@@ -180,12 +181,22 @@ def Settings():
                                 child=wallpapers,
                                 css_classes=["settings-wallpapers-scroll"],
                             ),
-                            Widget.Button(
-                                label="Add a new wallpaper",
-                                on_click=lambda _: asyncio.create_task(add_wallpaper.open_dialog()),
-                                css_classes=["settings-add-wallpaper-button"],
+                            Widget.Box(
                                 halign="start",
-                            )
+                                child=[
+                                    Widget.Button(
+                                        label="Add a new wallpaper",
+                                        on_click=lambda _: asyncio.create_task(add_wallpaper_dialog.open_dialog()),
+                                        css_classes=["settings-wallpaper-button"],
+                                    ),
+                                    Widget.Button(
+                                        label="Refresh wallpapers",
+                                        on_click=lambda _: refresh_wallpapers(),
+                                        css_classes=["settings-wallpaper-button"],
+                                        halign="start",
+                                    ),
+                                ],
+                            ),
                         ],
                         css_classes=["settings-section"],
                     ),
