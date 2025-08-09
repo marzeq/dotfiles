@@ -7,8 +7,8 @@ if [ -z "$SELECTED_REL" ]; then
   SELECTED_REL="$SCRIPT_DIR/$SELECTED_FILE"
 fi
 if [ ! -f "$SELECTED_REL" ]; then
-    echo "File not found: $SELECTED_REL"
-    exit 1
+  echo "File not found: $SELECTED_REL"
+  exit 1
 fi
 SELECTED=$(readlink -f "$SELECTED_REL")
 
@@ -17,8 +17,10 @@ if [[ "$SELECTED" != "$SCRIPT_DIR/"* ]]; then
   SELECTED="$SCRIPT_DIR/$(basename "$SELECTED")"
 fi
 
-unlink $SCRIPT_DIR/.wallpaper
-ln -s "$SELECTED" $SCRIPT_DIR/.wallpaper
+unlink "$SCRIPT_DIR/.wallpaper" 2>/dev/null
 
-pkill hyprpaper ; hyprctl dispatch exec hyprpaper
+REL_PATH=$(realpath --relative-to="$SCRIPT_DIR" "$SELECTED")
+ln -s "$REL_PATH" "$SCRIPT_DIR/.wallpaper"
 
+pkill hyprpaper
+hyprctl dispatch exec hyprpaper

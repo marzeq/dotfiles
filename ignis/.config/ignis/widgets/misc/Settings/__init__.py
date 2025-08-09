@@ -1,6 +1,9 @@
 import asyncio
+from typing import Callable
 from ignis.widgets import Widget
 import os
+import shutil
+import subprocess
 import utils
 from gi.repository import Gtk # type: ignore
 
@@ -25,15 +28,82 @@ def restore_accent_colour():
 
     utils.run_cmd(f"{utils.root_dir}/scripts/restore_accent.sh") # type: ignore
 
-def Settings():
-    wallpaper_pic = Widget.Picture(
-        image=os.path.expanduser("~/.wallpapers/.wallpaper"),
-        content_fit="scale_down",
-        height=(wallpaper_size := 196),
-        width=wallpaper_size * 16 // 9,
-        css_classes=["settings-wallpaper-image"],
+wallpapers_dir = os.path.expanduser("~/.wallpapers")
+wallpaper_path = os.path.join(wallpapers_dir, ".wallpaper")
+
+
+def set_wallpaper(selected_path):
+    selected_abs = os.path.realpath(os.path.expanduser(selected_path))
+
+    if not os.path.isfile(selected_abs):
+        raise FileNotFoundError(f"File not found: {selected_abs}")
+
+    dest_path = os.path.join(wallpapers_dir, os.path.basename(selected_abs))
+
+    if not selected_abs.startswith(wallpapers_dir + os.sep):
+        if not os.path.exists(dest_path) or not os.path.samefile(selected_abs, dest_path):
+            shutil.copy2(selected_abs, dest_path)
+        selected_abs = dest_path
+
+    try:
+        os.unlink(wallpaper_path)
+    except FileNotFoundError:
+        pass
+
+    rel_path = os.path.relpath(selected_abs, wallpapers_dir)
+    os.symlink(rel_path, wallpaper_path)
+
+    subprocess.run(["pkill", "hyprpaper"], check=False)
+    subprocess.run(["hyprctl", "dispatch", "exec", "hyprpaper"], check=False)
+
+def add_wallpaper(selected_rel):
+    if not os.path.isfile(selected_rel):
+        raise FileNotFoundError(f"File not found: {selected_rel}")
+
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    selected_abs = os.path.realpath(selected_rel)
+
+    if not selected_abs.startswith(script_dir + os.sep):
+        shutil.copy2(selected_abs, script_dir)
+
+
+def Wallpaper(path: str, on_wallpaper_picked: Callable[[str], None]):
+    return Widget.Button(
+        child=Widget.Picture(
+            image=path,
+            content_fit="scale_down",
+            height=(wallpaper_size := 196),
+            width=wallpaper_size * 16 // 9,
+            css_classes=["settings-wallpaper-image"],
+        ),
+        css_classes=["settings-wallpaper"],
+        on_click=lambda _: on_wallpaper_picked(path),
+        halign="start",
     )
-    
+
+def get_wallpapers():
+    wallpapers = []
+
+    if os.path.exists(wallpaper_path):
+        wallpapers.append(wallpaper_path)
+
+    current_wallpaper = None
+    if os.path.islink(wallpaper_path):
+        target_abs = os.path.realpath(wallpaper_path)
+        if target_abs.startswith(wallpapers_dir):
+            current_wallpaper = os.path.relpath(target_abs, wallpapers_dir)
+        else:
+            current_wallpaper = os.path.basename(target_abs)
+
+    for file in os.listdir(wallpapers_dir):
+        if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+            continue
+        if file != current_wallpaper:
+            wallpapers.append(os.path.join(wallpapers_dir, file))
+
+    return wallpapers
+
+def Settings():
     suggested_accent_colours = Widget.Box(
         css_classes=["settings-suggested-accent-colours"]
     )
@@ -56,16 +126,27 @@ def Settings():
             ) for colour in top_colours
         ]
 
-    asyncio.create_task(set_suggested_accent_colours(os.path.expanduser("~/.wallpapers/.wallpaper")))
+    asyncio.create_task(set_suggested_accent_colours(wallpaper_path))
 
-    def on_wallpaper_picked(_, file):
-        utils.run_cmd(f"~/.wallpapers/switch \"{file.get_path()}\"")
-        wallpaper_pic.set_image(file.get_path())
-        asyncio.create_task(set_suggested_accent_colours(file.get_path()))
+    wallpapers = Widget.Box(
+        child=[]
+    )
 
-    pick_wallpaper = Widget.FileDialog(
-        initial_path=os.path.expanduser("~/.wallpapers"),
-        on_file_set=on_wallpaper_picked,
+    def on_wallpaper_picked(file):
+        set_wallpaper(file)
+        asyncio.create_task(set_suggested_accent_colours(file))
+
+        wallpapers.child = [ # type: ignore
+            Wallpaper(path, on_wallpaper_picked) for path in get_wallpapers()
+        ]
+
+    wallpapers.child = [ # type: ignore
+        Wallpaper(path, on_wallpaper_picked) for path in get_wallpapers()
+    ]
+
+    add_wallpaper = Widget.FileDialog(
+        on_file_set=lambda _, file: add_wallpaper(file),
+        initial_path=wallpapers_dir,
         select_folder=False,
         filters=[
             Widget.FileFilter(
@@ -91,16 +172,20 @@ def Settings():
                                 halign="start",
                             ),
                             Widget.Label(
-                                label="Change the wallpaper of the desktop.",
+                                label="Change the wallpaper of the desktop by clicking on one of them.\nThe first one is your current wallpaper.",
                                 css_classes=["settings-description"],
                                 halign="start",
+                            ), 
+                            Widget.Scroll(
+                                child=wallpapers,
+                                css_classes=["settings-wallpapers-scroll"],
                             ),
                             Widget.Button(
-                                child=wallpaper_pic,
-                                css_classes=["settings-wallpaper"],
-                                on_click=lambda _: asyncio.create_task(pick_wallpaper.open_dialog()),
+                                label="Add a new wallpaper",
+                                on_click=lambda _: asyncio.create_task(add_wallpaper.open_dialog()),
+                                css_classes=["settings-add-wallpaper-button"],
                                 halign="start",
-                            ),
+                            )
                         ],
                         css_classes=["settings-section"],
                     ),

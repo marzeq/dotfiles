@@ -21,9 +21,16 @@
   color: $fg-subtle;
 }
 
+.settings-wallpapers-scroll {
+  min-height: 18rem;
+}
+
 .settings-wallpaper {
   padding: 0;
+  margin-left: 0.5rem;
   margin-top: 2rem;
+  margin-bottom: 2.7rem;
+  margin-right: 1.5rem;
   border-radius: 2rem;
 
   &:hover {
@@ -60,7 +67,6 @@
 }
 
 .change-accent-colour-button {
-  padding: 0.5rem 1rem;
   margin-top: 1rem;
   margin-right: 1rem;
 }
