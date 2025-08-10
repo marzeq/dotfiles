@@ -16,6 +16,7 @@
 }
 
 @mixin custom-button {
+  transition: 0.2s ease-in-out;
   min-height: unset;
   min-width: unset;
   background-color: $button-bg;

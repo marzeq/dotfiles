@@ -21,28 +21,32 @@ def ControlCentreWidget(
     label: Widget.Label,
     on_click: Callable[..., Any] | None = None,
     on_click_other: Callable[..., Any] | None = None,
-    **kwargs
+    disabled: bool = False,
 ) -> Widget.Grid:
-    disabled: bool = kwargs.get("disabled", False)
     if on_click_other is not None:
-        return Widget.Grid(
-            column_num=2,
+        return Widget.Box(
+            vertical=True,
             child=[
-                Widget.Button(
-                    child=Widget.Box(
-                        child=[icon, label],
-                    ),
-                    css_classes=["cc-widget-left"],
-                    on_click=on_click,
-                    hexpand=True,
-                ),
-                Widget.Button(
-                    child=Widget.Icon(image="go-next-symbolic"),
-                    css_classes=["cc-widget-right"],
-                    on_click=on_click_other,
-                ),
-            ],
-            css_classes=["cc-widget"] if not disabled else ["cc-widget", "cc-widget-disabled"],
+                Widget.Grid(
+                    column_num=2,
+                    child=[
+                        Widget.Button(
+                            child=Widget.Box(
+                                child=[icon, label],
+                            ),
+                            css_classes=["cc-widget-left"],
+                            on_click=on_click,
+                            hexpand=True,
+                        ),
+                        Widget.Button(
+                            child=Widget.Icon(image="go-next-symbolic"),
+                            css_classes=["cc-widget-right"],
+                            on_click=on_click_other,
+                        ),
+                    ],
+                    css_classes=["cc-widget"] if not disabled else ["cc-widget", "cc-widget-disabled"],
+                )
+            ]
         )
     else:
         return Widget.Grid(
@@ -59,6 +63,16 @@ def ControlCentreWidget(
             ],
             css_classes=["cc-widget"] if not disabled else ["cc-widget", "cc-widget-disabled"],
         )
+
+def ControlCentrePopup(box: Widget.Box, more_margin: bool = False) -> Widget.Revealer:
+    return Widget.Revealer(
+        transition_type="slide_down",
+        transition_duration=utils.popup_anim_speed,
+        child=Widget.Box(
+            child=[box],
+            css_classes=["cc-popup"] if not more_margin else ["cc-popup", "cc-popup-more-margin"],
+        )
+    )
 
 def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
     if item.menu:
@@ -113,16 +127,38 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
     )
 
 def ControlCentre(monitor: int):
-    widgets = Widget.Grid(
+    widgets = Widget.Box(
         css_classes=["control-centre-widgets"],
-        column_num=2,
+        vertical=True,
         child=[],
     )
+    last_grid = None
+    widgets_count = 0
+
+    def add_widget(widget: Widget.Grid, revealer: Widget.Revealer | None = None):
+        nonlocal widgets, widgets_count, last_grid
+        if widgets_count % 2 == 0:
+            grid = Widget.Grid(
+                css_classes=["control-centre-widget-row"],
+                column_num=2,
+                child=[widget],
+            )
+            last_grid = grid
+            widgets.append(grid)
+        elif last_grid is not None:
+            last_grid.child = last_grid.child + [widget] # type: ignore
+
+        if revealer is not None:
+            widgets.append(revealer)
+
+        widgets_count += 1
 
     def update_widgets():
-        children = []
+        nonlocal widgets, widgets_count
+        widgets.child = [] # type: ignore
+        widgets_count = 0
         if network.ethernet.devices:
-            children.append(ControlCentreWidget(
+            add_widget(ControlCentreWidget(
                 Widget.Icon(image=network.ethernet.bind("icon_name")),
                 Widget.Label(label="Wired", css_classes=["cc-widget-label"]),
                 lambda _: utils.run_cmd((
@@ -136,25 +172,34 @@ def ControlCentre(monitor: int):
                 disabled=not network.ethernet.is_connected
             ))
         if network.wifi.devices:
-            children.append(ControlCentreWidget(
+            popup = ControlCentrePopup(
+                Widget.Box(
+                    vertical=True,
+                    child=[
+                        Widget.Label(
+                            label="Wi-Fi Networks",
+                            css_classes=["cc-popup-header-label"]
+                        ),
+                    ]
+                )
+            )
+            add_widget(ControlCentreWidget(
                 Widget.Icon(image=network.wifi.bind("icon_name")),
                 Widget.Label(label="Wi-Fi", css_classes=["cc-widget-label"]),
-                lambda _: utils.run_cmd("nmcli radio wifi off") if network.wifi.enabled else utils.run_cmd("nmcli radio wifi on"),
-                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: utils.close_curr_popup()),
+                lambda _: network.wifi.set_enabled(False) if network.wifi.enabled else network.wifi.set_enabled(True),
+                lambda _: popup.toggle(),
                 disabled=not network.wifi.enabled
-            ))
+            ), popup)
         if bluetooth.state != "absent":
-            children.append(ControlCentreWidget(
+            add_widget(ControlCentreWidget(
                 Widget.Icon(image=bluetooth.bind("state", lambda state:
                     "bluetooth-active-symbolic" if state == "on" and bluetooth.powered else "bluetooth-disabled-symbolic")),
                 Widget.Label(label="Bluetooth", css_classes=["cc-widget-label"]),
-                lambda _: utils.run_cmd("bluetoothctl power off") if bluetooth.state == "on" else utils.run_cmd("bluetoothctl power on"),
+                lambda _: bluetooth.set_powered(False) if bluetooth.powered else bluetooth.set_powered(True),
                 lambda _: utils.run_cmd_and_run("blueberry", lambda: utils.close_curr_popup()),
                 disabled=bluetooth.state == "absent" or not bluetooth.powered
             )) 
 
-
-        widgets.child = children # type: ignore
 
     update_widgets()
 
@@ -175,10 +220,8 @@ def ControlCentre(monitor: int):
 
     toggle_power_menu = lambda: None
 
-    power_menu = Widget.Revealer(
-        transition_type="slide_down",
-        transition_duration=utils.popup_anim_speed,
-        child=Widget.Box(
+    power_menu = ControlCentrePopup(
+        Widget.Box(
             vertical=True,
             child=[
                 Widget.Box(
@@ -233,27 +276,9 @@ def ControlCentre(monitor: int):
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("hyprctl dispatch exit", lambda: utils.close_curr_popup()),
                 ),
             ],
-            css_classes=["cc-popup"],
-        )
+        ),
+        more_margin=True,
     )
-
-    power_menu_toggled = False
-    def toggle_power_menu():
-        nonlocal power_menu_toggled, power_menu
-
-        if power_menu_toggled:
-            power_menu_toggled = False
-            power_menu.set_reveal_child(False) # type: ignore
-            return
-
-        power_menu_toggled = True
-        power_menu.set_reveal_child(True) # type: ignore
-
-    def force_close_power_menu():
-        nonlocal power_menu_toggled
-        if power_menu_toggled:
-            power_menu_toggled = False
-            power_menu.set_reveal_child(False) # type: ignore
 
     box = Widget.Box(
         vertical=True,
@@ -285,7 +310,7 @@ def ControlCentre(monitor: int):
                         Widget.Button(child=Widget.Icon(
                             image="system-shutdown-symbolic"),
                             css_classes=["cc-top-button"],
-                            on_click=lambda _: toggle_power_menu()
+                            on_click=lambda _: power_menu.toggle()
                         ),
                     ]
                 )
@@ -366,7 +391,7 @@ def ControlCentre(monitor: int):
         revealer=revealer,
     )
 
-    window.connect("notify::visible", lambda *_: force_close_power_menu() if window.visible and power_menu_toggled else None)
+    window.connect("notify::visible", lambda *_: power_menu.set_reveal_child(False) if window.visible else None)
     key_controller = Gtk.EventControllerKey()
     window.add_controller(key_controller)
     key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC

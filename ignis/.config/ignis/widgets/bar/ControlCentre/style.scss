@@ -141,10 +141,13 @@
 
 .cc-popup {
   margin-top: 1rem;
-  margin-left: 1.5rem;
+  margin-left: 1rem;
   padding: 1rem;
   background-color: $button-bg;
   border-radius: 1.5rem;
+  &.cc-popup-more-margin {
+    margin-left: 1.5rem;
+  }
 }
 
 .cc-popup-icon {
@@ -198,6 +201,7 @@
 }
 
 .system-tray-item-button {
+  @include custom-button;
   $_bg: adjust-color($bg, $lightness: 20%);
   margin-left: 0.5rem;
   background-color: $_bg;
@@ -221,15 +225,17 @@ popover.menu {
     box-shadow: $popup-shadow;
 
     modelbutton {
+      @include custom-button;
       border-radius: 0.5rem;
       padding: 0.5rem 1rem;
       margin: 0 0.25rem;
+      background-color: transparent;
 
       &:hover {
-        background-color: $button-bg-hover;
+        background-color: $button-bg;
       }
       &:active {
-        background-color: $button-bg-active;
+        background-color: $button-bg-hover;
       }
     }
 
