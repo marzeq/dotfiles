@@ -167,7 +167,7 @@
   margin-bottom: 1rem;
 }
 
-.cc-power-menu-option {
+.cc-popup-option {
   @include custom-button;
   padding: 0.5rem;
   margin-top: 0.25rem;
@@ -177,9 +177,13 @@
   min-width: 23rem;
 }
 
-.cc-power-menu-opt-label {
+.cc-popup-opt-label {
   font-weight: 400;
   margin-left: 0.25rem;
+}
+
+.cc-popup-opt-icon {
+  margin-right: 0.5rem;
 }
 
 .system-tray-item {

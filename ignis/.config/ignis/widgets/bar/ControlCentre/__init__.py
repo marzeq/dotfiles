@@ -1,4 +1,5 @@
 from typing import Any, Callable
+import asyncio
 from ignis.app import IgnisApp
 from ignis.widgets import Widget
 from ignis.services.audio import AudioService
@@ -132,29 +133,82 @@ def ControlCentre(monitor: int):
         vertical=True,
         child=[],
     )
-    last_grid = None
     widgets_count = 0
 
     def add_widget(widget: Widget.Grid, revealer: Widget.Revealer | None = None):
-        nonlocal widgets, widgets_count, last_grid
+        nonlocal widgets, widgets_count
         if widgets_count % 2 == 0:
-            grid = Widget.Grid(
+            widgets.append(Widget.Box(
                 css_classes=["control-centre-widget-row"],
-                column_num=2,
                 child=[widget],
-            )
-            last_grid = grid
-            widgets.append(grid)
-        elif last_grid is not None:
-            last_grid.child = last_grid.child + [widget] # type: ignore
+            ))
+        else:
+            widgets.child[-1].append(widget) # type: ignore
 
         if revealer is not None:
             widgets.append(revealer)
 
         widgets_count += 1
 
+    wifi_popup = ControlCentrePopup(
+        Widget.Box(
+            vertical=True,
+            child=[
+                Widget.Box(
+                    child=[
+                        Widget.Icon(
+                            image="network-wireless-symbolic",
+                            css_classes=["cc-popup-icon"],
+                            pixel_size=24,
+                        ),
+                        Widget.Label(
+                            label="Wi-Fi Networks",
+                            css_classes=["cc-popup-label"]
+                        ),
+                    ],
+                    css_classes=["cc-popup-header"],
+                    halign="start",
+                ),
+                Widget.Box(
+                    vertical=True,
+                    child=(
+                        network.wifi.devices[0].bind(
+                            "access_points",
+                            transform=lambda aps: [
+                                Widget.Button(
+                                    child=Widget.Box(
+                                        child=[
+                                            Widget.Icon(
+                                                image=ap.bind("strength", transform=lambda _: ap.icon_name),
+                                                pixel_size=18,
+                                                css_classes=["cc-popup-opt-icon"]
+                                            ),
+                                            Widget.Label(
+                                                label=ap.ssid,
+                                            ),
+                                        ],
+                                        css_classes=["cc-popup-opt-label"]
+                                    ),
+                                    on_click=lambda _: utils.close_curr_popup() or asyncio.create_task(ap.connect_to_graphical()),
+                                    css_classes=["cc-popup-option"],
+                                )
+                                for ap in aps if ap.ssid
+                            ][:5] or [
+                                    Widget.Label(
+                                        label="No Wi-Fi networks found",
+                                        css_classes=["cc-popup-no-wifi"]
+                                    )
+                                ]
+                        )
+                    )
+                )
+            ]
+        )
+    )
+
+
     def update_widgets():
-        nonlocal widgets, widgets_count
+        nonlocal widgets, widgets_count, wifi_popup
         widgets.child = [] # type: ignore
         widgets_count = 0
         if network.ethernet.devices:
@@ -172,24 +226,13 @@ def ControlCentre(monitor: int):
                 disabled=not network.ethernet.is_connected
             ))
         if network.wifi.devices:
-            popup = ControlCentrePopup(
-                Widget.Box(
-                    vertical=True,
-                    child=[
-                        Widget.Label(
-                            label="Wi-Fi Networks",
-                            css_classes=["cc-popup-header-label"]
-                        ),
-                    ]
-                )
-            )
             add_widget(ControlCentreWidget(
                 Widget.Icon(image=network.wifi.bind("icon_name")),
                 Widget.Label(label="Wi-Fi", css_classes=["cc-widget-label"]),
                 lambda _: network.wifi.set_enabled(False) if network.wifi.enabled else network.wifi.set_enabled(True),
-                lambda _: popup.toggle(),
+                lambda _: wifi_popup.toggle(),
                 disabled=not network.wifi.enabled
-            ), popup)
+            ), wifi_popup)
         if bluetooth.state != "absent":
             add_widget(ControlCentreWidget(
                 Widget.Icon(image=bluetooth.bind("state", lambda state:
@@ -243,36 +286,36 @@ def ControlCentre(monitor: int):
                     child=Widget.Label(
                         label="Suspend",
                         halign="start",
-                        css_classes=["cc-power-menu-opt-label"],
+                        css_classes=["cc-popup-opt-label"],
                     ),
-                    css_classes=["cc-power-menu-option"],
+                    css_classes=["cc-popup-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl suspend", lambda: utils.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
                         label="Restart",
                         halign="start",
-                        css_classes=["cc-power-menu-opt-label"],
+                        css_classes=["cc-popup-opt-label"],
                     ),
-                    css_classes=["cc-power-menu-option"],
+                    css_classes=["cc-popup-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl reboot", lambda: utils.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
                         label="Power Off",
                         halign="start",
-                        css_classes=["cc-power-menu-opt-label"],
+                        css_classes=["cc-popup-opt-label"],
                     ),
-                    css_classes=["cc-power-menu-option"],
+                    css_classes=["cc-popup-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("systemctl poweroff", lambda: utils.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
                         label="Log Out",
                         halign="start",
-                        css_classes=["cc-power-menu-opt-label"],
+                        css_classes=["cc-popup-opt-label"],
                     ),
-                    css_classes=["cc-power-menu-option"],
+                    css_classes=["cc-popup-option"],
                     on_click=lambda _: toggle_power_menu() or utils.run_cmd_and_run("hyprctl dispatch exit", lambda: utils.close_curr_popup()),
                 ),
             ],
@@ -391,7 +434,11 @@ def ControlCentre(monitor: int):
         revealer=revealer,
     )
 
-    window.connect("notify::visible", lambda *_: power_menu.set_reveal_child(False) if window.visible else None)
+    def close_popups():
+        wifi_popup.set_reveal_child(False)
+        power_menu.set_reveal_child(False)
+
+    window.connect("notify::visible", lambda *_: close_popups() if window.visible else None)
     key_controller = Gtk.EventControllerKey()
     window.add_controller(key_controller)
     key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
