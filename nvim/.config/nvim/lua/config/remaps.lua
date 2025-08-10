@@ -124,6 +124,26 @@ local wk_remaps = {
   { "<leader>q", "<cmd>bd<CR>", desc = "Close current buffer", mode = "n" },
 
   { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
+  { "gD", vim.lsp.buf.declaration, desc = "Go to declaration" },
+  { "gi", vim.lsp.buf.implementation, desc = "Go to implementation" },
+  { "gr", vim.lsp.buf.references, desc = "Go to references" },
+  { "K", vim.lsp.buf.hover, desc = "Hover documentation" },
+  { "<leader>k", vim.lsp.buf.signature_help, desc = "Signature help" },
+
+  { "<leader>db", require("dap").toggle_breakpoint, desc = "Toggle breakpoint" },
+  { "<leader>dB", function() require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: ")) end, desc = "Set conditional breakpoint" },
+  { "<leader>dc", require("dap").continue, desc = "Continue" },
+  { "<leader>di", require("dap").step_into, desc = "Step into" },
+  { "<leader>do", require("dap").step_over, desc = "Step over" },
+  { "<leader>du", require("dap").step_out, desc = "Step out" },
+  { "<leader>ds", function()
+    -- open sidebar
+    local widget = require("dap.ui.widgets")
+    local sidebar = widget.sidebar(widget.scopes)
+    sidebar.open()
+  end, desc = "Open scopes sidebar" },
+  { "<leader>dr", require("dap").repl.open, desc = "Open REPL" },
+  { "<leader>dt", require("dap").terminate, desc = "Terminate debug session" },
 }
 
 local remap = function()
