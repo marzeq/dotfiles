@@ -35,4 +35,4 @@ EOF
 
 gsettings set org.gnome.desktop.interface accent-color "$hex_colour"
 
-echo "Accent colour set to $hex_colour. Restart apps to apply."
+goignis reload

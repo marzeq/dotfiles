@@ -29,6 +29,7 @@ background-blur-radius = 20
 # │ KEYBINDS │
 # └──────────┘
 
+keybind = "ctrl+enter=ignore"
 keybind = "ctrl+alt+r=reload_config"
 
 keybind = "ctrl+alt+h=new_split:left"

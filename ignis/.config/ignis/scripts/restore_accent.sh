@@ -26,5 +26,4 @@ restore_backup "$gtk4_file"
 
 gsettings reset org.gnome.desktop.interface accent-color
 
-echo "GTK accent override uninstalled."
-
+goignis reload

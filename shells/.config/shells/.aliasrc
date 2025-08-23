@@ -82,6 +82,56 @@ if hascmd git; then
   alias gc="git commit -m"
   alias gca="git commit -am"
 
+  function gac() {
+    if [[ ! " $@ " =~ " -- " ]]; then
+      echo "gac: no -- found in arguments"
+      return 1
+    fi
+
+    if [[ "$@" == *"--" ]]; then
+      echo "gac: no commit message found"
+      return 1
+    fi
+
+    local files=()
+    local commit_message=""
+    local found_double_dash=false
+
+    for arg in "$@"; do
+      if [ "$arg" = "--" ]; then
+        found_double_dash=true
+        continue
+      fi
+
+      if [ "$found_double_dash" = false ]; then
+        files+=("$arg")
+      else
+        if [ -z "$commit_message" ]; then
+          commit_message="$arg"
+        else
+          commit_message="$commit_message $arg"
+        fi
+      fi
+    done
+
+    if [ ${#files[@]} -eq 0 ]; then
+      echo "gac: no files to add"
+      return 1
+    fi
+
+    if [ -z "$commit_message" ]; then
+      echo "gac: no commit message found"
+      return 1
+    fi
+
+    git add "${files[@]}"
+    if [ $? -ne 0 ]; then
+      return 1
+    fi
+    git commit -m "$commit_message"
+    return $?
+  }
+
   alias gsb="git switch"
   alias gcb="git switch -c"
 
