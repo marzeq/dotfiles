@@ -1,6 +1,9 @@
 local o = vim.opt
 local g = vim.g
 
+o.winborder = "rounded"
+o.shortmess = "I"
+
 g.have_nerd_font = true
 
 local indent_size = 2
@@ -8,6 +11,8 @@ o.tabstop = indent_size
 o.softtabstop = indent_size
 o.shiftwidth = indent_size
 o.expandtab = true
+
+o.relativenumber = true
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "markdown",
@@ -20,7 +25,7 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "go",
   callback = function()
-    vim.opt_local.expandtab = false
+    vim.opt_local.expandtab = true
   end,
 })
 vim.api.nvim_create_autocmd("FileType", {
@@ -29,9 +34,7 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.filetype = "jsonc"
   end,
 })
-vim.api.nvim_command("au BufNewFile,BufRead *.rasi set filetype=css")
 
-o.relativenumber = true
 
 vim.schedule(function()
   o.clipboard:append("unnamedplus")
@@ -62,10 +65,3 @@ o.foldtext = "v:lua.vim.treesitter.foldtext()"
 vim.api.nvim_command(
   "autocmd BufEnter * if !exists('b:entered_once') | let b:entered_once = 1 | set nofoldenable | endif"
 )
-
-vim.cmd('let @t="yypwv$hr─i└─\\<Esc>$a─┘\\<Esc>yyka │\\<Esc>^wi│ \\<Esc>Pwxi┌\\<Esc>$xa┐\\<Esc>j^ww"') -- neat macro for making a title header comment
-
-return {
-  ---@type "telescope" | "builtin" | "none"
-  startup = "none",
-}

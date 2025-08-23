@@ -1,4 +1,9 @@
 ---@diagnostic disable: inject-field
+
+vim.filetype.add({
+  pattern = { [".*/hypr/.*%.conf"] = "hyprlang" },
+})
+
 return {
   {
     "marzeq/tree-sitter-mconf",
@@ -21,10 +26,6 @@ return {
         callback = function()
           vim.bo.commentstring = "# %s"
         end,
-      })
-
-      vim.filetype.add({
-        pattern = { [".*/hypr/.*%.conf"] = "hyprlang" },
       })
     end,
   },

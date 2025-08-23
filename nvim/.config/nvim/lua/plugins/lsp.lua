@@ -1,13 +1,19 @@
 return {
-  -- lsp
   {
     "neovim/nvim-lspconfig",
-    lazy = false,
-    dependencies = {},
-    init = function() end,
+    opts = {
+      servers = {
+        "lua_ls",
+        "gopls"
+      }
+    },
+    config = function(_, opts)
+      for _, server in ipairs(opts.servers) do
+        vim.lsp.enable(server)
+      end
+    end,
   },
 
-  -- neovim types for lua
   {
     "folke/lazydev.nvim",
     ft = "lua",

@@ -9,10 +9,7 @@ return {
       vim.o.timeoutlen = 300
 
       local remaps = require("config.remaps")
-      remaps.remap()
-
       local wk = require("which-key")
-
       wk.add(remaps.wk_remaps)
     end,
   },
