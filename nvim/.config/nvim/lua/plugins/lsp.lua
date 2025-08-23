@@ -1,22 +1,14 @@
 return {
   {
     "neovim/nvim-lspconfig",
-    opts = {
-      servers = {
-        "lua_ls",
-        "gopls"
-      }
+    dependencies = {
+      { "folke/lazydev.nvim", ft = "lua", opts = {} },
     },
-    config = function(_, opts)
-      for _, server in ipairs(opts.servers) do
-        vim.lsp.enable(server)
-      end
+    config = function()
+      vim.lsp.enable({
+        "lua_ls",
+        "gopls",
+      })
     end,
-  },
-
-  {
-    "folke/lazydev.nvim",
-    ft = "lua",
-    opts = {},
   },
 }

@@ -23,18 +23,11 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 vim.api.nvim_create_autocmd("FileType", {
-  pattern = "go",
-  callback = function()
-    vim.opt_local.expandtab = true
-  end,
-})
-vim.api.nvim_create_autocmd("FileType", {
   pattern = "json",
   callback = function()
     vim.opt_local.filetype = "jsonc"
   end,
 })
-
 
 vim.schedule(function()
   o.clipboard:append("unnamedplus")

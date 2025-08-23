@@ -43,6 +43,7 @@ local wk_remaps = {
     desc = "File diagnostics",
   },
   { "gr", group = "Actions" },
+  { "grf", vim.lsp.buf.format, desc = "Format file" },
   { "gE", vim.diagnostic.open_float, desc = "Inspect errors" },
   { "K", vim.lsp.buf.hover, desc = "Hover documentation" },
   { "Q", vim.lsp.buf.signature_help, desc = "Signature help" },
