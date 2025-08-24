@@ -1,19 +1,25 @@
 local o = vim.opt
 local g = vim.g
 
+-- rounded window borders
 o.winborder = "rounded"
+-- start in empty buffer if no file is specified
 o.shortmess = "I"
 
+-- we have a nerd font
 g.have_nerd_font = true
 
+-- indent options
 local indent_size = 2
 o.tabstop = indent_size
 o.softtabstop = indent_size
 o.shiftwidth = indent_size
 o.expandtab = true
 
+-- relative line numbers
 o.relativenumber = true
 
+-- markdown force indent settings
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "markdown",
   callback = function()
@@ -22,6 +28,7 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.shiftwidth = indent_size
   end,
 })
+-- make comments work in json files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "json",
   callback = function()
@@ -29,29 +36,42 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
+-- use system clipboard
 vim.schedule(function()
   o.clipboard:append("unnamedplus")
 end)
 
-o.nu = true
+-- line numbers
+o.number = true
 
+-- disable line wrapping
 o.wrap = false
 
+-- disable highlighting after search
 o.hlsearch = false
+-- highlight while typing search
 o.incsearch = true
 
+-- number of lines to keep above and below cursor
 o.scrolloff = 8
-o.updatetime = 50
 
+-- no swap files
+o.swapfile = false
+
+-- enable mouse support
 o.mouse = "a"
 
+-- persistent undo
 o.undofile = true
 
+-- window title shows file name
 o.title = true
 
+-- ignore case in search patterns
 o.ignorecase = true
 o.smartcase = true
 
+-- honestly i don't remember what this does
 o.foldmethod = "expr"
 o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 o.foldtext = "v:lua.vim.treesitter.foldtext()"

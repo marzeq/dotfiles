@@ -11,5 +11,12 @@ return {
         "gopls",
       })
     end,
+    keys = {
+      { "gd", vim.lsp.buf.definition, desc = "Go to definition" },
+      { "gD", vim.lsp.buf.declaration, desc = "Go to declaration" },
+      { "grf", vim.lsp.buf.format, desc = "Format file" },
+      { "K", vim.lsp.buf.hover, desc = "Hover documentation" },
+      { "Q", vim.lsp.buf.signature_help, desc = "Signature help" },
+    }
   },
 }

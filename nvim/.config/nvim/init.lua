@@ -1,11 +1,11 @@
-require("config.opts")
+require("opts")
 
 -- set leader before loading lazy
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 vim.keymap.set("", "<Space>", "<Nop>")
 
-require("config.lazy")
+require("lazy-nvim")
 
 local function augroup(name)
   return vim.api.nvim_create_augroup("lazyvim_" .. name, { clear = true })

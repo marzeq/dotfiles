@@ -1,7 +1,6 @@
 return {
   {
     "nvim-telescope/telescope.nvim",
-    cmd = { "Telescope" },
     dependencies = {
       "nvim-lua/plenary.nvim",
       "BurntSushi/ripgrep",
@@ -20,10 +19,18 @@ return {
       pickers = {
         live_grep = {
           additional_args = {
-            "-i"   -- case insensitive
+            "-i" -- case insensitive
           }
         }
       }
+    },
+    keys = {
+      {
+        "<leader>ff",
+        require("telescope.builtin").find_files,
+        desc = "Find file",
+      },
+      { "<leader>fg", require("telescope.builtin").live_grep, desc = "Grep" },
     }
   },
 }
