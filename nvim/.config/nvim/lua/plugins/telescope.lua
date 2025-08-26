@@ -30,7 +30,7 @@ return {
         function () require("telescope.builtin").find_files() end,
         desc = "Find file",
       },
-      { "<leader>fg", require("telescope.builtin").live_grep, desc = "Grep" },
+      { "<leader>fg", function () require("telescope.builtin").live_grep() end, desc = "Grep" },
     }
   },
 }
