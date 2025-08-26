@@ -51,6 +51,8 @@ DESKTOP_DEPS=(
   "hyprland"                                        # duh
 
   ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
+  "python-pillow" "python-numpy" "gnome-bluetooth-3.0" "dart-sass"
+  "playerctl"
   "cantarell-fonts"                                 # sans font for the shell
   
   "gdm"                                             # login manager of choice
@@ -72,7 +74,7 @@ DESKTOP_DEPS=(
   ".AUR:hyprshot" "grim" "slurp"                    # screenshots
   "imagemagick" "tesseract" "tesseract-data-eng"    # needed for area ocr
   ".PARU"                                           # explicitly install aur manager
-  ".AUR:clipse-bin" "wl-clipboard"                  # clipboard
+  "wl-clipboard"                  # clipboard
   "pamixer" "pavucontrol"                           # audio control
   "nwg-displays"                                    # gui monitor configuration
   "adw-gtk-theme"                                   # gtk3 theme
@@ -85,7 +87,6 @@ DESKTOP_DEPS=(
 
   # fonts
   ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
-  ".AUR:ttf-twemoji"                                # our emoji font of choice
 )
 
 install_paru() {
