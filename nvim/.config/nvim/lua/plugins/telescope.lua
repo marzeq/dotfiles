@@ -27,7 +27,7 @@ return {
     keys = {
       {
         "<leader>ff",
-        require("telescope.builtin").find_files,
+        function () require("telescope.builtin").find_files() end,
         desc = "Find file",
       },
       { "<leader>fg", require("telescope.builtin").live_grep, desc = "Grep" },
