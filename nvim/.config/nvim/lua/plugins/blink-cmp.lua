@@ -1,6 +1,22 @@
 return {
   {
+    "zbirenbaum/copilot.lua",
+    opts = {
+      suggestion = { enabled = false },
+      panel = { enabled = false },
+      filetypes = {
+        markdown = true,
+        help = true,
+      },
+    },
+  },
+  {
     "saghen/blink.cmp",
+    dependencies = {
+      {
+        "giuxtaposition/blink-cmp-copilot",
+      },
+    },
     version = "1.*",
     event = "InsertEnter",
     ---@module "blink.cmp"
@@ -20,9 +36,21 @@ return {
         nerd_font_variant = "normal"
       },
 
-
       sources = {
-        default = { "lsp", "path", "buffer" },
+        default = {
+          "lsp",
+          "path",
+          "buffer",
+          "copilot"
+        },
+        providers = {
+          copilot = {
+            name = "copilot",
+            module = "blink-cmp-copilot",
+            score_offset = 100,
+            async = true,
+          },
+        },
       },
 
       fuzzy = { implementation = "prefer_rust_with_warning" },
@@ -35,5 +63,5 @@ return {
       }
     },
     opts_extend = { "sources.default" }
-  }
+  },
 }

@@ -193,7 +193,7 @@ def ControlCentre(monitor: int):
                                     css_classes=["cc-popup-option"],
                                 )
                                 for ap in aps if ap.ssid
-                            ][:5] or [
+                            ] or [
                                     Widget.Label(
                                         label="No Wi-Fi networks found",
                                         css_classes=["cc-popup-no-wifi"]
