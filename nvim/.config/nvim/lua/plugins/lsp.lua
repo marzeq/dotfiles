@@ -9,6 +9,7 @@ return {
       vim.lsp.enable({
         "lua_ls",
         "gopls",
+        "pyright"
       })
     end,
     keys = {
