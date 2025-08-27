@@ -3,6 +3,7 @@ from ignis.app import IgnisApp
 from ignis.services.system_tray import SystemTrayItem, SystemTrayService
 from ignis.services.network import NetworkService
 from ignis.services.audio import AudioService
+from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
 
 import utils
@@ -11,6 +12,7 @@ app = IgnisApp.get_default()
 system_tray = SystemTrayService.get_default()
 network = NetworkService.get_default()
 audio = AudioService.get_default()
+upower = UPowerService.get_default()
 
 def TrayItem(item: SystemTrayItem) -> Widget.Button:
     if item.menu:
@@ -53,6 +55,22 @@ def Tray(
     network.ethernet.connect("notify::is-connected", lambda *_: update_network_icon())
     network.wifi.connect("notify::is-connected", lambda *_: update_network_icon())
 
+    power_icon = Widget.Icon(
+        css_classes=["tray-icon"],
+        image = "system-shutdown-symbolic"
+    )
+
+    def update_power_icon():
+        if len(upower.batteries) == 0:
+            power_icon.image = "system-shutdown-symbolic" # type: ignore
+            return
+        
+        batt = upower.batteries[0]
+        power_icon.image = batt.icon_name
+
+    upower.connect("notify::batteries", lambda *_: update_power_icon())
+    update_power_icon()
+
     box = Widget.EventBox(
         css_classes=["tray"],
         child=[
@@ -65,10 +83,7 @@ def Tray(
                             "icon_name", lambda icon: icon if icon != "image-missing" else "audio-volume-muted-symbolic" # type: ignore
                         ),
                     ),
-                    Widget.Icon(
-                        css_classes=["tray-icon"],
-                        image="system-shutdown-symbolic"
-                    )
+                    power_icon
                 ]),
                 css_classes=["box"]
             )
