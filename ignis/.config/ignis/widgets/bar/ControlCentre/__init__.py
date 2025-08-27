@@ -1,4 +1,5 @@
 from typing import Any, Callable
+import math
 import asyncio
 from ignis.app import IgnisApp
 from ignis.widgets import Widget
@@ -6,6 +7,7 @@ from ignis.services.audio import AudioService
 from ignis.services.network import NetworkService
 from ignis.services.bluetooth import BluetoothService
 from ignis.services.system_tray import SystemTrayService, SystemTrayItem
+from ignis.services.upower import UPowerService
 from gi.repository import Gtk  # type: ignore
 
 system_tray = SystemTrayService.get_default()
@@ -16,6 +18,55 @@ app = IgnisApp.get_default()
 audio = AudioService.get_default()
 network = NetworkService.get_default()
 bluetooth = BluetoothService.get_default()
+upower = UPowerService.get_default()
+
+def TopBox(power_menu_toggle: Callable):
+    settings_button = Widget.Button(child=Widget.Icon(
+        image="applications-system-symbolic"),
+        css_classes=["cc-top-button"],
+        on_click=lambda _: app.open_window("ignis_settings") or utils.close_curr_popup(),
+    )
+
+    return Widget.CenterBox(
+        css_classes=["control-centre-top"],
+        start_widget=Widget.Box(child=upower.bind("batteries", lambda *_:
+            [
+                Widget.Button(child=Widget.Icon(
+                    image=f"screenshooter-symbolic"), # type: ignore 
+                    css_classes=["cc-top-button"],
+                    on_click=lambda _: utils.run_cmd_and_run_delayed("hyprshot -szm region -o ~/pictures/screenshots/", lambda: utils.close_curr_popup(), 100),
+                )
+            ] + ([
+                settings_button,
+            ] if len(upower.batteries) == 0 else [
+                Widget.Button(
+                    child=Widget.Box(child=[
+                        Widget.Icon(
+                            image=upower.batteries[0].icon_name
+                        ),
+                        Widget.Label(
+                            label=f"{math.floor(upower.batteries[0].percent)}%"
+                        )
+                    ]),
+                    css_classes=["cc-top-button"],
+                )
+            ])
+        )),
+        end_widget=Widget.Box(
+            child=([] if len(upower.batteries) == 0 else [settings_button]) + [
+                Widget.Button(child=Widget.Icon(
+                    image="system-lock-screen-symbolic"),
+                    css_classes=["cc-top-button"],
+                    on_click=lambda _: utils.run_cmd_and_run_delayed("loginctl lock-session", lambda: utils.close_curr_popup(), 100),
+                ),
+                Widget.Button(child=Widget.Icon(
+                    image="system-shutdown-symbolic"),
+                    css_classes=["cc-top-button"],
+                    on_click=lambda _: power_menu_toggle()
+                ),
+            ]
+        )
+    )
 
 def ControlCentreWidget(
     icon: Widget.Icon,
@@ -329,37 +380,7 @@ def ControlCentre(monitor: int):
         vertical=True,
         css_classes=["control-centre"],
         child=[
-            Widget.CenterBox(
-                css_classes=["control-centre-top"],
-                start_widget=Widget.Box(
-                    child=[
-                        Widget.Button(child=Widget.Icon(
-                            image=f"screenshooter-symbolic"), # type: ignore 
-                            css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run_delayed("hyprshot -szm region -o ~/pictures/screenshots/", lambda: utils.close_curr_popup(), 100),
-                        ),
-                        Widget.Button(child=Widget.Icon(
-                            image="applications-system-symbolic"),
-                            css_classes=["cc-top-button"],
-                            on_click=lambda _: app.open_window("ignis_settings") or utils.close_curr_popup(),
-                        ),
-                    ]
-                ),
-                end_widget=Widget.Box(
-                    child=[
-                        Widget.Button(child=Widget.Icon(
-                            image="system-lock-screen-symbolic"),
-                            css_classes=["cc-top-button"],
-                            on_click=lambda _: utils.run_cmd_and_run_delayed("loginctl lock-session", lambda: utils.close_curr_popup(), 100),
-                        ),
-                        Widget.Button(child=Widget.Icon(
-                            image="system-shutdown-symbolic"),
-                            css_classes=["cc-top-button"],
-                            on_click=lambda _: power_menu.toggle()
-                        ),
-                    ]
-                )
-            ),
+            TopBox(lambda: power_menu.toggle()),
             power_menu,
             Widget.Box(
                 css_classes=["runset", "control-centre-audio"],
