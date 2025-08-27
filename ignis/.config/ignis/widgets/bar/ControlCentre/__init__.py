@@ -8,17 +8,18 @@ from ignis.services.network import NetworkService
 from ignis.services.bluetooth import BluetoothService
 from ignis.services.system_tray import SystemTrayService, SystemTrayItem
 from ignis.services.upower import UPowerService
+from ignis.services.backlight import BacklightService
 from gi.repository import Gtk  # type: ignore
-
-system_tray = SystemTrayService.get_default()
-
 import utils
 
+
+system_tray = SystemTrayService.get_default()
 app = IgnisApp.get_default()
 audio = AudioService.get_default()
 network = NetworkService.get_default()
 bluetooth = BluetoothService.get_default()
 upower = UPowerService.get_default()
+backlight = BacklightService.get_default()
 
 def TopBox(power_menu_toggle: Callable):
     settings_button = Widget.Button(child=Widget.Icon(
@@ -383,7 +384,7 @@ def ControlCentre(monitor: int):
             TopBox(lambda: power_menu.toggle()),
             power_menu,
             Widget.Box(
-                css_classes=["runset", "control-centre-audio"],
+                css_classes=["runset", "control-centre-slider"],
                 child=[
                     Widget.Button(
                         child=Widget.Icon(
@@ -392,7 +393,7 @@ def ControlCentre(monitor: int):
                             ),
                         ),
                         on_click=lambda _: toggle_mute(),
-                        css_classes=["cc-audio-icon"],
+                        css_classes=["cc-slider-icon"],
                     ),
                     Widget.Scale(
                         hexpand=True,
@@ -404,10 +405,34 @@ def ControlCentre(monitor: int):
                             lambda volume, is_muted: 0 if is_muted else volume,
                         ),
                         on_change=lambda x: adjust_volume(x.value),
-                        css_classes=["cc-audio-slider"],
+                        css_classes=["cc-slider-slider"],
                     )
                 ],
             ),
+        ] + ([
+            Widget.Box(
+                css_classes=["runset", "control-centre-slider"],
+                child=[
+                    Widget.Button(
+                        child=Widget.Icon(
+                            image="display-brightness-symbolic"
+                        ),
+                        css_classes=["cc-slider-icon"],
+                    ),
+                    Widget.Scale(
+                        hexpand=True,
+                        min=20,
+                        max=backlight.max_brightness,
+                        step=1,
+                        value=backlight.devices[0].bind( # type: ignore
+                            "brightness"
+                        ),
+                        on_change=lambda x: backlight.devices[0].set_brightness(x.value), # type: ignore
+                        css_classes=["cc-slider-slider"],
+                    )
+                ],
+            ),
+        ] if backlight.available and backlight.devices else []) + [
             widgets,
             Widget.Box(
                 vertical=True,

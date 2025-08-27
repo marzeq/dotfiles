@@ -11,12 +11,12 @@
   margin-left: 0.75rem;
 }
 
-.control-centre-audio {
+.control-centre-slider {
   margin-top: 0.75rem;
   margin-left: 1.5rem;
 }
 
-.cc-audio-icon {
+.cc-slider-icon {
   @include custom-button;
   padding: 0.5rem;
   margin: 0.25rem;
@@ -30,12 +30,12 @@
   }
 }
 
-.cc-audio-slider {
+.cc-slider-slider {
   padding: unset;
   margin: unset;
 }
 
-.cc-audio-slider trough {
+.cc-slider-slider trough {
   margin: 0.75rem;
   background-color: adjust-color($bg, $lightness: 15%);
   min-height: 0.3rem;
