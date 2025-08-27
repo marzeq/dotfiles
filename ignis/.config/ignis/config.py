@@ -1,4 +1,5 @@
 import os
+from utils import run_cmd
 from ignis.utils import Utils
 from ignis.app import IgnisApp
 from widgets.bar.Bar import Bar
@@ -14,6 +15,10 @@ app = IgnisApp().get_default()
 dir = Utils.get_current_dir() # type: ignore
 app.apply_css(f"{dir}/style.scss")
 app.add_icons(f"{dir}/icons")
+
+run_cmd("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
+run_cmd("gsettings set org.gnome.desktop.interface font-name 'Cantarell Regular 11'")
+run_cmd("hyprctl reload")
 
 
 for i in range(Utils.get_n_monitors()): # type: ignore
