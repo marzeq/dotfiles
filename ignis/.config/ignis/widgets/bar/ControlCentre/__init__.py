@@ -134,16 +134,18 @@ def ControlCentre(monitor: int):
         child=[],
     )
     widgets_count = 0
+    last_box_index = 0
 
     def add_widget(widget: Widget.Grid, revealer: Widget.Revealer | None = None):
-        nonlocal widgets, widgets_count
+        nonlocal widgets, widgets_count, last_box_index
         if widgets_count % 2 == 0:
             widgets.append(Widget.Box(
                 css_classes=["control-centre-widget-row"],
                 child=[widget],
             ))
+            last_box_index = widgets_count
         else:
-            widgets.child[-1].append(widget) # type: ignore
+            widgets.child[last_box_index].append(widget) # type: ignore
 
         if revealer is not None:
             widgets.append(revealer)
