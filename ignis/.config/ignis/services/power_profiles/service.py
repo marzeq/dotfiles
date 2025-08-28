@@ -22,6 +22,7 @@ class PowerProfilesService(BaseService):
 
         self._active_profile: str = self._proxy.ActiveProfile
         self._profiles: list[str] = [p["Profile"] for p in self._proxy.Profiles]
+        self._cookie = -1
 
     @IgnisProperty
     def active_profile( # type: ignore
@@ -34,12 +35,15 @@ class PowerProfilesService(BaseService):
         self,
         profile: str,
     ) -> None:
-        print(self._proxy.gproxy.HoldProfile(
+        if profile == "balanced" and self._cookie != -1:
+            self._proxy.gproxy.ReleaseProfile("(u)", self._cookie)
+            return
+        self._cookie = self._proxy.gproxy.HoldProfile(
             "(sss)",
             profile,
             "",
             "com.github.linkfrg.ignis"
-        ))
+        )
 
     @IgnisProperty
     def profiles(self) -> list[str]:

@@ -4,11 +4,13 @@ from ignis.services.network import NetworkService, WifiAccessPoint
 from ignis.widgets import Widget
 
 import utils
-from widgets.bar.ControlCentre.widget import ControlCentrePopup, ControlCentreWidget
+from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentrePopup, ControlCentreWidget
+from services.power_profiles import PowerProfilesService
 
 
 network = NetworkService.get_default()
 bluetooth = BluetoothService.get_default()
+power_profiles = PowerProfilesService.get_default()
 
 def WiFiPopup():
     dev = network.wifi.devices[0] if network.wifi.devices else None
@@ -106,6 +108,68 @@ def WiFiPopup():
 
     return popup
 
+def PowerProfilesPopup():
+    def set_power_profile(name: str):
+        power_profiles.active_profile = name # type: ignore
+        utils.close_curr_popup()
+
+    def PowerProfileButton(name: str):
+        label: str
+        icon: str
+        if name == "performance":
+            label = "Performance"
+            icon = "power-profile-performance-symbolic"
+        elif name == "balanced":
+            label = "Balanced"
+            icon = "power-profile-balanced-symbolic"
+        elif name == "power-saver":
+            label = "Power Saver"
+            icon = "power-profile-power-saver-symbolic"
+        else: return None
+
+        return Widget.Button(
+            child=Widget.Box(
+                child=[
+                    Widget.Icon(
+                        image=icon,
+                        pixel_size=18,
+                        css_classes=["cc-popup-opt-icon"]
+                    ),
+                    Widget.Label(label=label),
+                ],
+                css_classes=["cc-popup-opt-label"]
+            ),
+            on_click=lambda _: set_power_profile(name),
+            css_classes=["cc-popup-option"],
+        )
+
+    return ControlCentrePopup(
+        Widget.Box(
+            vertical=True,
+            child=[
+                Widget.Box(
+                    child=[
+                        Widget.Icon(
+                            image="power-profile-balanced-symbolic",
+                            css_classes=["cc-popup-icon"],
+                            pixel_size=24,
+                        ),
+                        Widget.Label(
+                            label="Power Mode",
+                            css_classes=["cc-popup-label"]
+                        ),
+                    ],
+                    css_classes=["cc-popup-header"],
+                    halign="start",
+                ),
+                Widget.Box(
+                    vertical=True,
+                    child=power_profiles.bind("profiles", lambda ps: [ppb for ppb in [PowerProfileButton(p) for p in ps] if ppb is not None][::-1])
+                )
+            ]
+        )
+    )
+
 
 def MainWidgets():
     widgets = Widget.Box(
@@ -133,6 +197,7 @@ def MainWidgets():
         widgets_count += 1
 
     wifi_popup = WiFiPopup()
+    power_profiles_popup = PowerProfilesPopup()
 
     def update_widgets():
         nonlocal widgets, widgets_count, wifi_popup
@@ -140,36 +205,52 @@ def MainWidgets():
         widgets_count = 0
         if network.ethernet.devices:
             add_widget(ControlCentreWidget(
-                Widget.Icon(image=network.ethernet.bind("icon_name")),
-                Widget.Label(label="Wired", css_classes=["cc-widget-label"]),
-                lambda _: utils.run_cmd((
+                icon=network.ethernet.bind("icon_name"),
+                labels=CCWLabels("Wired"),
+                on_click=lambda _: utils.run_cmd((
                     "iface=$(nmcli -t -f DEVICE,TYPE,STATE device | awk -F':' '$2==\"ethernet\"{print $1; exit}'); "
                         "state=$(nmcli -t -f DEVICE,STATE device | grep \"^$iface\" | cut -d':' -f2); "
                         "[ $state = connected ] && "
                         "nmcli device disconnect $iface || "
                         "nmcli device connect $iface"
                 )),
-                lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: utils.close_curr_popup()),
+                on_click_other=lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: utils.close_curr_popup()),
                 disabled=not network.ethernet.is_connected
             ))
         if network.wifi.devices:
+            dev = network.wifi.devices[0]
             add_widget(ControlCentreWidget(
-                Widget.Icon(image=network.wifi.bind("icon_name")),
-                Widget.Label(label="Wi-Fi", css_classes=["cc-widget-label"]),
-                lambda _: network.wifi.set_enabled(False) if network.wifi.enabled else network.wifi.set_enabled(True),
-                lambda _: wifi_popup.toggle(),
+                icon=network.wifi.bind("icon_name"),
+                labels=dev.bind_many(["is_connected", "ap"], lambda is_connected, ap: CCWLabels("Wi-Fi", ap.ssid) if is_connected and ap else CCWLabels("Wi-Fi")),
+                on_click=lambda _: network.wifi.set_enabled(False) if network.wifi.enabled else network.wifi.set_enabled(True),
+                on_click_other=lambda _: wifi_popup.toggle(),
                 disabled=not network.wifi.enabled
             ), wifi_popup)
         if bluetooth.state != "absent":
             add_widget(ControlCentreWidget(
-                Widget.Icon(image=bluetooth.bind("state", lambda state:
-                    "bluetooth-active-symbolic" if state == "on" and bluetooth.powered else "bluetooth-disabled-symbolic")),
-                Widget.Label(label="Bluetooth", css_classes=["cc-widget-label"]),
-                lambda _: bluetooth.set_powered(False) if bluetooth.powered else bluetooth.set_powered(True),
-                lambda _: utils.run_cmd_and_run("blueberry", lambda: utils.close_curr_popup()),
+                icon=bluetooth.bind(
+                    "state",
+                    lambda state:"bluetooth-active-symbolic" if state == "on" and bluetooth.powered else "bluetooth-disabled-symbolic"
+                ),
+                labels=CCWLabels("Bluetooth"),
+                on_click=lambda _: bluetooth.set_powered(False) if bluetooth.powered else bluetooth.set_powered(True),
+                on_click_other=lambda _: utils.run_cmd_and_run("blueberry", lambda: utils.close_curr_popup()),
                 disabled=bluetooth.state == "absent" or not bluetooth.powered
             )) 
+        if len(power_profiles.profiles) > 0:
+            def transform_pp_name(p: str) -> str:
+                if p == "performance": return "Performance"
+                if p == "balanced": return "Balanced"
+                if p == "power-saver": return "Power Saver"
+                return "Unknown"
 
+            add_widget(ControlCentreWidget(
+                icon=power_profiles.bind("icon_name"),
+                labels=power_profiles.bind("active_profile", lambda p: CCWLabels("Power Mode", transform_pp_name(p)) if p else CCWLabels("Power Mode")),
+                on_click=lambda _: ...,
+                on_click_other=lambda _: power_profiles_popup.toggle(),
+                disabled=power_profiles.active_profile == "balanced"
+            ), power_profiles_popup)
 
     update_widgets()
 
@@ -177,6 +258,7 @@ def MainWidgets():
     network.wifi.connect("notify::is-connected", lambda *_: update_widgets())
     network.wifi.connect("notify::enabled", lambda *_: update_widgets())
     bluetooth.connect("notify::state", lambda *_: update_widgets())
+    power_profiles.connect("notify::active-profile", lambda *_: update_widgets())
 
-    return widgets, lambda: wifi_popup.set_reveal_child(False)
+    return widgets, lambda: wifi_popup.set_reveal_child(False), lambda: power_profiles_popup.set_reveal_child(False)
 

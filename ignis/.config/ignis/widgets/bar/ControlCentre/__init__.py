@@ -140,7 +140,7 @@ def ControlCentre(monitor: int):
         more_margin=True,
     )
 
-    main_widgets, close_wifi_popup = MainWidgets()
+    main_widgets, close_wifi_popup, close_pp_popup = MainWidgets()
 
     box = Widget.Box(
         vertical=True,
@@ -249,6 +249,7 @@ def ControlCentre(monitor: int):
 
     def close_popups():
         close_wifi_popup()
+        close_pp_popup()
         power_menu.set_reveal_child(False)
 
     window.connect("notify::visible", lambda *_: close_popups() if window.visible else None)

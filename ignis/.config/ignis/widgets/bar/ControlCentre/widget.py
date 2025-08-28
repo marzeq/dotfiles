@@ -3,10 +3,24 @@ from ignis.widgets import Widget
 
 import utils
 
+def CCWLabels(label: str, secondary_label: str | None = None) -> list[Widget.Label]:
+    return [
+        Widget.Label(
+            label=label,
+            halign="start",
+            css_classes=["css-widget-label"]
+        ),
+        Widget.Label(
+            label=secondary_label,
+            halign="start",
+            css_classes=["css-widget-label", "cc-widget-secondary-label"],
+            visible=bool(secondary_label)
+        )
+    ]
 
 def ControlCentreWidget(
-    icon: Widget.Icon,
-    label: Widget.Label,
+    icon: str,
+    labels: list[Widget.Label],
     on_click: Callable[..., Any] | None = None,
     on_click_other: Callable[..., Any] | None = None,
     disabled: bool = False,
@@ -20,7 +34,15 @@ def ControlCentreWidget(
                     child=[
                         Widget.Button(
                             child=Widget.Box(
-                                child=[icon, label],
+                                child=[
+                                    Widget.Icon(image=icon),
+                                    Widget.Box(
+                                        vertical=True,
+                                        valign="center",
+                                        css_classes=["cc-widget-label-box"],
+                                        child=labels
+                                    )
+                                ],
                             ),
                             css_classes=["cc-widget-left"],
                             on_click=on_click,
@@ -42,7 +64,17 @@ def ControlCentreWidget(
             child=[
                 Widget.Button(
                     child=Widget.Box(
-                        child=[icon, label],
+                        child=Widget.Box(
+                            child=[
+                                Widget.Icon(image=icon),
+                                Widget.Box(
+                                    vertical=True,
+                                    valign="center",
+                                    css_classes=["cc-widget-label-box"],
+                                    child=labels
+                                )
+                            ],
+                        ),
                         css_classes=["cc-widget-left", "cc-widget-left-full"]
                     ),
                     hexpand=True,

@@ -116,8 +116,16 @@
   }
 }
 
-.cc-widget-label {
+.cc-widget-label-box {
   margin-left: 0.6rem;
+}
+
+.cc-widget-label {
+}
+
+.cc-widget-secondary-label {
+  font-weight: 400;
+  font-size: 0.9rem;
 }
 
 .cc-widget-disabled {
