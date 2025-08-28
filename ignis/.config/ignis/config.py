@@ -1,4 +1,3 @@
-import os
 from utils import run_cmd
 from ignis.utils import Utils
 from ignis.app import IgnisApp
