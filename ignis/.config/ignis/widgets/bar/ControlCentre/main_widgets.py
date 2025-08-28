@@ -111,7 +111,7 @@ def WiFiPopup():
 def PowerProfilesPopup():
     def set_power_profile(name: str):
         power_profiles.active_profile = name # type: ignore
-        utils.close_curr_popup()
+        popup.toggle()
 
     def PowerProfileButton(name: str):
         label: str
@@ -143,7 +143,7 @@ def PowerProfilesPopup():
             css_classes=["cc-popup-option"],
         )
 
-    return ControlCentrePopup(
+    popup = ControlCentrePopup(
         Widget.Box(
             vertical=True,
             child=[
@@ -169,6 +169,8 @@ def PowerProfilesPopup():
             ]
         )
     )
+
+    return popup
 
 
 def MainWidgets():
@@ -244,10 +246,13 @@ def MainWidgets():
                 if p == "power-saver": return "Power Saver"
                 return "Unknown"
 
+            def set_power_profile(name: str):
+                power_profiles.active_profile = name # type: ignore
+
             add_widget(ControlCentreWidget(
                 icon=power_profiles.bind("icon_name"),
                 labels=power_profiles.bind("active_profile", lambda p: CCWLabels("Power Mode", transform_pp_name(p)) if p else CCWLabels("Power Mode")),
-                on_click=lambda _: ...,
+                on_click=lambda _: power_profiles_popup.toggle() if power_profiles.active_profile == "balanced" else set_power_profile("balanced"),
                 on_click_other=lambda _: power_profiles_popup.toggle(),
                 disabled=power_profiles.active_profile == "balanced"
             ), power_profiles_popup)
