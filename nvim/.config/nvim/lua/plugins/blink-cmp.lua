@@ -28,7 +28,7 @@ return {
         ["<CR>"] = { "accept", "fallback" },
         ["<Tab>"] = false,
         ["<S-Tab>"] = false,
-        ["<C-Space>"] = { "snippet_forward" },
+        ["<C-Space>"] = { "snippet_forward", "show" },
         ["<C-S-Space>"] = { "snippet_backward" },
       },
 

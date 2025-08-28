@@ -18,6 +18,7 @@ fi
 
 RED_BOLD="\033[1;31m"
 BLUE="\033[0;34m"
+GREEN_BOLD="\033[1;32m"
 RESET="\033[0m"
 
 SHELLS_DEPS=(
@@ -51,8 +52,8 @@ DESKTOP_DEPS=(
   "hyprland"                                        # duh
 
   ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
-  "python-pillow" "python-numpy" "gnome-bluetooth-3.0" "dart-sass"
-  "playerctl"
+  "python-pillow" "python-numpy"                    # dependencies for ignis
+  "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
   "cantarell-fonts"                                 # sans font for the shell
   
   "gdm"                                             # login manager of choice
@@ -74,7 +75,7 @@ DESKTOP_DEPS=(
   ".AUR:hyprshot" "grim" "slurp"                    # screenshots
   "imagemagick" "tesseract" "tesseract-data-eng"    # needed for area ocr
   ".PARU"                                           # explicitly install aur manager
-  "wl-clipboard"                  # clipboard
+  "wl-clipboard"                                    # clipboard
   "pamixer" "pavucontrol"                           # audio control
   "nwg-displays"                                    # gui monitor configuration
   "adw-gtk-theme"                                   # gtk3 theme
@@ -83,10 +84,14 @@ DESKTOP_DEPS=(
 
   # my apps
   "nautilus"                                        # file manager
+  "gvfs" "gvfs-smb"                                 # optional dependencies for file manager
   "firefox"                                         # web browser
 
   # fonts
   ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
+
+  # misc
+  "gnome-keyring" "gcr-4"                           # for automatic ssh key loading from systemd
 )
 
 install_paru() {
@@ -117,7 +122,7 @@ install_packages() {
     install_paru=false
   fi
 
-  if $install_paru; then
+  if [[ $install_paru == true ]]; then
     install_paru
   fi
 
@@ -186,7 +191,11 @@ install_desktop() {
   sudo systemctl enable gdm
   gsettings set org.gnome.desktop.wm.preferences button-layout :
 
-  echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically${RESET}"
+  systemctl --user enable gcr-ssh-agent.socket
+
+  echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
+  echo
+  echo -e "${GREEN_BOLD}You may now reboot your machine!${RESET}"
 }
 
 main() {
