@@ -35,15 +35,29 @@ class PowerProfilesService(BaseService):
         self,
         profile: str,
     ) -> None:
-        if profile == "balanced" and self._cookie != -1:
-            self._proxy.gproxy.ReleaseProfile("(u)", self._cookie)
+        self._cookie = -1
+        self._proxy.ActiveProfile = GLib.Variant("s", profile)
+
+    def hold_profile(self, profile: str) -> None:
+        if profile == "balanced":
+            raise ValueError("Cannot hold the balanced profile, only performance or power-saver.")
+
+        if self._cookie != -1:
             return
+
         self._cookie = self._proxy.gproxy.HoldProfile(
             "(sss)",
             profile,
             "",
             "com.github.linkfrg.ignis"
         )
+
+    def release_profile(self) -> None:
+        if self._cookie == -1:
+            return
+
+        self._proxy.gproxy.ReleaseProfile("(u)", self._cookie)
+        self._cookie = -1
 
     @IgnisProperty
     def profiles(self) -> list[str]:
