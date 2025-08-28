@@ -127,8 +127,8 @@ def MainWidgets():
         else:
             widgets.child[last_box_index].append(widget) # type: ignore
 
-            if revealer is not None:
-                widgets.append(revealer)
+        if revealer is not None:
+            widgets.append(revealer)
 
         widgets_count += 1
 
