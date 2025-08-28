@@ -5,9 +5,7 @@ return {
     build = ":TSUpdate",
     lazy = false,
     config = function()
-      local configs = require("nvim-treesitter.configs")
-
-      configs.setup({
+      require("nvim-treesitter.configs").setup({
         sync_install = false,
         auto_install = true,
 
