@@ -18,11 +18,18 @@ class PowerProfilesService(BaseService):
             bus_type="system",
         )
 
+        if not self.is_available:
+            return
+
         self._proxy.gproxy.connect("g-properties-changed", self.__on_properties_changed)
 
         self._active_profile: str = self._proxy.ActiveProfile
         self._profiles: list[str] = [p["Profile"] for p in self._proxy.Profiles]
         self._cookie = -1
+
+    @IgnisProperty
+    def is_available(self) -> bool:
+        return self._proxy.has_owner
 
     @IgnisProperty
     def active_profile( # type: ignore
