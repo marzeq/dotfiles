@@ -1,21 +1,19 @@
 return {
   {
-    "zbirenbaum/copilot.lua",
-    opts = {
-      suggestion = { enabled = false },
-      panel = { enabled = false },
-      filetypes = {
-        markdown = true,
-        help = true,
-      },
-    },
-  },
-  {
     "saghen/blink.cmp",
     dependencies = {
       {
-        "giuxtaposition/blink-cmp-copilot",
+        "zbirenbaum/copilot.lua",
+        opts = {
+          suggestion = { enabled = false },
+          panel = { enabled = false },
+          filetypes = {
+            markdown = true,
+            help = true,
+          },
+        },
       },
+      { "giuxtaposition/blink-cmp-copilot", },
     },
     version = "1.*",
     event = "InsertEnter",
