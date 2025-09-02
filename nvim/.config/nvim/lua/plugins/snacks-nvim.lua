@@ -1,24 +1,4 @@
----@diagnostic disable: undefined-field, undefined-global
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
-
-local function my_dir_handler(dir)
-  Snacks.picker.files({
-    cwd = dir
-  })
-end
-
-vim.api.nvim_create_autocmd("BufEnter", {
-  group = vim.api.nvim_create_augroup("MyDirHandler", { clear = true }),
-  callback = function(args)
-    local stat = vim.loop.fs_stat(args.file)
-    if stat and stat.type == "directory" then
-      my_dir_handler(args.file)
-      vim.cmd("bd!")
-    end
-  end,
-})
-
+---@diagnostic disable: undefined-global
 
 return {
   "folke/snacks.nvim",
