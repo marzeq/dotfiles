@@ -25,6 +25,7 @@ return {
         { "J", "mzJ`z", desc = "Join line below", mode = "n" },
 
         { "<Esc>", [[<C-\><C-n>]], desc = "Exit terminal mode", mode = "t" },
+        { "<leader>s", ":%s/\\<<C-r><C-w>\\>//g<left><left>", desc = "Substitute word under cursor", mode = "n" },
       })
     end,
   },

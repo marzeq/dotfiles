@@ -36,6 +36,33 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "go",
+  callback = function()
+    vim.bo.makeprg = "go build ."
+    vim.bo.errorformat = "%f:%l:%c: %m"
+    vim.bo.expandtab = true
+
+    -- open quickfix automatically if there are errors
+    vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+      pattern = "[^l]*",  -- matches :make
+      callback = function()
+        if vim.fn.getqflist({size = 0}).size > 0 then
+          vim.cmd("copen")
+        end
+      end,
+    })
+  end,
+})
+vim.api.nvim_create_user_command("GoRun", function(opts)
+  local args = table.concat(opts.fargs, " ")
+  local cmd = "go run . " .. args
+  vim.cmd("cexpr system('" .. cmd .. " 2>&1')")
+  if vim.fn.getqflist({size = 0}).size > 0 then
+    vim.cmd("copen")
+  end
+end, { nargs = "*" })
+
 -- use system clipboard
 vim.schedule(function()
   o.clipboard:append("unnamedplus")
