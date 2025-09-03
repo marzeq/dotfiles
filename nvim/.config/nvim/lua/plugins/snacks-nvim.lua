@@ -43,6 +43,8 @@ return {
     { "<leader>fi", function () Snacks.picker.files({ ignored = true }) end, desc = "Find ignored files" },
     { "<leader>fg", function () Snacks.picker.grep() end, desc = "Grep" },
 
+    { "<leader>qf", function () Snacks.picker.qflist() end, desc = "Quickfix list" },
+
     { "<leader>bd", function () Snacks.bufdelete() end, desc = "Buffer delete" },
   }
 }
