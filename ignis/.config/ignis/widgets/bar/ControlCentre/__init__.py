@@ -24,8 +24,20 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
         menu = None
 
     icon = item.icon
+
+    # sometimes this breaks
     if isinstance(icon, str) and "spotify" in icon:
         icon = "spotify-client"
+
+    title = item.title
+
+    # best effort guess, as discord doesn't set title or tooltip because their linux app is absolute dogshit
+    # and they do not give a shit about the quality of the software they make. fuck discord!
+    if item.id == "chrome_status_icon_1" and \
+        item.menu.object_path == "/com/canonical/dbusmenu" \
+        and not item.title and not item.tooltip \
+        and type(item.icon).__name__ == "Pixbuf":
+        title = "Discord"
 
     return Widget.CenterBox(
         start_widget=Widget.Box(
@@ -39,22 +51,14 @@ def SystemTrayApp(item: SystemTrayItem) -> Widget.Button:
                     label=
                     item.bind_many(
                         ["title", "tooltip"],
-                        lambda title, tooltip: title if title else tooltip if tooltip else "---"
-                    ),
+                            lambda title, tooltip: title if title else tooltip if tooltip else ""
+                    ) if title == item.title else title,
                     css_classes=["system-tray-item-label"]
                 ),
             ],
         ),
         end_widget=Widget.Box(
             child=([
-                Widget.Button(
-                    child=Widget.Icon(
-                        image="view-fullscreen-symbolic",
-                    ),
-                    css_classes=["system-tray-item-button"],
-                    on_click=lambda _: item.activate() or utils.close_curr_popup(),
-                )
-            ]) + ([
                 menu,
                 Widget.Button(
                     child=Widget.Icon(

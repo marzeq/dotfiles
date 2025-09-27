@@ -34,11 +34,11 @@ def Launcher(monitor: int):
 
     app_list = Widget.Box(
         vertical=True,
-        visible=False,
         css_classes=["launcher-app-list"],
+        child = [
+            LauncherApp(app) for app in applications.apps
+        ]
     )
-
-    default_style = "margin-top: -7rem;"
 
     window = Widget.Window(
         visible=False,
@@ -72,12 +72,14 @@ def Launcher(monitor: int):
                                 entry
                             ],
                         ),
-                        app_list,
+                        Widget.Scroll(
+                            child=app_list,
+                            vexpand=True,
+                        ),
                     ],
                 ),
             ],
         ),
-        style=default_style,
     )
 
     def reset_entry():
@@ -92,36 +94,22 @@ def Launcher(monitor: int):
 
         if query == "":
             entry.grab_focus()
-            app_list.visible = False
-            window.style = default_style # type: ignore
             reset_entry()
+            app_list.child = [ # type: ignore
+                LauncherApp(app) for app in applications.apps
+            ]
             return
         
         entry.css_classes = ["launcher-entry-input"]
         
-        apps = applications.search(applications.apps, query)[:5]
+        apps = applications.search(applications.apps, query)
         if not apps:
-            app_list.visible = False
-            window.style = default_style  # type: ignore
+            app_list.child = [] # type: ignore
             return
 
-        app_list.visible = True
         app_list.child = [ # type: ignore
             LauncherApp(app) for app in apps
         ]
-
-        # all picked by hand through trial and error to make search bar static and not move around
-        if len(apps) == 5:
-            readjust_margin = 12.625
-        elif len(apps) == 4:
-            readjust_margin = 8.625
-        elif len(apps) == 3:
-            readjust_margin = 4.8
-        elif len(apps) == 2:
-            readjust_margin = 0.9
-        else:
-            readjust_margin = -3
-        window.style = f"margin-top: {readjust_margin}rem;" # type: ignore
 
     def launch():
         nonlocal entry, app_list

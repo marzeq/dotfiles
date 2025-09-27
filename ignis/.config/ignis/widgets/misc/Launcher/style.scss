@@ -1,5 +1,6 @@
 .launcher {
   @include popup;
+  min-height: 20rem;
 }
 
 .launcher-entry {
