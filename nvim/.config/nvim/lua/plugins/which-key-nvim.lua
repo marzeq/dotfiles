@@ -27,8 +27,8 @@ return {
         { "<Esc>", [[<C-\><C-n>]], desc = "Exit terminal mode", mode = "t" },
         { "<leader>s", ":%s/\\<<C-r><C-w>\\>//g<left><left>", desc = "Substitute word under cursor", mode = "n" },
 
-        { "gy", '"+y', desc = "Yank to system clipboard" },
-        { "gp", '"+p', desc = "Paste from system clipboard" },
+        { "gy", '"+y', desc = "Yank to system clipboard", mode = { "n", "v", "x" } },
+        { "gp", '"+p', desc = "Paste from system clipboard", mode = { "n", "v", "x" } },
       })
     end,
   },

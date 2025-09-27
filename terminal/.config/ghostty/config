@@ -23,7 +23,6 @@ font-size = 12
 
 theme = "Adwaita Dark"
 background-opacity = 0.95
-background-blur-radius = 20
 
 # ┌──────────┐
 # │ KEYBINDS │
@@ -43,7 +42,6 @@ keybind = "ctrl+alt+down=unbind"
 keybind = "ctrl+alt+right=unbind"
 keybind = "ctrl+alt+left=unbind"
 keybind = "ctrl+shift+a=unbind"
-keybind = "ctrl+shift+c=unbind"
 keybind = "ctrl+shift+e=unbind"
 keybind = "ctrl+shift+i=unbind"
 keybind = "ctrl+shift+j=unbind"
@@ -108,3 +106,6 @@ keybind = "alt+t=new_tab"
 
 keybind = "alt+n=next_tab"
 keybind = "alt+shift+n=previous_tab"
+
+keybind = "ctrl+shift+v=paste_from_clipboard"
+keybind = "ctrl+shift+c=copy_to_clipboard"

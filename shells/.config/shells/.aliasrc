@@ -5,7 +5,7 @@ function hascmd() {
   return $?
 }
 if hascmd lsd; then
-  alias ls="lsd"
+  alias ls="lsd --group-dirs=first"
 else
   alias ls="ls --color=auto"
 fi
@@ -23,11 +23,7 @@ if [ -f /etc/arch-release ]; then
   }
 
   if hascmd paru; then
-    if hascmd waybar; then
-      alias update-system="paru && remove-orphans"
-    else
-      alias update-system="paru && remove-orphans"
-    fi
+    alias yay="paru"
   fi
 fi
 

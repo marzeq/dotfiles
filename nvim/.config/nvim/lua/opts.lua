@@ -41,7 +41,6 @@ vim.api.nvim_create_autocmd("FileType", {
   callback = function()
     vim.bo.makeprg = "go build ."
     vim.bo.errorformat = "%f:%l:%c: %m"
-    vim.bo.expandtab = true
   end,
 })
 

@@ -9,11 +9,10 @@ unsetopt beep
 #        Plugins & Config
 # ------------------------------
 
-if [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh" ]; then
-  source "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh"
-else
+if ! [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh" ]; then
   zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1 --keep
 fi
+source "${XDG_DATA_HOME:-$HOME/.local/share}/zap/zap.zsh"
 
 plug "zap-zsh/supercharge"
 plug "zsh-users/zsh-autosuggestions"
@@ -84,7 +83,7 @@ then
     local LAST_EXIT_CODE=$?
     local EXIT_CODE_COLOR
     local USER_HOST="${USER}@${HOST%%.*}"
-    RPROMPT="${dim}$(date +'%X') (${USER_HOST})${reset}"
+    RPROMPT="${dim}${USER_HOST}${reset}"
     if [[ $LAST_EXIT_CODE == 0 ]]; then
       EXIT_CODE_COLOR="${green}"
       RPROMPT="$RPROMPT"
