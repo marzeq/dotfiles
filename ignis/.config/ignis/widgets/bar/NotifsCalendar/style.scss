@@ -114,10 +114,7 @@
 .nc-notifications-bottom {
   font-weight: 600;
   padding: 0.5rem;
-}
-
-.nc-notifications-dnd-label {
-  margin-right: 0.5rem;
+  padding-bottom: 0;
 }
 
 .nc-notifications-clear {
@@ -128,8 +125,9 @@
   &:active {
     background-color: $button-bg-active;
   }
-  padding: 0 2rem;
-  border-radius: 0.5rem;
+  padding-right: 2rem;
+  padding-left: 2rem;
+  border-radius: 2rem;
   margin-top: -0.5rem;
 }
 

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, Callable
 from ignis.app import IgnisApp
 from ignis.widgets import Widget
 from ignis.utils import Utils
@@ -50,24 +49,14 @@ def Notifications():
         css_classes=["nc-notifications"],
         child=[
             Widget.Overlay(
-                child=Widget.Overlay(
-                    child=Widget.Box(
-                        child=[
-                            Widget.Label(label="Do Not Disturb", css_classes=["nc-notifications-dnd-label"]),
-                            Widget.Switch(
-                                active=options.notifications.dnd, # type: ignore
-                                on_change=lambda _, active: options.notifications.set_dnd(active), # type: ignore
-                                css_classes=["switch"],
-                            ),
-                        ]
-                    ),
-                    overlays=[Widget.Button(
-                        label="Clear",
-                        on_click=lambda _: notifications.clear_all(),
-                        css_classes=["nc-notifications-clear"],
-                        hexpand=False,
-                        halign="end",
-                    )] if notifs else [],
+                child=Widget.Box(
+                    child=[
+                        Widget.Button(
+                            label="Clear",
+                            on_click=lambda _: notifications.clear_all(),
+                            css_classes=["nc-notifications-clear"],
+                        )
+                    ] if notifs else [],
                     css_classes=["nc-notifications-bottom"],
                     valign="end",
                 ),

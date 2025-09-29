@@ -2,6 +2,7 @@ import asyncio
 from ignis.services.bluetooth import BluetoothService
 from ignis.services.network import NetworkService, WifiAccessPoint
 from ignis.widgets import Widget
+from ignis.options import options
 
 import utils
 from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentrePopup, ControlCentreWidget
@@ -189,7 +190,7 @@ def MainWidgets():
                 css_classes=["control-centre-widget-row"],
                 child=[widget],
             ))
-            last_box_index = widgets_count
+            last_box_index = len(widgets.child) - 1 # type: ignore
         else:
             widgets.child[last_box_index].append(widget) # type: ignore
 
@@ -257,6 +258,13 @@ def MainWidgets():
                 disabled=power_profiles.active_profile == "balanced"
             ), power_profiles_popup)
 
+        add_widget(ControlCentreWidget(
+            icon="notifications-disabled-symbolic",
+            labels=CCWLabels("Do Not Disturb"),
+            on_click=lambda _: options.notifications.set_dnd(not options.notifications.dnd), # type: ignore
+            disabled=not options.notifications.dnd, # type: ignore
+        ))
+
     update_widgets()
 
     network.ethernet.connect("notify::is-connected", lambda *_: update_widgets())
@@ -264,6 +272,7 @@ def MainWidgets():
     network.wifi.connect("notify::enabled", lambda *_: update_widgets())
     bluetooth.connect("notify::state", lambda *_: update_widgets())
     power_profiles.connect("notify::active-profile", lambda *_: update_widgets())
+    options.notifications.connect("changed", lambda _, name: None if name != "dnd" else update_widgets()) # type: ignore
 
     return widgets, lambda: wifi_popup.set_reveal_child(False), lambda: power_profiles_popup.set_reveal_child(False)
 
