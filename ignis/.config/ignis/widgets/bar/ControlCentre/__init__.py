@@ -175,7 +175,14 @@ def ControlCentre(monitor: int):
                         ),
                         on_change=lambda x: adjust_volume(x.value),
                         css_classes=["cc-slider-slider"],
-                    )
+                    ),
+                    Widget.Button(
+                        child=Widget.Icon(
+                            image="go-next-symbolic"
+                        ),
+                        css_classes=["cc-slider-icon"],
+                        on_click=lambda _: utils.run_cmd_and_run("pavucontrol", lambda: utils.close_curr_popup())
+                    ),
                 ],
             ),
         ] + ([
