@@ -5,6 +5,7 @@ from ignis.services.network import NetworkService
 from ignis.services.audio import AudioService
 from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
+from ignis.options import options
 
 import utils
 
@@ -83,7 +84,12 @@ def Tray(
                             "icon_name", lambda icon: icon if icon != "image-missing" else "audio-volume-muted-symbolic" # type: ignore
                         ),
                     ),
-                    power_icon
+                    Widget.Icon(
+                        css_classes=["tray-icon"],
+                        image="notifications-disabled-symbolic",
+                        visible=options.notifications.bind("dnd", lambda dnd: dnd) # type: ignore
+                    ),
+                    power_icon,
                 ]),
                 css_classes=["box"]
             )
