@@ -18,64 +18,69 @@ def CCWLabels(label: str, secondary_label: str | None = None) -> list[Widget.Lab
         )
     ]
 
-def ControlCentreWidget(
-    icon: str,
-    labels: list[Widget.Label],
-    on_click: Callable[..., Any] | None = None,
-    on_click_other: Callable[..., Any] | None = None,
-    disabled: bool = False,
-) -> Widget.Grid:
-    if on_click_other is not None:
-        return Widget.Grid(
-            column_num=2,
-            child=[
-                Widget.Button(
-                    child=Widget.Box(
-                        child=[
-                            Widget.Icon(image=icon),
-                            Widget.Box(
-                                vertical=True,
-                                valign="center",
-                                css_classes=["cc-widget-label-box"],
-                                child=labels
-                            )
-                        ],
+class ControlCentreWidget(Widget.Box):
+    def __init__(
+            self,
+        icon: str,
+        labels: list[Widget.Label],
+        on_click: Callable[..., Any] | None = None,
+        on_click_other: Callable[..., Any] | None = None,
+    ):
+        if on_click_other is not None:
+            super().__init__(
+                child=[
+                    Widget.Button(
+                        child=Widget.Box(
+                            child=[
+                                Widget.Icon(image=icon),
+                                Widget.Box(
+                                    vertical=True,
+                                    valign="center",
+                                    css_classes=["cc-widget-label-box"],
+                                    child=labels
+                                )
+                            ],
+                        ),
+                        css_classes=["cc-widget-left"],
+                        on_click=on_click,
+                        hexpand=True,
                     ),
-                    css_classes=["cc-widget-left"],
-                    on_click=on_click,
-                    hexpand=True,
-                ),
-                Widget.Button(
-                    child=Widget.Icon(image="go-next-symbolic"),
-                    css_classes=["cc-widget-right"],
-                    on_click=on_click_other,
-                ),
-            ],
-            css_classes=["cc-widget"] if not disabled else ["cc-widget", "cc-widget-disabled"],
-        )
-    else:
-        return Widget.Grid(
-            column_num=2,
-            child=[
-                Widget.Button(
-                    child=Widget.Box(
-                        child=[
-                            Widget.Icon(image=icon),
-                            Widget.Box(
-                                vertical=True,
-                                valign="center",
-                                css_classes=["cc-widget-label-box"],
-                                child=labels
-                            )
-                        ],
+                    Widget.Button(
+                        child=Widget.Icon(image="go-next-symbolic"),
+                        css_classes=["cc-widget-right"],
+                        on_click=on_click_other,
                     ),
-                    hexpand=True,
-                    on_click=on_click,
-                    css_classes=["cc-widget-left", "cc-widget-left-full"]
-                ),
-            ],
-            css_classes=["cc-widget"] if not disabled else ["cc-widget", "cc-widget-disabled"],
-        )
+                ],
+            )
+        else:
+            super().__init__(
+                child=[
+                    Widget.Button(
+                        child=Widget.Box(
+                            child=[
+                                Widget.Icon(image=icon),
+                                Widget.Box(
+                                    vertical=True,
+                                    valign="center",
+                                    css_classes=["cc-widget-label-box"],
+                                    child=labels
+                                )
+                            ],
+                        ),
+                        hexpand=True,
+                        on_click=on_click,
+                        css_classes=["cc-widget-left", "cc-widget-left-full"]
+                    ),
+                ],
+            )
+
+        self.set_disabled(True) # initialise css classes
+
+    def set_disabled(self, disabled: bool) -> None:
+        if disabled:
+            self.css_classes = ["cc-widget", "cc-widget-disabled"]
+        else:
+            self.css_classes = ["cc-widget"]
 
 def ControlCentrePopup(box: Widget.Box, more_margin: bool = False) -> Widget.Revealer:
     return Widget.Revealer(
