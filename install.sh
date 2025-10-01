@@ -21,6 +21,15 @@ BLUE="\033[0;34m"
 GREEN_BOLD="\033[1;32m"
 RESET="\033[0m"
 
+DRY_RUN=false
+
+run_or_echo() {
+  echo -e "${GREEN_BOLD}> $*${RESET}"
+  if ! $DRY_RUN; then
+    eval "$*"
+  fi
+}
+
 SHELLS_DEPS=(
   "stow"
 
@@ -95,119 +104,98 @@ DESKTOP_DEPS=(
 )
 
 install_paru() {
-  git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin
-  cd /tmp/paru-bin
-  makepkg -si
-  cd - > /dev/null
-  rm -rf paru-bin
+  run_or_echo "git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin"
+  run_or_echo "cd /tmp/paru-bin"
+  run_or_echo "makepkg -si"
+  run_or_echo "cd - > /dev/null"
+  run_or_echo "rm -rf paru-bin"
 }
 
 install_packages() {
   local aur_packages=()
   local pacman_packages=()
-  local install_paru=false
+  local need_paru=false
 
   for package in "$@"; do
     if [[ $package == ".AUR:"* ]]; then
       aur_packages+=("${package:5}")
-      install_paru=true
+      need_paru=true
     elif [[ $package == ".PARU" ]]; then
-      install_paru=true
+      need_paru=true
     else
       pacman_packages+=("$package")
     fi
   done
 
   if command -v paru &> /dev/null; then
-    install_paru=false
+    need_paru=false
   fi
 
-  if [[ $install_paru == true ]]; then
+  if [[ $need_paru == true ]]; then
     install_paru
   fi
 
   if [[ ${#aur_packages[@]} -gt 0 ]]; then
-    paru -S --noconfirm "${aur_packages[@]}"
+    run_or_echo "paru -S --noconfirm ${aur_packages[*]}"
   fi
 
   if [[ ${#pacman_packages[@]} -gt 0 ]]; then
-    sudo pacman -S --noconfirm "${pacman_packages[@]}"
+    run_or_echo "sudo pacman -S --noconfirm ${pacman_packages[*]}"
   fi
 }
 
-
 shells_installed=false
 install_shells() {
-  if $shells_installed; then
-    return
-  fi
+  if $shells_installed; then return; fi
   echo -e "${BLUE}Installing shells...${RESET}"
   shells_installed=true
   install_packages "${SHELLS_DEPS[@]}"
-  if [[ -f "$HOME/.bashrc" ]]; then
-    mv "$HOME/.bashrc" "$HOME/.bashrc.bak"
-    echo "Moved existing .bashrc to .bashrc.bak"
-  fi
-  if [[ -f "$HOME/.zshrc" ]]; then
-    mv "$HOME/.zshrc" "$HOME/.zshrc.bak"
-    echo "Moved existing .zshrc to .zshrc.bak"
-  fi
-  stow -t "$HOME" shells
+  [[ -f "$HOME/.bashrc" ]] && run_or_echo "mv $HOME/.bashrc $HOME/.bashrc.bak && echo 'Moved existing .bashrc to .bashrc.bak'"
+  [[ -f "$HOME/.zshrc" ]] && run_or_echo "mv $HOME/.zshrc $HOME/.zshrc.bak && echo 'Moved existing .zshrc to .zshrc.bak'"
+  run_or_echo "stow -t $HOME shells"
 }
 
 neovim_installed=false
 install_neovim() {
-  if $neovim_installed; then
-    return
-  fi
+  if $neovim_installed; then return; fi
   echo -e "${BLUE}Installing neovim...${RESET}"
   neovim_installed=true
   install_packages "${NEOVIM_DEPS[@]}"
-  stow -t "$HOME" nvim
+  run_or_echo "stow -t $HOME nvim"
 }
 
 terminal_installed=false
 install_terminal() {
-  if $terminal_installed; then
-    return
-  fi
+  if $terminal_installed; then return; fi
   echo -e "${BLUE}Installing terminal...${RESET}"
   terminal_installed=true
   install_packages "${TERMINAL_DEPS[@]}"
-  stow -t "$HOME" terminal
+  run_or_echo "stow -t $HOME terminal"
 }
 
 desktop_installed=false
 install_desktop() {
-  if $desktop_installed; then
-    return
-  fi
+  if $desktop_installed; then return; fi
   echo -e "${BLUE}Installing desktop...${RESET}"
   desktop_installed=true
   install_packages "${DESKTOP_DEPS[@]}"
+  run_or_echo "stow -t $HOME hypr wallpapers ignis"
+  run_or_echo "sudo systemctl enable gdm"
+  run_or_echo "gsettings set org.gnome.desktop.wm.preferences button-layout :"
+  run_or_echo "systemctl --user enable gcr-ssh-agent.socket"
+  echo -e "${RED_BOLD}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
   install_terminal
-  stow -t "$HOME" hypr wallpapers ignis
-
-  sudo systemctl enable gdm
-  gsettings set org.gnome.desktop.wm.preferences button-layout :
-
-  systemctl --user enable gcr-ssh-agent.socket
-
-  echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
-  echo
-  echo -e "${GREEN_BOLD}You may now reboot your machine!${RESET}"
 }
 
 main() {
   first_dir="$(pwd)"
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-
   cd "$script_dir"
 
   if [[ $# -eq 0 ]]; then
-    echo "Usage: $0 <package>"
+    echo "Usage: $0 [--dry-run] <package>"
     echo "Available packages: shells, neovim, terminal, desktop"
-    echo "Or run $0 all to install all packages"
+    echo "Or run $0 [--dry-run] all to install all packages"
     exit 1
   fi
 
@@ -216,6 +204,12 @@ main() {
   echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
   read -p "Proceed? (y/n) " -n 1 -r
   echo
+
+  if [[ $1 == "--dry-run" ]]; then
+    DRY_RUN=true
+    echo -e "${BLUE}Dry run mode enabled. No changes will be made.${RESET}"
+    shift
+  fi
 
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit
