@@ -229,7 +229,7 @@ class MainWidgets(Widget.Box):
 
         self.power_profiles_widget = ControlCentreWidget(
             icon=power_profiles.bind("icon_name"),
-            labels=power_profiles.bind("active_profile", lambda p: CCWLabels("Power Mode", transform_pp_name(p)) if p else CCWLabels("Power Mode")),
+            labels=power_profiles.bind("active-profile", lambda p: CCWLabels("Power Mode", transform_pp_name(p)) if p else CCWLabels("Power Mode")),
             on_click=lambda _: self.power_profiles_popup.toggle() if power_profiles.active_profile == "balanced" else set_power_profile("balanced"),
             on_click_other=lambda _: self.power_profiles_popup.toggle(),
         )
@@ -238,7 +238,7 @@ class MainWidgets(Widget.Box):
         self.power_profiles_popup = PowerProfilesPopup()
 
         self.dnd_widget = ControlCentreWidget(
-            icon="notifications-disabled-symbolic",
+            icon=options.notifications.bind("dnd", lambda dnd: "notifications-disabled-symbolic" if dnd else "org.gnome.Settings-notifications-symbolic"), # type: ignore
             labels=CCWLabels("Do Not Disturb"),
             on_click=lambda _: options.notifications.set_dnd(not options.notifications.dnd), # type: ignore
         )
