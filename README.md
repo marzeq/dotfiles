@@ -29,17 +29,15 @@ run the `install.sh` script to stow the config files for the specified package o
 
 #### hyprland desktop
 
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/e7c42e54-3455-4e6a-9805-6a37f3ee414a" />
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/f4d82f3c-59b4-4cbf-82f2-4c0799b9984d" />
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/921a80c6-3a19-45b2-96f7-621a83e782d0" />
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/f0fecaff-34b1-4bf5-aabe-eed3badc0f82" />
-
+![2025-10-01-190047_hyprshot](https://github.com/user-attachments/assets/0873d07e-ea08-4094-a696-3c02b77518dc)
+![2025-10-01-190025_hyprshot](https://github.com/user-attachments/assets/2a0b27bf-58ec-408c-9f72-d5fc71c9cece)
+![2025-10-01-190115_hyprshot](https://github.com/user-attachments/assets/dde1e5d6-5e80-4868-855c-59847d58021d)
+![2025-10-01-190102_hyprshot](https://github.com/user-attachments/assets/2eeabe81-f6d4-4a60-b95f-d8fe64613be0)
 
 #### neovim
 
-![image](https://github.com/user-attachments/assets/f151193e-d46d-471c-9d9c-4c696212737c)
-
-![image](https://github.com/user-attachments/assets/5d1d52ee-2fea-4b1d-83c5-08c044612bf2)
+![2025-10-01-190830_hyprshot](https://github.com/user-attachments/assets/7e574460-4892-4093-9024-51c8472a38c0)
+![2025-10-01-190841_hyprshot](https://github.com/user-attachments/assets/17e991b6-c1c6-4969-b2a5-1b4bd79e72b7)
 
 ---
 
