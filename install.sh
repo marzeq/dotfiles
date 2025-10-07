@@ -199,20 +199,20 @@ main() {
     exit 1
   fi
 
-  echo -e "${RED_BOLD}ATTENTION!${RESET}"
-  echo "This script was made for my personal use. You should probably not run it yourself."
-  echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
-  read -p "Proceed? (y/n) " -n 1 -r
-  echo
-
   if [[ $1 == "--dry-run" ]]; then
     DRY_RUN=true
     echo -e "${BLUE}Dry run mode enabled. No changes will be made.${RESET}"
     shift
-  fi
+  else
+    echo -e "${RED_BOLD}ATTENTION!${RESET}"
+    echo "This script was made for my personal use. You should probably not run it yourself."
+    echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
+    read -p "Proceed? (y/n) " -n 1 -r
+    echo
 
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    exit
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      exit
+    fi
   fi
 
   if [[ $1 == "shells" ]]; then
