@@ -4,6 +4,7 @@ from ignis.services.applications import ApplicationsService, Application
 from gi.repository import Gtk  # type: ignore
 
 import utils
+from rapidfuzz import process, fuzz
 
 applications = ApplicationsService.get_default()
 
@@ -102,7 +103,7 @@ def Launcher(monitor: int):
         
         entry.css_classes = ["launcher-entry-input"]
         
-        apps = applications.search(applications.apps, query)
+        apps = fuzzy_search(applications.apps, query)
         if not apps:
             app_list.child = [] # type: ignore
             return
@@ -127,6 +128,24 @@ def Launcher(monitor: int):
     window.connect("notify::visible", lambda *_: reset_entry() if window.visible else None)
 
     return window
+
+def fuzzy_search(apps: list[Application], query: str) -> list[Application]:
+    query = query.lower()
+    results = []
+    if not query:
+        return apps
+    apps_by_name = {
+        app.name.lower(): app for app in apps
+    }
+    matches = process.extract(
+        query,
+        apps_by_name.keys(),
+        scorer=fuzz.WRatio,
+        limit=10,
+        score_cutoff=60
+    )
+    results = [apps_by_name[match[0]] for match in matches]
+    return results
 
 def LauncherProxy():
     window = Widget.Window(
