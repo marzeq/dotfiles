@@ -238,7 +238,7 @@ class MainWidgets(Widget.Box):
         self.power_profiles_popup = PowerProfilesPopup()
 
         self.dnd_widget = ControlCentreWidget(
-            icon=options.notifications.bind("dnd", lambda dnd: "notifications-disabled-symbolic" if dnd else "org.gnome.Settings-notifications-symbolic"), # type: ignore
+            icon=options.notifications.bind("dnd", lambda dnd: "notifications-disabled-symbolic" if dnd else "notifications-symbolic"), # type: ignore
             labels=CCWLabels("Do Not Disturb"),
             on_click=lambda _: options.notifications.set_dnd(not options.notifications.dnd), # type: ignore
         )
