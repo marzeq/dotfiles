@@ -33,29 +33,6 @@ if hascmd xdg-open; then
   }
 fi
 
-
-if hascmd mconf; then
-  function mconftojson() {
-    if [ -z "$1" ]; then
-      echo "mconftojson: no file specified"
-      return 1
-    fi
-
-    local output=$(mconf -j ${1})
-
-    # check exit code
-    if [ $? -ne 0 ]; then
-      echo "mconftojson: failed to convert ${1} to JSON"
-      return 1
-    fi
-
-    # replace .mconf extension with .json
-    local json_file=${1%.mconf}.json
-
-    echo $output > $json_file
-  }
-fi
-
 if hascmd vim || hascmd nvim; then
   function sudo() {
     if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
@@ -68,6 +45,11 @@ if hascmd vim || hascmd nvim; then
 fi
 
 if hascmd git; then
+  alias gcl="git clone"
+  function ghcl() {
+    git clone git@github.com:$1.git "${@:2}"
+  }
+
   alias g="git"
   alias glg="git log --graph --decorate --all --pretty=format:'%C(auto)%h%d%C(#888888)(%an; %ar)%Creset %s'"
 
@@ -78,83 +60,12 @@ if hascmd git; then
   alias gc="git commit -m"
   alias gca="git commit -am"
 
-  function gac() {
-    if [[ ! " $@ " =~ " -- " ]]; then
-      echo "gac: no -- found in arguments"
-      return 1
-    fi
-
-    if [[ "$@" == *"--" ]]; then
-      echo "gac: no commit message found"
-      return 1
-    fi
-
-    local files=()
-    local commit_message=""
-    local found_double_dash=false
-
-    for arg in "$@"; do
-      if [ "$arg" = "--" ]; then
-        found_double_dash=true
-        continue
-      fi
-
-      if [ "$found_double_dash" = false ]; then
-        files+=("$arg")
-      else
-        if [ -z "$commit_message" ]; then
-          commit_message="$arg"
-        else
-          commit_message="$commit_message $arg"
-        fi
-      fi
-    done
-
-    if [ ${#files[@]} -eq 0 ]; then
-      echo "gac: no files to add"
-      return 1
-    fi
-
-    if [ -z "$commit_message" ]; then
-      echo "gac: no commit message found"
-      return 1
-    fi
-
-    git add "${files[@]}"
-    if [ $? -ne 0 ]; then
-      return 1
-    fi
-    git commit -m "$commit_message"
-    return $?
-  }
-
   alias gsb="git switch"
   alias gcb="git switch -c"
 
   alias gp="git push"
   alias gpl="git pull"
   alias gf="git fetch"
-  
-  function gv() {
-    local remote_url=$(git config --get remote.origin.url)
-    if [ $? -ne 0 ]; then
-      echo "gv: no remote origin found"
-      return 1
-    fi
-
-    if [[ "$remote_url" == git@github.com* ]]; then
-      remote_url=${remote_url#*:}
-      remote_url=${remote_url//:/\/}
-      remote_url="https://github.com/${remote_url}"
-    elif [[ "$remote_url" == https://* ]]; then
-      :
-    else
-      echo "gv: invalid remote url: ${remote_url}"
-      return 1
-    fi
-
-    (command xdg-open "$remote_url" &> /dev/null &)
-  }
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then
