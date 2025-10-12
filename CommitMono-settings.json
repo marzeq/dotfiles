@@ -1,0 +1,26 @@
+{
+  "weight": 500,
+  "italic": false,
+  "alternates": {
+    "cv01": true,
+    "cv02": true,
+    "cv03": false,
+    "cv04": true,
+    "cv05": false,
+    "cv06": true,
+    "cv07": false,
+    "cv08": true,
+    "cv09": false,
+    "cv10": false,
+    "cv11": false
+  },
+  "features": {
+    "ss01": true,
+    "ss02": true,
+    "ss03": true,
+    "ss04": true,
+    "ss05": true
+  },
+  "letterSpacing": -3,
+  "lineHeight": 1
+}
