@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ ! -f "/etc/arch-release" ]]; then
-  echo "This script is intended for Arch Linux only!"
-  exit 1
-fi
-
-if [[ -f "/run/archiso/cowspace" ]]; then
-  echo "This script is not intended to be run in a live environment!"
-  exit 1
-fi
-
 if [[ $EUID -eq 0 ]]; then
   echo "Don't run this script as root, you will be asked for sudo permissions when necessary."
   exit 1
@@ -52,7 +42,6 @@ TERMINAL_DEPS=(
   "stow"
 
   "ghostty"                                         # really couldnt care less about my term, only picked it because ligatures work and nerd fonts arent fucked up
-  "ttf-cascadia-code" "ttf-cascadia-code-nerd"      # main mono font
 )
 
 DESKTOP_DEPS=(
@@ -144,6 +133,52 @@ install_packages() {
   fi
 }
 
+install_fonts() {
+  local os="$(uname -s)"
+  local font_dir=""
+
+  case "$os" in
+    Linux*)
+      font_dir="$HOME/.local/share/fonts"
+      ;;
+    Darwin*)
+      font_dir="$HOME/Library/Fonts"
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  run_or_echo "mkdir -p $font_dir"
+
+  for font in "$@"; do
+    [ -f "$font" ] && run_or_echo "cp -f $font $font_dir/"
+  done
+
+  [ "$os" = "Linux" ] && run_or_echo "fc-cache -f $font_dir >/dev/null 2>&1"
+}
+
+install_fonts_zip() {
+  local zip_file="$1"
+  local tmp_dir="/tmp/fonts_install"
+  run_or_echo "mkdir -p $tmp_dir"
+
+  run_or_echo "unzip -qq $zip_file -d $tmp_dir"
+
+  local fonts=()
+  if [ -d "$tmp_dir" ]; then
+    while IFS= read -r -d '' f; do
+      fonts+=("$f")
+    done < <(find "$tmp_dir" -type f \( -iname '*.ttf' -o -iname '*.otf' -o -iname '*.ttc' -o -iname '*.woff' -o -iname '*.woff2' \) -print0)
+  fi
+
+  if [ "${#fonts[@]}" -gt 0 ]; then
+    install_fonts "${fonts[@]}"
+  fi
+
+  run_or_echo "rm -rf $tmp_dir"
+}
+
 shells_installed=false
 install_shells() {
   if $shells_installed; then return; fi
@@ -170,6 +205,7 @@ install_terminal() {
   echo -e "${BLUE}Installing terminal...${RESET}"
   terminal_installed=true
   install_packages "${TERMINAL_DEPS[@]}"
+  install_fonts_zip "CommitMonoV143.zip"
   run_or_echo "stow -t $HOME terminal"
 }
 
@@ -204,6 +240,16 @@ main() {
     echo -e "${BLUE}Dry run mode enabled. No changes will be made.${RESET}"
     shift
   else
+    if [[ ! -f "/etc/arch-release" ]]; then
+      echo "This script is intended for Arch Linux only!"
+      exit 1
+    fi
+
+    if [[ -f "/run/archiso/cowspace" ]]; then
+      echo "This script is not intended to be run in a live environment!"
+      exit 1
+    fi
+
     echo -e "${RED_BOLD}ATTENTION!${RESET}"
     echo "This script was made for my personal use. You should probably not run it yourself."
     echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
