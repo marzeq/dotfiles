@@ -13,7 +13,7 @@ gtk-single-instance = true
 # │ FONT │
 # └──────┘
 
-font-family = "CommitMono"
+font-family = "CommitMono Nerd Font"
 font-family = "Twemoji"
 font-size = 12
 

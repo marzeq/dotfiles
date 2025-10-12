@@ -158,27 +158,6 @@ install_fonts() {
   [ "$os" = "Linux" ] && run_or_echo "fc-cache -f $font_dir >/dev/null 2>&1"
 }
 
-install_fonts_zip() {
-  local zip_file="$1"
-  local tmp_dir="/tmp/fonts_install"
-  run_or_echo "mkdir -p $tmp_dir"
-
-  run_or_echo "unzip -qq $zip_file -d $tmp_dir"
-
-  local fonts=()
-  if [ -d "$tmp_dir" ]; then
-    while IFS= read -r -d '' f; do
-      fonts+=("$f")
-    done < <(find "$tmp_dir" -type f \( -iname '*.ttf' -o -iname '*.otf' -o -iname '*.ttc' -o -iname '*.woff' -o -iname '*.woff2' \) -print0)
-  fi
-
-  if [ "${#fonts[@]}" -gt 0 ]; then
-    install_fonts "${fonts[@]}"
-  fi
-
-  run_or_echo "rm -rf $tmp_dir"
-}
-
 shells_installed=false
 install_shells() {
   if $shells_installed; then return; fi
@@ -205,7 +184,7 @@ install_terminal() {
   echo -e "${BLUE}Installing terminal...${RESET}"
   terminal_installed=true
   install_packages "${TERMINAL_DEPS[@]}"
-  install_fonts_zip "CommitMonoV143.zip"
+  install_fonts font/*.otf
   run_or_echo "stow -t $HOME terminal"
 }
 
