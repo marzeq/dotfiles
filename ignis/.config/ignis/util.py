@@ -11,7 +11,17 @@ from ignis.widgets import Widget
 import numpy as np
 from sklearn.cluster import KMeans
 
-app = IgnisApp.get_default()
+app: IgnisApp
+def get_app():
+    global app
+    try:
+        app = IgnisApp.get_default()
+    except:
+        pass
+
+    return app
+app = get_app()
+        
 hyprland = HyprlandService.get_default()
 
 root_dir = Utils.get_current_dir() # type: ignore

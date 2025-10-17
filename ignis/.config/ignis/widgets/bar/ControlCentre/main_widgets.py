@@ -4,7 +4,7 @@ from ignis.services.network import NetworkService, WifiAccessPoint
 from ignis.widgets import Widget
 from ignis.options import options
 
-import utils
+import util
 from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentrePopup, ControlCentreWidget
 from services.power_profiles import PowerProfilesService
 
@@ -53,7 +53,7 @@ def WiFiPopup():
                     ],
                     css_classes=["cc-popup-opt-label"]
                 ),
-                on_click=lambda _, ap=ap: utils.close_curr_popup() or asyncio.create_task(ap.connect_to_graphical()),
+                on_click=lambda _, ap=ap: util.close_curr_popup() or asyncio.create_task(ap.connect_to_graphical()),
                 css_classes=["cc-popup-option"],
             )
             for ap in filtered
@@ -184,14 +184,14 @@ class MainWidgets(Widget.Box):
         self.ethernet_widget = ControlCentreWidget(
             icon=network.ethernet.bind("icon_name"),
             labels=CCWLabels("Wired"),
-            on_click=lambda _: utils.run_cmd((
+            on_click=lambda _: util.run_cmd((
                 "iface=$(nmcli -t -f DEVICE,TYPE,STATE device | awk -F':' '$2==\"ethernet\"{print $1; exit}'); "
                 "state=$(nmcli -t -f DEVICE,STATE device | grep \"^$iface\" | cut -d':' -f2); "
                 "[ $state = connected ] && "
                 "nmcli device disconnect $iface || "
                 "nmcli device connect $iface"
             )),
-            on_click_other=lambda _: utils.run_cmd_and_run("nm-connection-editor", lambda: utils.close_curr_popup()),
+            on_click_other=lambda _: util.run_cmd_and_run("nm-connection-editor", lambda: util.close_curr_popup()),
         )
         network.ethernet.connect("notify::is-connected", lambda *_: self.ethernet_widget.set_disabled(not network.ethernet.is_connected))
         network.ethernet.connect("notify::devices", lambda *_: self.update_widgets())
@@ -212,7 +212,7 @@ class MainWidgets(Widget.Box):
             ),
             labels=CCWLabels("Bluetooth"),
             on_click=lambda _: bluetooth.set_powered(False) if bluetooth.powered else bluetooth.set_powered(True),
-            on_click_other=lambda _: utils.run_cmd_and_run("blueberry", lambda: utils.close_curr_popup()),
+            on_click_other=lambda _: util.run_cmd_and_run("blueberry", lambda: util.close_curr_popup()),
         )
         bluetooth.connect("notify::state", lambda *_: self.bluetooth_widget.set_disabled(bluetooth.state == "absent" or not bluetooth.powered))
         bluetooth.connect("notify::powered", lambda *_: self.bluetooth_widget.set_disabled(bluetooth.state == "absent" or not bluetooth.powered))

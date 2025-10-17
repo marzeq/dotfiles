@@ -1,13 +1,12 @@
 from ignis.utils import Utils
 from ignis.widgets import Widget
-from ignis.app import IgnisApp
 
-import utils
+import util
 from widgets.bar.Clock import Clock
 from widgets.bar.Workspaces import Workspaces 
 from widgets.bar.Tray import Tray 
 
-app = IgnisApp.get_default()
+app = util.get_app()
 
 def Bar(monitor_id: int = 0) -> Widget.Window:
     monitor_name = Utils.get_monitor(monitor_id).get_connector()  # type: ignore
@@ -23,11 +22,11 @@ def Bar(monitor_id: int = 0) -> Widget.Window:
 
     def handle_click():
         if clock_hovered:
-            utils.handle_popup_clicked("ignis_notifs_calendar")
+            util.handle_popup_clicked("ignis_notifs_calendar")
         elif tray_hovered:
-            utils.handle_popup_clicked("ignis_control_centre")
+            util.handle_popup_clicked("ignis_control_centre")
         else:
-            utils.close_curr_popup()
+            util.close_curr_popup()
     
     return Widget.Window(
         namespace=f"ignis_bar_{monitor_id}",

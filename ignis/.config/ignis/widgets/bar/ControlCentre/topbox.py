@@ -1,21 +1,20 @@
 import math
 from typing import Callable
 
-from ignis.app import IgnisApp
 from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
 
-import utils
+import util
 
 
-app = IgnisApp.get_default()
+app = util.get_app()
 upower = UPowerService.get_default()
 
 def TopBox(power_menu_toggle: Callable):
     settings_button = Widget.Button(child=Widget.Icon(
         image="applications-system-symbolic"),
         css_classes=["cc-top-button"],
-        on_click=lambda _: app.open_window("ignis_settings") or utils.close_curr_popup(),
+        on_click=lambda _: app.open_window("ignis_settings") or util.close_curr_popup(),
     )
 
     return Widget.CenterBox(
@@ -25,7 +24,7 @@ def TopBox(power_menu_toggle: Callable):
                 Widget.Button(child=Widget.Icon(
                     image=f"screenshooter-symbolic"), # type: ignore 
                     css_classes=["cc-top-button"],
-                    on_click=lambda _: utils.run_cmd_and_run_delayed("hyprshot -szm region -o ~/pictures/screenshots/", lambda: utils.close_curr_popup(), 100),
+                    on_click=lambda _: util.run_cmd_and_run_delayed("hyprshot -szm region -o ~/pictures/screenshots/", lambda: util.close_curr_popup(), 100),
                 )
             ] + ([
                 settings_button,
@@ -48,7 +47,7 @@ def TopBox(power_menu_toggle: Callable):
                 Widget.Button(child=Widget.Icon(
                     image="system-lock-screen-symbolic"),
                     css_classes=["cc-top-button"],
-                    on_click=lambda _: utils.run_cmd_and_run_delayed("loginctl lock-session", lambda: utils.close_curr_popup(), 100),
+                    on_click=lambda _: util.run_cmd_and_run_delayed("loginctl lock-session", lambda: util.close_curr_popup(), 100),
                 ),
                 Widget.Button(child=Widget.Icon(
                     image="system-shutdown-symbolic"),

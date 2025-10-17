@@ -3,7 +3,7 @@ from ignis.services.applications import ApplicationsService, Application
 
 from gi.repository import Gtk  # type: ignore
 
-import utils
+import util
 from rapidfuzz import process, fuzz
 
 applications = ApplicationsService.get_default()
@@ -11,7 +11,7 @@ applications = ApplicationsService.get_default()
 def LauncherApp(app: Application):
     def launch():
         nonlocal app
-        utils.close_curr_popup()
+        util.close_curr_popup()
         app.launch()
 
     return Widget.Button(
@@ -54,7 +54,7 @@ def Launcher(monitor: int):
             child=Widget.EventBox(
                 vexpand=True,
                 hexpand=True,
-                on_click=lambda _: utils.close_curr_popup(),
+                on_click=lambda _: util.close_curr_popup(),
             ),
             overlays=[
                 Widget.Box(
@@ -124,7 +124,7 @@ def Launcher(monitor: int):
 
     key_controller = Gtk.EventControllerKey()
     window.add_controller(key_controller)
-    key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
+    key_controller.connect("key-pressed", lambda *x: util.clear_popupers() or util.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
     window.connect("notify::visible", lambda *_: reset_entry() if window.visible else None)
 
     return window
@@ -159,6 +159,6 @@ def LauncherProxy():
         nonlocal window
         window.visible = False
 
-    window.connect("notify::visible", lambda *_: utils.handle_popup_clicked("ignis_launcher") or close_window() if window.visible else None)
+    window.connect("notify::visible", lambda *_: util.handle_popup_clicked("ignis_launcher") or close_window() if window.visible else None)
 
     return window

@@ -1,6 +1,5 @@
-from utils import run_cmd
 from ignis.utils import Utils
-from ignis.app import IgnisApp
+import util
 from widgets.bar.Bar import Bar
 from widgets.bar.ClosePopupers import ClosePopuper
 from widgets.bar.ControlCentre import ControlCentre
@@ -10,14 +9,14 @@ from widgets.misc.NotificationPopup import NotificationPopup
 from widgets.misc.OSD import OSD
 from widgets.misc.Settings import Settings
 
-app = IgnisApp().get_default()
+app = util.get_app()
 dir = Utils.get_current_dir() # type: ignore
 app.apply_css(f"{dir}/style.scss")
 app.add_icons(f"{dir}/icons")
 
-run_cmd("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
-run_cmd("gsettings set org.gnome.desktop.interface font-name 'Cantarell Regular 11'")
-run_cmd("hyprctl reload")
+util.run_cmd("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
+util.run_cmd("gsettings set org.gnome.desktop.interface font-name 'Cantarell Regular 11'")
+util.run_cmd("hyprctl reload")
 
 
 for i in range(Utils.get_n_monitors()): # type: ignore

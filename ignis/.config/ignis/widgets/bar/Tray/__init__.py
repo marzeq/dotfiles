@@ -1,5 +1,4 @@
 from typing import Any, Callable
-from ignis.app import IgnisApp
 from ignis.services.system_tray import SystemTrayItem, SystemTrayService
 from ignis.services.network import NetworkService
 from ignis.services.audio import AudioService
@@ -7,9 +6,9 @@ from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
 from ignis.options import options
 
-import utils
+import util
 
-app = IgnisApp.get_default()
+app = util.get_app()
 system_tray = SystemTrayService.get_default()
 network = NetworkService.get_default()
 audio = AudioService.get_default()
@@ -98,7 +97,7 @@ def Tray(
         on_hover_lost=on_hover_lost,
     )
 
-    utils.popup_triggers_by_name[f"ignis_control_centre_{monitor}"] = box
+    util.popup_triggers_by_name[f"ignis_control_centre_{monitor}"] = box
 
     return box
 

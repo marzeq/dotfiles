@@ -4,10 +4,10 @@ from ignis.widgets import Widget
 import os
 import shutil
 import subprocess
-import utils
+import util
 from gi.repository import Gtk # type: ignore
 
-import utils
+import util
 
 def AccentColourPicker(colour: str):
     return Widget.Button(
@@ -20,13 +20,13 @@ def set_accent_colour(colour: str):
     with open(os.path.expanduser("~/.config/ignis/accent.scss"), "w") as f:
         f.write(f"$accent: {colour};\n")
 
-    utils.run_cmd(f"{utils.root_dir}/scripts/change_accent.sh \"{colour}\"")
+    util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"")
 
 def restore_accent_colour():
     with open(os.path.expanduser("~/.config/ignis/accent.scss"), "w") as f:
         f.write("\n")
 
-    utils.run_cmd(f"{utils.root_dir}/scripts/restore_accent.sh") # type: ignore
+    util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh") # type: ignore
 
 wallpapers_dir = os.path.expanduser("~/.wallpapers")
 wallpaper_path = os.path.join(wallpapers_dir, ".wallpaper")
@@ -119,7 +119,7 @@ def Settings():
             return
 
     async def set_suggested_accent_colours(path: str):
-        top_colours = await utils.get_top_colours(path)
+        top_colours = await util.get_top_colours(path)
 
         suggested_accent_colours.child = [ # type: ignore
             AccentColourPicker(

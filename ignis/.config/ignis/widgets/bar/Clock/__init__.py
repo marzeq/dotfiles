@@ -3,7 +3,7 @@ from typing import Any, Callable
 from ignis.utils import Utils
 from ignis.widgets import Widget
 
-import utils
+import util
 
 def Clock(
     monitor: int,
@@ -24,6 +24,6 @@ def Clock(
         on_hover_lost=on_hover_lost,
     )
 
-    utils.popup_triggers_by_name[f"ignis_notifs_calendar_{monitor}"] = box
+    util.popup_triggers_by_name[f"ignis_notifs_calendar_{monitor}"] = box
 
     return box

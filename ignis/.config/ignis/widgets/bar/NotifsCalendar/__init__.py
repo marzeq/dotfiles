@@ -1,14 +1,12 @@
 from datetime import datetime
-from ignis.app import IgnisApp
 from ignis.widgets import Widget
 from ignis.utils import Utils
 from ignis.services.notifications import NotificationService
-import utils
+import util
 from widgets.shared.Notification import NotificationWidget
-from ignis.options import options
 from gi.repository import Gtk  # type: ignore
 
-app = IgnisApp.get_default()
+app = util.get_app()
 notifications = NotificationService.get_default()
 
 def get_month_days(month: int, year: int) -> int:
@@ -256,7 +254,7 @@ def NotifsCalendar(monitor: int):
             css_classes=["notifs-calendar-container"],
             child=[box],
         ),
-        transition_duration=utils.popup_anim_speed,
+        transition_duration=util.popup_anim_speed,
         reveal_child=True,
     )
 
@@ -273,7 +271,7 @@ def NotifsCalendar(monitor: int):
             child=Widget.EventBox(
                 vexpand=True,
                 hexpand=True,
-                on_click=lambda _: utils.close_curr_popup(),
+                on_click=lambda _: util.close_curr_popup(),
             ),
             overlays=[
                 Widget.Box(
@@ -289,7 +287,7 @@ def NotifsCalendar(monitor: int):
 
     key_controller = Gtk.EventControllerKey()
     window.add_controller(key_controller)
-    key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
+    key_controller.connect("key-pressed", lambda *x: util.clear_popupers() or util.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
 
     return window
 

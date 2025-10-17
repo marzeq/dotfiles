@@ -1,18 +1,17 @@
-from ignis.app import IgnisApp
 from ignis.widgets import Widget
 from ignis.services.audio import AudioService
 from ignis.services.system_tray import SystemTrayService, SystemTrayItem
 from ignis.services.upower import UPowerService
 from ignis.services.backlight import BacklightService
 from gi.repository import Gtk  # type: ignore
-import utils
+import util
 from widgets.bar.ControlCentre.main_widgets import MainWidgets
 from widgets.bar.ControlCentre.topbox import TopBox
 from widgets.bar.ControlCentre.widget import ControlCentrePopup
 
 
 system_tray = SystemTrayService.get_default()
-app = IgnisApp.get_default()
+app = util.get_app()
 audio = AudioService.get_default()
 upower = UPowerService.get_default()
 backlight = BacklightService.get_default()
@@ -110,7 +109,7 @@ def ControlCentre(monitor: int):
                         css_classes=["cc-popup-opt-label"],
                     ),
                     css_classes=["cc-popup-option"],
-                    on_click=lambda _: power_menu.toggle() or utils.run_cmd_and_run("systemctl suspend", lambda: utils.close_curr_popup()),
+                    on_click=lambda _: power_menu.toggle() or util.run_cmd_and_run("systemctl suspend", lambda: util.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
@@ -119,7 +118,7 @@ def ControlCentre(monitor: int):
                         css_classes=["cc-popup-opt-label"],
                     ),
                     css_classes=["cc-popup-option"],
-                    on_click=lambda _: power_menu.toggle() or utils.run_cmd_and_run("systemctl reboot", lambda: utils.close_curr_popup()),
+                    on_click=lambda _: power_menu.toggle() or util.run_cmd_and_run("systemctl reboot", lambda: util.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
@@ -128,7 +127,7 @@ def ControlCentre(monitor: int):
                         css_classes=["cc-popup-opt-label"],
                     ),
                     css_classes=["cc-popup-option"],
-                    on_click=lambda _: power_menu.toggle() or utils.run_cmd_and_run("systemctl poweroff", lambda: utils.close_curr_popup()),
+                    on_click=lambda _: power_menu.toggle() or util.run_cmd_and_run("systemctl poweroff", lambda: util.close_curr_popup()),
                 ),
                 Widget.Button(
                     child=Widget.Label(
@@ -137,7 +136,7 @@ def ControlCentre(monitor: int):
                         css_classes=["cc-popup-opt-label"],
                     ),
                     css_classes=["cc-popup-option"],
-                    on_click=lambda _: power_menu.toggle() or utils.run_cmd_and_run("hyprctl dispatch exit", lambda: utils.close_curr_popup()),
+                    on_click=lambda _: power_menu.toggle() or util.run_cmd_and_run("hyprctl dispatch exit", lambda: util.close_curr_popup()),
                 ),
             ],
         ),
@@ -181,7 +180,7 @@ def ControlCentre(monitor: int):
                             image="go-next-symbolic"
                         ),
                         css_classes=["cc-slider-icon"],
-                        on_click=lambda _: utils.run_cmd_and_run("pavucontrol", lambda: utils.close_curr_popup())
+                        on_click=lambda _: util.run_cmd_and_run("pavucontrol", lambda: util.close_curr_popup())
                     ),
                 ],
             ),
@@ -227,7 +226,7 @@ def ControlCentre(monitor: int):
             css_classes=["control-centre-container"],
             child=[box],
         ),
-        transition_duration=utils.popup_anim_speed,
+        transition_duration=util.popup_anim_speed,
         reveal_child=True,
     )
 
@@ -244,7 +243,7 @@ def ControlCentre(monitor: int):
             child=Widget.EventBox(
                 vexpand=True,
                 hexpand=True,
-                on_click=lambda _: utils.close_curr_popup(),
+                on_click=lambda _: util.close_curr_popup(),
             ),
             overlays=[
                 Widget.Box(
@@ -265,7 +264,7 @@ def ControlCentre(monitor: int):
     window.connect("notify::visible", lambda *_: close_popups() if window.visible else None)
     key_controller = Gtk.EventControllerKey()
     window.add_controller(key_controller)
-    key_controller.connect("key-pressed", lambda *x: utils.clear_popupers() or utils.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
+    key_controller.connect("key-pressed", lambda *x: util.clear_popupers() or util.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
 
     return window
 

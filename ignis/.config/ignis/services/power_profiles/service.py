@@ -4,7 +4,7 @@ from ignis.dbus import DBusProxy
 from ignis.gobject import IgnisProperty
 from gi.repository import GLib # type: ignore
 
-import utils
+import util
 
 class PowerProfilesService(BaseService):
     def __init__(self) -> None:
@@ -14,7 +14,7 @@ class PowerProfilesService(BaseService):
             name="org.freedesktop.UPower.PowerProfiles",
             object_path="/org/freedesktop/UPower/PowerProfiles",
             interface_name="org.freedesktop.UPower.PowerProfiles",
-            info=utils.load_interface_xml("org.freedesktop.UPower.PowerProfiles"), # type: ignore
+            info=util.load_interface_xml("org.freedesktop.UPower.PowerProfiles"), # type: ignore
             bus_type="system",
         )
 

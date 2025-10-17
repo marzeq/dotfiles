@@ -1,9 +1,8 @@
-from ignis.app import IgnisApp
 from ignis.widgets import Widget
 
-import utils
+import util
 
-app = IgnisApp.get_default()
+app = util.get_app()
 
 def ClosePopuper(window_id: int):
     window = Widget.Window(
@@ -18,7 +17,7 @@ def ClosePopuper(window_id: int):
                 Widget.Button(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: utils.close_curr_popup(),
+                    on_click=lambda _: util.close_curr_popup(),
                     style="background-color: rgba(0,0,0,0.01);",
                 ),
             ],

@@ -1,7 +1,7 @@
 from typing import Any, Callable
 from ignis.widgets import Widget
 
-import utils
+import util
 
 def CCWLabels(label: str, secondary_label: str | None = None) -> list[Widget.Label]:
     return [
@@ -85,7 +85,7 @@ class ControlCentreWidget(Widget.Box):
 def ControlCentrePopup(box: Widget.Box, more_margin: bool = False) -> Widget.Revealer:
     return Widget.Revealer(
         transition_type="slide_down",
-        transition_duration=utils.popup_anim_speed,
+        transition_duration=util.popup_anim_speed,
         child=Widget.Box(
             child=[box],
             css_classes=["cc-popup"] if not more_margin else ["cc-popup", "cc-popup-more-margin"],
