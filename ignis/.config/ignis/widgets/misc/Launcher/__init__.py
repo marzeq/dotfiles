@@ -1,164 +1,129 @@
+from __future__ import annotations
 from ignis.widgets import Widget
-from ignis.services.applications import ApplicationsService, Application
-
-from gi.repository import Gtk  # type: ignore
-
+from gi.repository import Gtk # type: ignore
 import util
-from rapidfuzz import process, fuzz
 
-applications = ApplicationsService.get_default()
+from .app_mode import AppMode, LauncherAppResult, applications
+from .calc_mode import CalcMode
+from .shell_mode import ShellMode
+from .files_mode import FilesMode
 
-def LauncherApp(app: Application):
-    def launch():
-        nonlocal app
-        util.close_curr_popup()
-        app.launch()
+class Launcher(Widget.Window):
+    def __init__(self, monitor: int):
+        self.entry = Widget.Entry(
+            hexpand=True,
+            placeholder_text="Search",
+            css_classes=["launcher-entry-input"],
+        )
 
-    return Widget.Button(
-        css_classes=["launcher-app"],
-        child=Widget.Box(
-            child=([
-                Widget.Icon(image=app.icon, css_classes=["launcher-app-icon"], pixel_size=32),
-            ] if app.icon else []) + ([
-                Widget.Label(label=app.name),
-            ])
-        ),
-        on_click=lambda *_: launch(),
-    )
+        self.result_list = Widget.Box(
+            vertical=True,
+            css_classes=["launcher-result-list"],
+            child=[LauncherAppResult(app) for app in applications.apps],
+        )
 
-def Launcher(monitor: int):
-    entry = Widget.Entry(
-        hexpand=True,
-        placeholder_text="Search",
-        css_classes=["launcher-entry-input"],
-    )
-
-    app_list = Widget.Box(
-        vertical=True,
-        css_classes=["launcher-app-list"],
-        child = [
-            LauncherApp(app) for app in applications.apps
-        ]
-    )
-
-    window = Widget.Window(
-        visible=False,
-        popup=True,
-        kb_mode="on_demand",
-        monitor=monitor,
-        layer="top",
-        anchor=["top", "right", "bottom", "left"],
-        namespace=f"ignis_launcher_{monitor}",
-        css_classes=["window"],
-        child=Widget.Overlay(
-            child=Widget.EventBox(
-                vexpand=True,
-                hexpand=True,
-                on_click=lambda _: util.close_curr_popup(),
-            ),
-            overlays=[
-                Widget.Box(
-                    vertical=True,
-                    valign="center",
-                    halign="center",
-                    css_classes=["launcher"],
-                    child=[
-                        Widget.Box(
-                            css_classes=["launcher-entry"],
-                            child=[
-                                Widget.Icon(
-                                    icon_name="system-search-symbolic",
-                                    css_classes=["launcher-entry-icon"],
-                                ),
-                                entry
-                            ],
-                        ),
-                        Widget.Scroll(
-                            child=app_list,
-                            vexpand=True,
-                        ),
-                    ],
+        super().__init__(
+            visible=False,
+            popup=True,
+            kb_mode="on_demand",
+            monitor=monitor,
+            layer="top",
+            anchor=["top", "right", "bottom", "left"],
+            namespace=f"ignis_launcher_{monitor}",
+            css_classes=["window"],
+            child=Widget.Overlay(
+                child=Widget.EventBox(
+                    vexpand=True,
+                    hexpand=True,
+                    on_click=lambda _: util.close_curr_popup(),
                 ),
-            ],
-        ),
-    )
+                overlays=[
+                    Widget.Box(
+                        vertical=True,
+                        valign="center",
+                        halign="center",
+                        css_classes=["launcher"],
+                        child=[
+                            Widget.Box(
+                                css_classes=["launcher-entry"],
+                                child=[
+                                    Widget.Icon(
+                                        icon_name="system-search-symbolic",
+                                        css_classes=["launcher-entry-icon"],
+                                    ),
+                                    self.entry,
+                                ],
+                            ),
+                            Widget.Scroll(
+                                child=self.result_list,
+                                vexpand=True,
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        )
 
-    def reset_entry():
-        nonlocal entry
-        entry.text = ""
-        entry.grab_focus()
-        entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
+        self.modes = [CalcMode(), ShellMode(), FilesMode(), AppMode()]
+        self.active_mode = self.modes[-1]
 
-    def update_app_list():
-        nonlocal app_list, entry
-        query = entry.text.strip().lower()
+        self.entry.on_change = lambda *_: self.update_mode_and_list() # type: ignore
+        self.entry.on_accept = lambda *_: self.active_mode.launch(self) # type: ignore
+
+        key_controller = Gtk.EventControllerKey()
+        self.add_controller(key_controller)
+        key_controller.connect(
+            "key-pressed",
+            lambda *x: util.clear_popupers() or util.reset_popup()
+            if x[1] == 65307
+            else None,
+        )
+
+        self.connect(
+            "notify::visible",
+            lambda *_: self.reset_entry() if self.visible else None,
+        )
+
+    def set_entry_text(self, text: str):
+        self.entry.text = text
+        self.entry.grab_focus_without_selecting()
+        self.entry.set_position(len(text))
+        self.update_mode_and_list()
+
+    def reset_entry(self):
+        self.entry.text = ""
+        self.entry.grab_focus()
+        self.entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
+
+    def update_mode_and_list(self):
+        query = self.entry.text.strip()
 
         if query == "":
-            entry.grab_focus()
-            reset_entry()
-            app_list.child = [ # type: ignore
-                LauncherApp(app) for app in applications.apps
-            ]
-            return
-        
-        entry.css_classes = ["launcher-entry-input"]
-        
-        apps = fuzzy_search(applications.apps, query)
-        if not apps:
-            app_list.child = [] # type: ignore
-            return
+            self.entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
+        else:
+            self.entry.css_classes = ["launcher-entry-input"]
 
-        app_list.child = [ # type: ignore
-            LauncherApp(app) for app in apps
-        ]
+        for mode in self.modes:
+            if mode.matches(query):
+                self.active_mode = mode
+                mode.update(self, query)
+                return
 
-    def launch():
-        nonlocal entry, app_list
-        if not app_list.visible:
-            return
+class LauncherProxy(Widget.Window):
+    def __init__(self):
+        super().__init__(
+            namespace="ignis_launcher_proxy",
+            layer="background",
+            css_classes=["window"],
+            visible=False,
+        )
 
-        app_list.child[0].on_click() # type: ignore
+        self.connect(
+            "notify::visible",
+            lambda *_: util.handle_popup_clicked("ignis_launcher") or self.close()
+            if self.visible
+            else None,
+        )
 
-    entry.on_change = lambda *_: update_app_list() # type: ignore
-    entry.on_accept = lambda *_: launch() # type: ignore
-
-    key_controller = Gtk.EventControllerKey()
-    window.add_controller(key_controller)
-    key_controller.connect("key-pressed", lambda *x: util.clear_popupers() or util.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
-    window.connect("notify::visible", lambda *_: reset_entry() if window.visible else None)
-
-    return window
-
-def fuzzy_search(apps: list[Application], query: str) -> list[Application]:
-    query = query.lower()
-    results = []
-    if not query:
-        return apps
-    apps_by_name = {
-        app.name.lower(): app for app in apps
-    }
-    matches = process.extract(
-        query,
-        apps_by_name.keys(),
-        scorer=fuzz.WRatio,
-        limit=10,
-        score_cutoff=60
-    )
-    results = [apps_by_name[match[0]] for match in matches]
-    return results
-
-def LauncherProxy():
-    window = Widget.Window(
-        namespace="ignis_launcher_proxy",
-        layer="background",
-        css_classes=["window"],
-        visible=False,
-    )
-
-    def close_window():
-        nonlocal window
-        window.visible = False
-
-    window.connect("notify::visible", lambda *_: util.handle_popup_clicked("ignis_launcher") or close_window() if window.visible else None)
-
-    return window
+    def close(self):
+        self.visible = False
