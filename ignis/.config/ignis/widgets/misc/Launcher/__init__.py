@@ -5,7 +5,7 @@ from gi.repository import Gtk # type: ignore
 import util
 from widgets.misc.Launcher.base_mode import LauncherResult
 
-from .app_mode import AppMode, LauncherAppResult, applications
+from .app_mode import AppMode, LauncherAppResult, get_visible_apps
 from .calc_mode import CalcMode
 from .shell_mode import ShellMode
 from .files_mode import FilesMode
@@ -21,7 +21,7 @@ class Launcher(Widget.Window):
         self.result_list = Widget.Box(
             vertical=True,
             css_classes=["launcher-result-list"],
-            child=[LauncherAppResult(app) for app in applications.apps],
+            child=[LauncherAppResult(app, self) for app in get_visible_apps()]
         )
 
         super().__init__(
