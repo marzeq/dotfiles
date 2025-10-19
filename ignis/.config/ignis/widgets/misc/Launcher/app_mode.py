@@ -12,18 +12,16 @@ class AppMode(LauncherMode):
     def update(self, launcher, query: str):
         query = query.strip().lower()
         if not query:
-            launcher.entry.grab_focus()
             launcher.reset_entry()
-            launcher.result_list.child = [LauncherAppResult(app) for app in applications.apps]  # type: ignore
+            launcher.set_results([LauncherAppResult(app) for app in applications.apps])
             return
 
         apps = fuzzy_search(applications.apps, query)
         launcher.entry.css_classes = ["launcher-entry-input"]
-        launcher.result_list.child = [LauncherAppResult(app) for app in apps]  # type: ignore
+        launcher.set_results([LauncherAppResult(app) for app in apps])
 
     def launch(self, launcher):
-        if launcher.result_list.child:
-            launcher.result_list.child[0].on_click()  # type: ignore
+        launcher.trigger_result()
 
 class LauncherAppResult(LauncherResult):
     def __init__(self, app: Application):

@@ -239,7 +239,7 @@ def ControlCentre(monitor: int):
         anchor=["top", "right", "bottom", "left"],
         css_classes=["window"],
         namespace=f"ignis_control_centre_{monitor}",
-            child=Widget.Overlay(
+        child=Widget.Overlay(
             child=Widget.EventBox(
                 vexpand=True,
                 hexpand=True,

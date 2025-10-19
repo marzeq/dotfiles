@@ -1,7 +1,9 @@
 from __future__ import annotations
+from typing import Sequence
 from ignis.widgets import Widget
 from gi.repository import Gtk # type: ignore
 import util
+from widgets.misc.Launcher.base_mode import LauncherResult
 
 from .app_mode import AppMode, LauncherAppResult, applications
 from .calc_mode import CalcMode
@@ -108,6 +110,16 @@ class Launcher(Widget.Window):
                 self.active_mode = mode
                 mode.update(self, query)
                 return
+    
+    def get_results(self) -> list[LauncherResult]:
+        return self.result_list.child  # type: ignore
+
+    def set_results(self, results: Sequence[LauncherResult]):
+        self.result_list.child = results # type: ignore
+
+    def trigger_result(self, index: int = 0):
+        if self.result_list.child and index < len(self.result_list.child): # type: ignore
+            self.result_list.child[index].on_click()  # type: ignore
 
 class LauncherProxy(Widget.Window):
     def __init__(self):

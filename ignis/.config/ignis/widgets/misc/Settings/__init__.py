@@ -17,15 +17,9 @@ def AccentColourPicker(colour: str):
     )
 
 def set_accent_colour(colour: str):
-    with open(os.path.expanduser("~/.local/share/ignis/accent.scss"), "w") as f:
-        f.write(f"$accent: {colour};\n")
-
     util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"")
 
 def restore_accent_colour():
-    with open(os.path.expanduser("~/.local/share/ignis/accent.scss"), "w") as f:
-        f.write("\n")
-
     util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh") # type: ignore
 
 wallpapers_dir = os.path.expanduser("~/.wallpapers")

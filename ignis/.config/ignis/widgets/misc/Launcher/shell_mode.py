@@ -10,12 +10,10 @@ class ShellMode(LauncherMode):
     def update(self, launcher, query: str):
         cmd = query.lstrip("$").strip()
         if not cmd:
-            launcher.result_list.child = []  # type: ignore
+            launcher.set_results([])
             return
 
-        launcher.result_list.child = [
-            LauncherShellResult(cmd)
-        ]  # type: ignore
+        launcher.set_results([LauncherShellResult(cmd)])
 
     def launch(self, launcher):
         cmd = launcher.entry.text.lstrip("$").strip()

@@ -1,3 +1,4 @@
+import os
 from ignis.utils import Utils
 import util
 from widgets.bar.Bar import Bar
@@ -11,6 +12,13 @@ from widgets.misc.Settings import Settings
 
 app = util.get_app()
 dir = Utils.get_current_dir() # type: ignore
+
+os.makedirs(os.path.expanduser("~/.local/share/ignis"), exist_ok=True)
+accent_file = os.path.expanduser("~/.local/share/ignis/accent.scss")
+if not os.path.exists(accent_file):
+    with open(accent_file, "w") as f:
+        f.write("")
+
 app.apply_css(f"{dir}/style.scss")
 app.add_icons(f"{dir}/icons")
 

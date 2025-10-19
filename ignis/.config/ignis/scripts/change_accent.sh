@@ -33,6 +33,9 @@ cat <<EOF > "$gtk3_file"
 @define-color accent_bg_color $hex_colour;
 EOF
 
+mkdir -p ~/.local/share/ignis
+echo "\$accent: $hex_colour;" > ~/.local/share/ignis/accent.scss
+
 gsettings set org.gnome.desktop.interface accent-color "$hex_colour"
 
 goignis reload

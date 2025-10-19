@@ -38,18 +38,18 @@ class FilesMode(LauncherMode):
             except Exception:
                 pass
 
-            launcher.result_list.child = results  # type: ignore
+            launcher.set_results(results)
             return
 
         parent, basename = os.path.split(path)
         if not parent or not os.path.exists(parent) or not os.path.isdir(parent):
-            launcher.result_list.child = []  # type: ignore
+            launcher.set_results([])
             return
 
         try:
             entries = os.listdir(parent)
         except Exception:
-            launcher.result_list.child = []  # type: ignore
+            launcher.set_results([])
             return
 
         filtered_entries = []
@@ -67,16 +67,13 @@ class FilesMode(LauncherMode):
             score_cutoff=60,
         )
         if not matches:
-            launcher.result_list.child = []  # type: ignore
+            launcher.set_results([])
             return
 
-        launcher.result_list.child = [
-            LauncherFileResult(os.path.join(parent, match[0])) for match in matches
-        ]  # type: ignore
+        launcher.set_results([LauncherFileResult(os.path.join(parent, match[0])) for match in matches])
 
     def launch(self, launcher):
-        if launcher.result_list.child:
-            launcher.result_list.child[0].on_click()  # type: ignore
+        launcher.trigger_result()
 
 class LauncherFileResult(LauncherResult):
     def __init__(self, path: str, display_name: str | None = None):

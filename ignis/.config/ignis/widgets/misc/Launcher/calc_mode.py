@@ -33,16 +33,12 @@ class CalcMode(LauncherMode):
             }})
             if not isinstance(result, (int, float)):
                 raise ValueError("Invalid result type")
-            launcher.result_list.child = [
-                LauncherCalcResult(result, lambda: self.launch(launcher))
-            ] # type: ignore
+            launcher.set_results([LauncherCalcResult(result, lambda: self.launch(launcher))])
         except Exception:
-            launcher.result_list.child = [
-                LauncherCalcResult(None, lambda: None)
-            ] # type: ignore
+            launcher.set_results([LauncherCalcResult(None, lambda: None)])
 
     def launch(self, launcher):
-        result = launcher.result_list.child[0]  # type: ignore
+        result = launcher.get_results()[0]
         if isinstance(result, LauncherCalcResult) and result.result is not None:
             launcher.set_entry_text(f"={result.result}")
 
