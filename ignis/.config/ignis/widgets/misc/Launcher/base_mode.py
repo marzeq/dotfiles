@@ -22,7 +22,6 @@ class LauncherResult(Widget.Button):
         icon_name: str,
         launch: Callable[[], None],
         css_classes: list[str] | None = None,
-        icon_size: Literal["large", "normal"] = "normal",
         popover_menu: Widget.PopoverMenu | None = None,
     ):
         super().__init__(
@@ -34,11 +33,12 @@ class LauncherResult(Widget.Button):
                             Widget.Icon(
                                 image=icon_name,
                                 css_classes=["launcher-result-icon"],
-                                pixel_size=32 if icon_size == "large" else 16,
+                                pixel_size=32,
                             ),
                             Widget.Label(
                                 label=label,
                                 css_classes=["launcher-result-label"],
+                                ellipsize="middle",
                             ),
                         ]
                     ),

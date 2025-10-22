@@ -21,8 +21,15 @@ class Launcher(Widget.Window):
         self.result_list = Widget.Box(
             vertical=True,
             css_classes=["launcher-result-list"],
-            child=[LauncherAppResult(app, self) for app in get_visible_apps()]
+            child=[]
         )
+
+        self.scroller = Widget.Scroll(
+            child=self.result_list,
+            css_classes=[],
+        )
+
+        self.set_results([LauncherAppResult(app, self) for app in get_visible_apps()])
 
         super().__init__(
             visible=False,
@@ -41,27 +48,35 @@ class Launcher(Widget.Window):
                 ),
                 overlays=[
                     Widget.Box(
-                        vertical=True,
-                        valign="center",
+                        valign="start",
                         halign="center",
-                        css_classes=["launcher"],
+                        vertical=True,
                         child=[
+                            Widget.EventBox(
+                                vexpand=True,
+                                hexpand=True,
+                                on_click=lambda _: util.close_curr_popup(),
+                                style="min-height: 32rem;"
+                            ),
                             Widget.Box(
-                                css_classes=["launcher-entry"],
+                                vertical=True,
+                                css_classes=["launcher"],
                                 child=[
-                                    Widget.Icon(
-                                        icon_name="system-search-symbolic",
-                                        css_classes=["launcher-entry-icon"],
+                                    Widget.Box(
+                                        css_classes=["launcher-entry"],
+                                        child=[
+                                            Widget.Icon(
+                                                icon_name="system-search-symbolic",
+                                                css_classes=["launcher-entry-icon"],
+                                            ),
+                                            self.entry,
+                                        ],
                                     ),
-                                    self.entry,
+                                    self.scroller
                                 ],
                             ),
-                            Widget.Scroll(
-                                child=self.result_list,
-                                vexpand=True,
-                            ),
-                        ],
-                    ),
+                        ]
+                    )
                 ],
             ),
         )
@@ -116,6 +131,12 @@ class Launcher(Widget.Window):
 
     def set_results(self, results: Sequence[LauncherResult]):
         self.result_list.child = results # type: ignore
+        if len(results) <= 4:
+            self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
+            self.scroller.css_classes = []
+        else:
+            self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+            self.scroller.css_classes = ["launcher-scroller-scrolling"]
 
     def trigger_result(self, index: int = 0):
         if self.result_list.child and index < len(self.result_list.child): # type: ignore

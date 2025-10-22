@@ -1,6 +1,9 @@
 .launcher {
   @include popup;
-  min-height: 20rem;
+}
+
+.launcher-scroller-scrolling {
+  min-height: 18rem;
 }
 
 .launcher-entry {

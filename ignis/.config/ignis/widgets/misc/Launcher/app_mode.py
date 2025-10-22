@@ -128,7 +128,6 @@ class LauncherAppResult(LauncherResult):
         super().__init__(
             label=app.name,
             icon_name=app.icon,
-            icon_size="large",
             launch=lambda: self.launch_app(),
             popover_menu=Widget.PopoverMenu(
                 items=[
