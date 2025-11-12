@@ -5,9 +5,8 @@ import os
 import shutil
 import subprocess
 import util
+import hashlib
 from gi.repository import Gtk # type: ignore
-
-import util
 
 def AccentColourPicker(colour: str):
     return Widget.Button(
@@ -20,7 +19,7 @@ def set_accent_colour(colour: str):
     util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"")
 
 def restore_accent_colour():
-    util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh") # type: ignore
+    util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
 
 wallpapers_dir = os.path.expanduser("~/.wallpapers")
 wallpaper_path = os.path.join(wallpapers_dir, ".wallpaper")
@@ -98,6 +97,27 @@ def get_wallpapers():
 
     return wallpapers
 
+async def get_cached_top_colours(path: str):
+    cache_dir = os.path.expanduser("~/.local/share/ignis/wallcaches")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    hash_md5 = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            assert isinstance(chunk, (bytes, bytearray))
+            hash_md5.update(chunk)
+    file_hash = hash_md5.hexdigest()
+    cache_path = os.path.join(cache_dir, f"{file_hash}.cache")
+
+    if os.path.isfile(cache_path):
+        with open(cache_path, "r") as f:
+            return [line.strip() for line in f if line.strip()]
+
+    top_colours = await util.get_top_colours(path)
+    with open(cache_path, "w") as f:
+        f.write("\n".join(top_colours))
+    return top_colours
+
 def Settings():
     suggested_accent_colours = Widget.Box(
         css_classes=["settings-suggested-accent-colours"]
@@ -113,12 +133,10 @@ def Settings():
             return
 
     async def set_suggested_accent_colours(path: str):
-        top_colours = await util.get_top_colours(path)
+        top_colours = await get_cached_top_colours(path)
 
-        suggested_accent_colours.child = [ # type: ignore
-            AccentColourPicker(
-                colour=colour,
-            ) for colour in top_colours
+        suggested_accent_colours.child = [  # type: ignore
+            AccentColourPicker(colour=colour) for colour in top_colours
         ]
 
     asyncio.create_task(set_suggested_accent_colours(wallpaper_path))
