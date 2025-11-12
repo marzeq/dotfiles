@@ -11,7 +11,7 @@ from .shell_mode import ShellMode
 from .files_mode import FilesMode
 
 class Launcher(Widget.Window):
-    def __init__(self, monitor: int):
+    def __init__(self, monitorid: int, monitor):
         self.entry = Widget.Entry(
             hexpand=True,
             placeholder_text="Search",
@@ -29,16 +29,19 @@ class Launcher(Widget.Window):
             css_classes=[],
         )
 
+        monitor_geo = monitor.get_geometry() # type:ignore (Gdk.Rectangle)
+        monitor_h_px: int = monitor_geo.height
+
         self.set_results([LauncherAppResult(app, self) for app in get_visible_apps()])
 
         super().__init__(
             visible=False,
             popup=True,
             kb_mode="on_demand",
-            monitor=monitor,
+            monitor=monitorid,
             layer="top",
             anchor=["top", "right", "bottom", "left"],
-            namespace=f"ignis_launcher_{monitor}",
+            namespace=f"ignis_launcher_{monitorid}",
             css_classes=["window"],
             child=Widget.Overlay(
                 child=Widget.EventBox(
@@ -56,7 +59,7 @@ class Launcher(Widget.Window):
                                 vexpand=True,
                                 hexpand=True,
                                 on_click=lambda _: util.close_curr_popup(),
-                                style="min-height: 32rem;"
+                                style=f"min-height: {monitor_h_px / 3}px;"
                             ),
                             Widget.Box(
                                 vertical=True,

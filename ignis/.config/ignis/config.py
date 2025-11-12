@@ -27,13 +27,13 @@ util.run_cmd("gsettings set org.gnome.desktop.interface font-name 'Cantarell Reg
 util.run_cmd("hyprctl reload")
 
 
-for i in range(Utils.get_n_monitors()): # type: ignore
+for i, m in enumerate(Utils.get_monitors()): # type: ignore
     ClosePopuper(i)
     Bar(i)
     NotificationPopup(i)
     NotifsCalendar(i)
     ControlCentre(i)
-    Launcher(i)
+    Launcher(i, m)
 
 OSD()
 LauncherProxy()
