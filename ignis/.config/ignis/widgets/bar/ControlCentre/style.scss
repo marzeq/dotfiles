@@ -198,7 +198,7 @@
 }
 
 .system-tray-item {
-  margin-left: 1.5rem;
+  margin-left: 1.3rem;
   margin-top: 1rem;
   padding: 0.75rem;
   border-radius: 4rem;
@@ -217,17 +217,10 @@
 
 .system-tray-item-button {
   @include custom-button;
-  $_bg: adjust-color($bg, $lightness: 20%);
+  background-color: transparent;
   margin-left: 0.5rem;
-  background-color: $_bg;
   padding: 0.75rem;
   border-radius: 100%;
-  &:hover {
-    background-color: adjust-color($_bg, $lightness: 5%);
-  }
-  &:active {
-    background-color: adjust-color($_bg, $lightness: 10%);
-  }
 }
 
 popover.menu {

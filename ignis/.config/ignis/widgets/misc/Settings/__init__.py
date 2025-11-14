@@ -8,22 +8,55 @@ import util
 import hashlib
 from gi.repository import Gtk # type: ignore
 
-def AccentColourPicker(colour: str):
+def hash_file(path: str) -> str:
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+def AccentColourPicker(colour: str, wallpaper: str):
     return Widget.Button(
         style=f"background-color: {colour};",
         css_classes=["settings-suggested-accent-colour"],
-        on_click=lambda _: set_accent_colour(colour),
+        on_click=lambda _: set_accent_colour(colour, wallpaper),
     )
 
-def set_accent_colour(colour: str):
+def set_accent_colour(colour: str, wallpaper: str):
+    h = hash_file(wallpaper)
+    accent_map[h] = colour
+    save_accent_map(accent_map)
     util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"")
 
-def restore_accent_colour():
+def restore_accent_colour(wallpaper: str):
+    h = hash_file(wallpaper)
+    if h in accent_map:
+        del accent_map[h]
+        save_accent_map(accent_map)
     util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
 
 wallpapers_dir = os.path.expanduser("~/.wallpapers")
+os.makedirs(wallpapers_dir, exist_ok=True)
 wallpaper_path = os.path.join(wallpapers_dir, ".wallpaper")
 
+accent_cache_path = os.path.expanduser("~/.local/share/ignis/accent_map")
+os.makedirs(os.path.dirname(accent_cache_path), exist_ok=True)
+
+def load_accent_map():
+    if not os.path.isfile(accent_cache_path):
+        return {}
+    with open(accent_cache_path, "r") as f:
+        return {
+            h: colour
+            for h, colour in (line.strip().split(" ", 1) for line in f if " " in line)
+        }
+
+def save_accent_map(accent_map):
+    with open(accent_cache_path, "w") as f:
+        for h, colour in accent_map.items():
+            f.write(f"{h} {colour}\n")
+
+accent_map = load_accent_map()
 
 def set_wallpaper(selected_path):
     selected_abs = os.path.realpath(os.path.expanduser(selected_path))
@@ -101,12 +134,7 @@ async def get_cached_top_colours(path: str):
     cache_dir = os.path.expanduser("~/.local/share/ignis/wallcaches")
     os.makedirs(cache_dir, exist_ok=True)
 
-    hash_md5 = hashlib.md5()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            assert isinstance(chunk, (bytes, bytearray))
-            hash_md5.update(chunk)
-    file_hash = hash_md5.hexdigest()
+    file_hash = hash_file(path)
     cache_path = os.path.join(cache_dir, f"{file_hash}.cache")
 
     if os.path.isfile(cache_path):
@@ -128,15 +156,15 @@ def Settings():
         try:
             rgba = source.choose_rgba_finish(result)
             hex_colour = f"#{int(rgba.red * 255):02x}{int(rgba.green * 255):02x}{int(rgba.blue * 255):02x}"
-            set_accent_colour(hex_colour)
+            set_accent_colour(hex_colour, wallpaper_path)
         except:
             return
 
     async def set_suggested_accent_colours(path: str):
         top_colours = await get_cached_top_colours(path)
 
-        suggested_accent_colours.child = [  # type: ignore
-            AccentColourPicker(colour=colour) for colour in top_colours
+        suggested_accent_colours.child = [ # type: ignore
+            AccentColourPicker(colour=colour, wallpaper=path) for colour in top_colours
         ]
 
     asyncio.create_task(set_suggested_accent_colours(wallpaper_path))
@@ -152,9 +180,16 @@ def Settings():
 
     def on_wallpaper_picked(file):
         set_wallpaper(file)
+
         asyncio.create_task(set_suggested_accent_colours(file))
 
         refresh_wallpapers()
+
+        saved = accent_map.get(hash_file(file))
+        if saved:
+            util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{saved}\"")
+        else:
+            util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
 
     refresh_wallpapers()
 
@@ -242,7 +277,7 @@ def Settings():
                                     Widget.Button(
                                         halign="start",
                                         label="Restore default accent colour",
-                                        on_click=lambda _: restore_accent_colour(),
+                                        on_click=lambda _: restore_accent_colour(wallpaper_path),
                                         css_classes=["change-accent-colour-button"],
                                     ),
                                 ],
