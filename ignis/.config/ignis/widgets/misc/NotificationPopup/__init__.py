@@ -13,7 +13,7 @@ class Popup(Widget.Box):
         widget = NotificationWidget(notification, show_time=False)
         widget.style = "min-width: 35rem;"  # type: ignore
 
-        self.inner = Widget.Revealer(transition_type="slide_down", child=widget)
+        self.inner = Widget.Revealer(transition_type="slide_left", child=widget)
         self.outer = Widget.Revealer(transition_type="slide_down", child=self.inner)
 
         super().__init__(
@@ -73,5 +73,5 @@ class NotificationPopup(Widget.Window):
             style="min-width: 35rem;",
             css_classes=["notification-popups", "window"],
             child=PopupBox(window=self),
-            dynamic_input_region = True
+            dynamic_input_region=True
         )
