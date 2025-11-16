@@ -2,6 +2,8 @@ from ignis.utils import Utils
 from ignis.widgets import Widget
 from ignis.services.audio import AudioService
 
+import util
+
 audio = AudioService.get_default()
 
 class OSD(Widget.RevealerWindow):
@@ -31,7 +33,7 @@ class OSD(Widget.RevealerWindow):
                     )
                 ],
             ),
-            transition_duration=200,
+            transition_duration=util.popup_manager.popup_anim_speed,
             reveal_child=True
         )
 

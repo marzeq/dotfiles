@@ -16,34 +16,36 @@ $bar-bg: #000000;
   font-size: 16px;
 }
 
+// the more transparent the bar, the lighter the hover effect must be
+@function adjusted-bg($lighten) {
+  @return adjust-color(rgba($bar-bg, calc($lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
+}
+
 @mixin bar-item {
   padding: 0.3rem 0.3rem;
 
   .box {
     @include custom-button;
     background-color: transparent;
-    padding: 0.3rem 0.8rem;
+    padding: 0.25rem 0.8rem;
     border-radius: 1rem;
   }
 
   &:hover {
-    // the more transparent the bar, the lighter the hover effect must be
-    $hover-lighten: 15%;
     .box {
-      background-color: adjust-color(rgba($bar-bg, calc($hover-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
+      background-color: adjusted-bg(15%);
     }
   }
+
   &:active {
-    $active-lighten: 35%;
     .box {
-      background-color: adjust-color(rgba($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
+      background-color: adjusted-bg(35%);
     }
   }
 
   &.active {
-    $active-lighten: 35%;
     .box {
-      background-color: adjust-color(rgba($bar-bg, calc($active-lighten + (100% - $_transparency) / 2)), $lightness: $_ele-tnpc);
+      background-color: adjusted-bg(35%);
     }
   }
 }

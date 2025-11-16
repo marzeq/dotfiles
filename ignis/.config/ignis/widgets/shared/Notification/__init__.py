@@ -26,82 +26,78 @@ def time_ago(timestamp: float) -> str:
         years = diff // 31536000
         return f"{years} year{'s' if years != 1 else ''} ago"
 
-def NotificationWidget(notification: Notification, show_time: bool) -> Widget.Box:
-    def set_box_classes(box: Widget.Box, classes: list[str]) -> None:
-        box.css_classes = classes
+class NotificationWidget(Widget.EventBox):
+    def __init__(self, notification: Notification, show_time: bool):
+        self.close_hovered = False
 
-    close_hovered = False
-    def set_close_hovered(value: bool) -> None:
-        nonlocal close_hovered
-        close_hovered = value
+        self.icon = notification.icon
+        if not self.icon:
+            if notification.app_name in applications.apps:
+                self.icon = applications.apps[notification.app_name].icon
+            else:
+                searched = applications.search(applications.apps, notification.app_name)
+                if searched:
+                    self.icon = searched[0].icon if searched else None
 
-    icon = notification.icon
-    if not icon:
-        if notification.app_name in applications.apps:
-            icon = applications.apps[notification.app_name].icon
-        else:
-            searched = applications.search(applications.apps, notification.app_name)
-            if searched:
-                icon = searched[0].icon if searched else None
-
-    box = Widget.EventBox(
-        vertical=True,
-        css_classes=["notification"],
-        child=[
-            Widget.CenterBox(
-                start_widget=Widget.Box(
-                    child=[
-                        Widget.Label(
-                            label=notification.app_name if notification.app_name else "Unknown App",
-                            css_classes=["notification-app-name"],
-                            valign="start",
-                        ),
-                    ] + ([Widget.Label(
-                            label=time_ago(notification.time) if notification.time else "Unknown Time",
-                            css_classes=["notification-time"],
-                            valign="start",
-                        )] if show_time else [])
-                ),
-                end_widget=Widget.EventBox(
-                    child=[
-                        Widget.Button(
-                            child=Widget.Icon(image="window-close-symbolic"),
-                            css_classes=["notification-button"],
-                        ),
-                    ],
-                    on_hover=lambda _: set_box_classes(box, ["notification", "notification-close-hovered"]) or set_close_hovered(True),
-                    on_hover_lost=lambda _: set_box_classes(box, ["notification"]) or set_close_hovered(False),
-                ),
-            ),
-            Widget.Box(
-                child=
-                    ([Widget.Icon(
-                        image=icon,
-                        css_classes=["notification-icon"],
-                        pixel_size=48,
-                    )] if icon else []) +
-                    [Widget.Box(
-                        vertical=True,
+        super().__init__(
+            vertical=True,
+            css_classes=["notification"],
+            child=[
+                Widget.CenterBox(
+                    start_widget=Widget.Box(
                         child=[
                             Widget.Label(
-                                label=notification.summary,
-                                css_classes=["notification-summary"],
-                                ellipsize="end",
-                                halign="start",
+                                label=notification.app_name if notification.app_name else "Unknown App",
+                                css_classes=["notification-app-name"],
+                                valign="start",
                             ),
-                        ] + (
-                            [Widget.Label(
-                                label=(notification.body).replace("\n", " "),
-                                css_classes=["notification-body"],
-                                halign="start",
-                                ellipsize="end",
-                            )] if notification.body else [])
-                    )],
-                css_classes=["notification-content"],
-            )
-        ],
-        on_click=lambda _: (notification.actions[0].invoke() or notification.close() if notification.actions else None) if not close_hovered else
-            notification.close()
-    )
+                        ] + ([Widget.Label(
+                                label=time_ago(notification.time) if notification.time else "Unknown Time",
+                                css_classes=["notification-time"],
+                                valign="start",
+                            )] if show_time else [])
+                    ),
+                    end_widget=Widget.EventBox(
+                        child=[
+                            Widget.Button(
+                                child=Widget.Icon(image="window-close-symbolic"),
+                                css_classes=["notification-button"],
+                            ),
+                        ],
+                        on_hover=lambda _: self.add_css_class("notification-close-hovered") or self.set_close_hovered(True),
+                        on_hover_lost=lambda _: self.remove_css_class("notification-close-hovered") or self.set_close_hovered(False),
+                    ),
+                ),
+                Widget.Box(
+                    child=
+                        ([Widget.Icon(
+                            image=self.icon,
+                            css_classes=["notification-icon"],
+                            pixel_size=48,
+                        )] if self.icon else []) +
+                        [Widget.Box(
+                            vertical=True,
+                            child=[
+                                Widget.Label(
+                                    label=notification.summary,
+                                    css_classes=["notification-summary"],
+                                    ellipsize="end",
+                                    halign="start",
+                                ),
+                            ] + (
+                                [Widget.Label(
+                                    label=(notification.body).replace("\n", " "),
+                                    css_classes=["notification-body"],
+                                    halign="start",
+                                    ellipsize="end",
+                                )] if notification.body else [])
+                        )],
+                    css_classes=["notification-content"],
+                )
+            ],
+            on_click=lambda _: (notification.actions[0].invoke() or notification.close() if notification.actions else None) if not self.close_hovered else
+                notification.close()
+        )
 
-    return box
+    def set_close_hovered(self, value):
+        self.close_hovered = value

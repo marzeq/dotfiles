@@ -3,8 +3,8 @@ from ignis.widgets import Widget
 
 import util
 
-def CCWLabels(label: str, secondary_label: str | None = None) -> list[Widget.Label]:
-    return [
+def CCWLabels(label: str, secondary_label: str | None = None) -> tuple[Widget.Label, Widget.Label]:
+    return (
         Widget.Label(
             label=label,
             halign="start",
@@ -16,13 +16,13 @@ def CCWLabels(label: str, secondary_label: str | None = None) -> list[Widget.Lab
             css_classes=["css-widget-label", "cc-widget-secondary-label"],
             visible=bool(secondary_label)
         )
-    ]
+    )
 
 class ControlCentreWidget(Widget.Box):
     def __init__(
-            self,
+        self,
         icon: str,
-        labels: list[Widget.Label],
+        labels: tuple[Widget.Label, Widget.Label],
         on_click: Callable[..., Any] | None = None,
         on_click_other: Callable[..., Any] | None = None,
     ):
