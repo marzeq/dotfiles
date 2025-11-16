@@ -221,6 +221,10 @@
   margin-left: 0.5rem;
   padding: 0.75rem;
   border-radius: 100%;
+
+  &.active {
+    background-color: $button-bg-active;
+  }
 }
 
 popover.menu {

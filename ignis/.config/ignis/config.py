@@ -8,7 +8,7 @@ from widgets.bar.NotifsCalendar import NotifsCalendar
 from widgets.misc.Launcher import LauncherProxy, Launcher
 from widgets.misc.NotificationPopup import NotificationPopup
 from widgets.misc.OSD import OSD
-from widgets.misc.Settings import Settings
+from widgets.misc.Settings import SettingsWindow
 
 app = util.get_app()
 dir = Utils.get_current_dir() # type: ignore
@@ -37,4 +37,4 @@ for i, m in enumerate(Utils.get_monitors()): # type: ignore
 
 OSD()
 LauncherProxy()
-Settings()
+SettingsWindow()

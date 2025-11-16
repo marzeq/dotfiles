@@ -13,6 +13,15 @@ network = NetworkService.get_default()
 bluetooth = BluetoothService.get_default()
 power_profiles = PowerProfilesService.get_default()
 
+def transform_pp_name(p: str) -> str:
+    if p == "performance": return "Performance"
+    if p == "balanced": return "Balanced"
+    if p == "power-saver": return "Power Saver"
+    return "Unknown"
+
+def set_power_profile(name: str):
+    power_profiles.active_profile = name # type: ignore
+
 def WiFiPopup():
     dev = network.wifi.devices[0] if network.wifi.devices else None
     if dev is None:
@@ -53,7 +62,7 @@ def WiFiPopup():
                     ],
                     css_classes=["cc-popup-opt-label"]
                 ),
-                on_click=lambda _, ap=ap: util.close_curr_popup() or asyncio.create_task(ap.connect_to_graphical()),
+                on_click=lambda _, ap=ap: util.popup_manager.close_curr_popup() or asyncio.create_task(ap.connect_to_graphical()),
                 css_classes=["cc-popup-option"],
             )
             for ap in filtered
@@ -110,10 +119,6 @@ def WiFiPopup():
     return popup
 
 def PowerProfilesPopup():
-    def set_power_profile(name: str):
-        power_profiles.active_profile = name # type: ignore
-        popup.toggle()
-
     def PowerProfileButton(name: str):
         label: str
         icon: str
@@ -191,7 +196,7 @@ class MainWidgets(Widget.Box):
                 "nmcli device disconnect $iface || "
                 "nmcli device connect $iface"
             )),
-            on_click_other=lambda _: util.run_cmd_and_run("nm-connection-editor", lambda: util.close_curr_popup()),
+            on_click_other=lambda _: util.run_cmd_and_run("nm-connection-editor", lambda: util.popup_manager.close_curr_popup()),
         )
         network.ethernet.connect("notify::is-connected", lambda *_: self.ethernet_widget.set_disabled(not network.ethernet.is_connected))
         network.ethernet.connect("notify::devices", lambda *_: self.update_widgets())
@@ -212,20 +217,11 @@ class MainWidgets(Widget.Box):
             ),
             labels=CCWLabels("Bluetooth"),
             on_click=lambda _: bluetooth.set_powered(False) if bluetooth.powered else bluetooth.set_powered(True),
-            on_click_other=lambda _: util.run_cmd_and_run("blueberry", lambda: util.close_curr_popup()),
+            on_click_other=lambda _: util.run_cmd_and_run("blueberry", lambda: util.popup_manager.close_curr_popup()),
         )
         bluetooth.connect("notify::state", lambda *_: self.bluetooth_widget.set_disabled(bluetooth.state == "absent" or not bluetooth.powered))
         bluetooth.connect("notify::powered", lambda *_: self.bluetooth_widget.set_disabled(bluetooth.state == "absent" or not bluetooth.powered))
         bluetooth.connect("notify::state", lambda *_: self.update_widgets())
-
-        def transform_pp_name(p: str) -> str:
-            if p == "performance": return "Performance"
-            if p == "balanced": return "Balanced"
-            if p == "power-saver": return "Power Saver"
-            return "Unknown"
-
-        def set_power_profile(name: str):
-            power_profiles.active_profile = name # type: ignore
 
         self.power_profiles_widget = ControlCentreWidget(
             icon=power_profiles.bind("icon_name"),

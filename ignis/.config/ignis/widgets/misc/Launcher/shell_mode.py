@@ -25,7 +25,7 @@ class ShellMode(LauncherMode):
         except Exception:
             pass
 
-        util.close_curr_popup()
+        util.popup_manager.close_curr_popup()
 
 class LauncherShellResult(LauncherResult):
     def __init__(self, cmd: str):

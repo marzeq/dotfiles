@@ -121,8 +121,8 @@ def CalendarGrid(month: int, year: int) -> Widget.Grid:
                     css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
                     halign="center",
                 ) for day in range(1, 43 - (starting_dow_for_month(month, year) + get_month_days(month, year)))
-                    ])
-            )
+            ])
+    )
 
 def NotifsCalendar(monitor: int):
     curr_month = True
@@ -254,7 +254,7 @@ def NotifsCalendar(monitor: int):
             css_classes=["notifs-calendar-container"],
             child=[box],
         ),
-        transition_duration=util.popup_anim_speed,
+        transition_duration=util.popup_manager.popup_anim_speed,
         reveal_child=True,
     )
 
@@ -271,7 +271,7 @@ def NotifsCalendar(monitor: int):
             child=Widget.EventBox(
                 vexpand=True,
                 hexpand=True,
-                on_click=lambda _: util.close_curr_popup(),
+                on_click=lambda _: util.popup_manager.close_curr_popup(),
             ),
             overlays=[
                 Widget.Box(
@@ -287,7 +287,7 @@ def NotifsCalendar(monitor: int):
 
     key_controller = Gtk.EventControllerKey()
     window.add_controller(key_controller)
-    key_controller.connect("key-pressed", lambda *x: util.clear_popupers() or util.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
+    key_controller.connect("key-pressed", lambda *x: util.popup_manager.clear_popupers() or util.popup_manager.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
 
     return window
 

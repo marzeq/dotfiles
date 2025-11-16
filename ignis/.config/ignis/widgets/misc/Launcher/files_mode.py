@@ -89,5 +89,5 @@ class LauncherFileResult(LauncherResult):
 
     def launch_file(self):
         subprocess.Popen(["xdg-open", self.path])
-        util.close_curr_popup()
+        util.popup_manager.close_curr_popup()
 

@@ -1,6 +1,5 @@
 import subprocess
 import os
-import shutil
 from typing import Callable
 
 from ignis.app import IgnisApp
@@ -52,7 +51,7 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50)
 
     img = Image.open(image_path).convert("RGB")
     img = img.resize((200, 200))
-    pixels = list(img.getdata())
+    pixels = list(img.getdata()) # type: ignore
 
     kmeans = KMeans(n_clusters=num_colours, random_state=0)
     kmeans.fit(pixels)
@@ -81,77 +80,83 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50)
     return hex_colours
 
 
-# Popup management
+class PopupManager:
+    _instance = None
 
-popup_anim_speed = 100
+    @staticmethod
+    def instance():
+        if PopupManager._instance is None:
+            PopupManager._instance = PopupManager()
+        return PopupManager._instance
 
-curr_popup = None
-curr_popup_monitor = None
+    def __init__(self):
+        self.popup_anim_speed = 100
+        self.curr_popup = None
+        self.curr_popup_monitor = None
+        self.popup_triggers_by_name: dict[str, Widget.Box] = {}
 
-popup_triggers_by_name: dict[str, Widget.Box] = {}
-def set_active(name: str, monitor: int, active: bool):
-    popup_name = f"{name}_{monitor}"
-    box = popup_triggers_by_name.get(popup_name)
-    if box is None:
-        return
-    if active:
-        box.css_classes = box.css_classes + ["active"]
-    else:
-        box.css_classes = [clas for clas in box.css_classes if clas != "active"]
+    def register_popup_trigger(self, name: str, monitor: int, box: Widget.Box):
+        key = f"{name}_{monitor}"
+        self.popup_triggers_by_name[key] = box
 
-def set_popup(name: str) -> None:
-    global curr_popup, curr_popup_monitor
-    curr_popup = name
-    curr_popup_monitor = active_monitor()
-    set_active(curr_popup, curr_popup_monitor, True)
-
-def reset_popup() -> None:
-    global curr_popup, curr_popup_monitor
-    if curr_popup is not None and curr_popup_monitor is not None:
-        set_active(curr_popup, curr_popup_monitor, False)
-    curr_popup = None
-    curr_popup_monitor = None
-
-def handle_popup_clicked(name: str) -> None:
-    global curr_popup, curr_popup_monitor
-
-    clear_popupers()
-    if curr_popup == name:
-        if curr_popup_monitor is None:
-            app.open_window(f"{name}_{active_monitor()}")
-            set_popup(name)
-            open_popupers()
-        elif curr_popup_monitor == active_monitor():
-            close_curr_popup()
+    def set_active(self, name: str, monitor: int, active: bool):
+        popup_name = f"{name}_{monitor}"
+        box = self.popup_triggers_by_name.get(popup_name)
+        if box is None:
+            return
+        if active:
+            box.css_classes = box.css_classes + ["active"]
         else:
-            close_curr_popup()
+            box.css_classes = [c for c in box.css_classes if c != "active"]
+
+    def set_popup(self, name: str) -> None:
+        self.curr_popup = name
+        self.curr_popup_monitor = active_monitor()
+        self.set_active(self.curr_popup, self.curr_popup_monitor, True)
+
+    def reset_popup(self) -> None:
+        if self.curr_popup is not None and self.curr_popup_monitor is not None:
+            self.set_active(self.curr_popup, self.curr_popup_monitor, False)
+        self.curr_popup = None
+        self.curr_popup_monitor = None
+
+    def handle_popup_clicked(self, name: str) -> None:
+        self.clear_popupers()
+        if self.curr_popup == name:
+            if self.curr_popup_monitor is None:
+                app.open_window(f"{name}_{active_monitor()}")
+                self.set_popup(name)
+                self.open_popupers()
+            elif self.curr_popup_monitor == active_monitor():
+                self.close_curr_popup()
+            else:
+                self.close_curr_popup()
+                app.open_window(f"{name}_{active_monitor()}")
+                self.set_popup(name)
+                self.open_popupers()
+        else:
+            self.close_curr_popup()
             app.open_window(f"{name}_{active_monitor()}")
-            set_popup(name)
-            open_popupers()
-    else:
-        close_curr_popup()
-        app.open_window(f"{name}_{active_monitor()}")
-        set_popup(name)
-        open_popupers()
+            self.set_popup(name)
+            self.open_popupers()
 
-def close_curr_popup() -> None:
-    global curr_popup, curr_popup_monitor
-    if curr_popup is not None:
-        app.close_window(f"{curr_popup}_{curr_popup_monitor}")
-        clear_popupers()
-        reset_popup()
+    def close_curr_popup(self) -> None:
+        if self.curr_popup is not None:
+            app.close_window(f"{self.curr_popup}_{self.curr_popup_monitor}")
+            self.clear_popupers()
+            self.reset_popup()
 
-def clear_popupers():
-    for i in range(Utils.get_n_monitors()): # type: ignore
-        if curr_popup_monitor is None or i != curr_popup_monitor:
-            app.close_window(f"ignis_close_popuper_{i}")
+    def clear_popupers(self):
+        for i in range(Utils.get_n_monitors()): # type: ignore
+            if self.curr_popup_monitor is None or i != self.curr_popup_monitor:
+                app.close_window(f"ignis_close_popuper_{i}")
 
-def open_popupers():
-    for i in range(Utils.get_n_monitors()): # type: ignore
-        if i != active_monitor():
-            app.open_window(f"ignis_close_popuper_{i}")
+    def open_popupers(self):
+        for i in range(Utils.get_n_monitors()): # type: ignore
+            if i != active_monitor():
+                app.open_window(f"ignis_close_popuper_{i}")
 
-
+popup_manager = PopupManager.instance()
 
 from gi.repository import Gio # type: ignore
 

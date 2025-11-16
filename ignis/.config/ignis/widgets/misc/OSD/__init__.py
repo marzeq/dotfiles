@@ -4,14 +4,10 @@ from ignis.services.audio import AudioService
 
 audio = AudioService.get_default()
 
-class OSD(Widget.Window):
+class OSD(Widget.RevealerWindow):
     def __init__(self):
-        super().__init__(
-            namespace="ignis_osd",
-            layer="overlay",
-            anchor=["bottom"],
-            css_classes=["window"],
-            visible=False,
+        revealer = Widget.Revealer(
+            transition_type="slide_up",
             child=Widget.Box(
                 css_classes=["osd", "runset"],
                 child=[
@@ -30,19 +26,32 @@ class OSD(Widget.Window):
                         value=audio.speaker.bind_many( # type: ignore
                             ["volume", "is_muted"],
                             lambda volume, is_muted: 0 if is_muted else volume
-                        ),
+                                                      ),
                         css_classes=["osd-audio-slider"],
                     )
                 ],
             ),
+            transition_duration=200,
+            reveal_child=True
+        )
+
+        super().__init__(
+            namespace="ignis_osd",
+            layer="overlay",
+            anchor=["bottom"],
+            css_classes=["window"],
+            visible=False,
+            popup=True,
+            child=Widget.Box(child=[revealer]),
+            revealer=revealer,
             monitor=0
         )
 
-    def set_property(self, property_name, value):
-        if property_name == "visible":
+    def set_property(self, prop_name, value):
+        if prop_name == "visible":
             self.__update_visible()
 
-        super().set_property(property_name, value)
+        super().set_property(prop_name, value)
 
     @Utils.debounce(3000) # type: ignore
     def __update_visible(self) -> None:

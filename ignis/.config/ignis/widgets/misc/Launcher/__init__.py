@@ -47,7 +47,7 @@ class Launcher(Widget.Window):
                 child=Widget.EventBox(
                     vexpand=True,
                     hexpand=True,
-                    on_click=lambda _: util.close_curr_popup(),
+                    on_click=lambda _: util.popup_manager.close_curr_popup(),
                 ),
                 overlays=[
                     Widget.Box(
@@ -58,7 +58,7 @@ class Launcher(Widget.Window):
                             Widget.EventBox(
                                 vexpand=True,
                                 hexpand=True,
-                                on_click=lambda _: util.close_curr_popup(),
+                                on_click=lambda _: util.popup_manager.close_curr_popup(),
                                 style=f"min-height: {monitor_h_px / 3}px;"
                             ),
                             Widget.Box(
@@ -94,7 +94,7 @@ class Launcher(Widget.Window):
         self.add_controller(key_controller)
         key_controller.connect(
             "key-pressed",
-            lambda *x: util.clear_popupers() or util.reset_popup()
+            lambda *x: util.popup_manager.clear_popupers() or util.popup_manager.reset_popup()
             if x[1] == 65307
             else None,
         )
@@ -156,7 +156,7 @@ class LauncherProxy(Widget.Window):
 
         self.connect(
             "notify::visible",
-            lambda *_: util.handle_popup_clicked("ignis_launcher") or self.close()
+            lambda *_: util.popup_manager.handle_popup_clicked("ignis_launcher") or self.close()
             if self.visible
             else None,
         )

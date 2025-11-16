@@ -142,7 +142,7 @@ class LauncherAppResult(LauncherResult):
         self.launcher = launcher
 
     def launch_app(self):
-        util.close_curr_popup()
+        util.popup_manager.close_curr_popup()
         record_launch(self.app.name)
         self.app.launch()
 

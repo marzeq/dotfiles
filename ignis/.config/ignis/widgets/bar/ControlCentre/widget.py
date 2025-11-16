@@ -82,12 +82,13 @@ class ControlCentreWidget(Widget.Box):
         else:
             self.css_classes = ["cc-widget"]
 
-def ControlCentrePopup(box: Widget.Box, more_margin: bool = False) -> Widget.Revealer:
-    return Widget.Revealer(
-        transition_type="slide_down",
-        transition_duration=util.popup_anim_speed,
-        child=Widget.Box(
-            child=[box],
-            css_classes=["cc-popup"] if not more_margin else ["cc-popup", "cc-popup-more-margin"],
+class ControlCentrePopup(Widget.Revealer):
+    def __init__(self, box: Widget.Box, more_margin: bool = False):
+        super().__init__(
+            transition_type="slide_down",
+            transition_duration=util.popup_manager.popup_anim_speed,
+            child=Widget.Box(
+                child=[box],
+                css_classes=["cc-popup"] if not more_margin else ["cc-popup", "cc-popup-more-margin"],
+            )
         )
-    )
