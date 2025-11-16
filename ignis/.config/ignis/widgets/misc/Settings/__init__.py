@@ -134,9 +134,11 @@ class SettingsWindow(Widget.RegularWindow):
             ),
             namespace="ignis_settings",
             css_classes=["window"],
-            visible=False,
+            visible=sm.has_lockfile(),
             hide_on_close=True,
         )
+
+        sm.remove_lockfile()
     
     def on_color_chosen(self, source, result):
         try:

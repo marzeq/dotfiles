@@ -50,6 +50,7 @@ class StyleManager:
         h = self.hash_file(wallpaper)
         self.accent_map[h] = colour
         self.save_accent_map(self.accent_map)
+        self.save_lockfile()
         util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"")
 
     def restore_accent_colour(self, wallpaper: str):
@@ -132,6 +133,22 @@ class StyleManager:
 
         saved = self.accent_map.get(self.hash_file(file))
         if saved:
+            self.save_lockfile()
             util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{saved}\"")
         else:
+            self.save_lockfile()
             util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
+
+    def has_lockfile(self) -> bool:
+        return os.path.isfile("/tmp/ignis_reopen_settings")
+
+    def save_lockfile(self):
+        with open("/tmp/ignis_reopen_settings", "w") as f:
+            f.write("1")
+
+    def remove_lockfile(self):
+        try:
+            os.remove("/tmp/ignis_reopen_settings")
+        except FileNotFoundError:
+            pass
+
