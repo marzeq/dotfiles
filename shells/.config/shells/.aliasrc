@@ -10,6 +10,8 @@ else
   alias ls="ls --color=auto"
 fi
 alias la="ls -A"
+alias ll="ls -lh"
+alias lla="ls -lhA"
 alias grep="grep --color=auto"
 
 alias c="clear"
