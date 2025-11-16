@@ -28,23 +28,23 @@ class PlayerWidget(Widget.CenterBox):
             start_widget=Widget.Box(
                 child=[
                     Widget.Icon(
-                        image=player.art_url,
+                        image=player.bind("art_url"),
                         css_classes=["nc-player-icon"],
                         pixel_size=48,
-                        visible=bool(player.art_url)
+                        visible=player.bind("art_url", lambda url: bool(url)),
                     ),
                     Widget.Box(
                         vertical=True,
                         valign="center",
                         child=[
                             Widget.Label(
-                                label=player.title,
+                                label=player.bind("title"),
                                 css_classes=["nc-player-title"],
                                 halign="start",
                                 ellipsize="end",
                             ),
                             Widget.Label(
-                                label=player.artist,
+                                label=player.bind("artist"),
                                 css_classes=["nc-player-artist"],
                                 halign="start",
                                 ellipsize="end",
