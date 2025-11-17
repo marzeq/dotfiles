@@ -52,3 +52,7 @@ if you wish not to use `stow` and `install.sh`, you can find the config files fo
 #### shells
 
 the `.throwaway` file is a file for any code installed by other programs that pollutes your `.zshrc` or `.bashrc` and you want it out of there
+
+#### hyprland customisation
+
+edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settings you want, that way `git pull`-ing to update won't cause merge conflicts
