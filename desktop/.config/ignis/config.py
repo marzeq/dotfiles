@@ -24,6 +24,7 @@ app.add_icons(f"{dir}/icons")
 
 util.run_cmd("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
 util.run_cmd("gsettings set org.gnome.desktop.interface font-name 'Cantarell Regular 11'")
+util.run_cmd("gsettings set org.gnome.desktop.wm.preferences button-layout :")
 util.run_cmd("hyprctl reload")
 
 

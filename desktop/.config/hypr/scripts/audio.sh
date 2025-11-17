@@ -2,6 +2,7 @@
 
 toggle_mute_volume() {
   wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+  goignis open-window ignis_osd
 }
 
 inc_volume() {
@@ -35,7 +36,6 @@ dec_volume() {
 
 toggle_mic_mute() {
   wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
-  goignis open-window ignis_osd
 }
 
 play_pause() {

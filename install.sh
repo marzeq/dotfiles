@@ -196,7 +196,6 @@ install_desktop() {
   install_packages "${DESKTOP_DEPS[@]}"
   run_or_echo "stow -t $HOME desktop"
   run_or_echo "sudo systemctl enable gdm"
-  run_or_echo "gsettings set org.gnome.desktop.wm.preferences button-layout :"
   run_or_echo "systemctl --user enable gcr-ssh-agent.socket"
   echo -e "${RED_BOLD}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
   install_terminal
