@@ -4,6 +4,7 @@ from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
 
 import util
+from widgets.bar.ControlCentre.popup_registry import popup_registry
 from widgets.bar.ControlCentre.power_menu import PowerMenu
 
 app = util.get_app()
@@ -73,7 +74,7 @@ class TopBox(Widget.CenterBox):
             Widget.Button(
                 child=Widget.Icon(image="system-shutdown-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda *_: self.power_menu.toggle(),
+                on_click=lambda *_: popup_registry.close_all_but(self.power_menu) or self.power_menu.toggle(),
             ),
         ]
         return children

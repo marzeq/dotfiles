@@ -67,8 +67,8 @@ class MainWidgets(Widget.Box):
                     self.append(self.wifi_widget.popup)
                 elif w is self.power_profiles_widget:
                     self.append(self.power_profiles_widget.popup)
+                elif w is self.bluetooth_widget:
+                    self.append(self.bluetooth_widget.popup)
+                elif w is self.ethernet_widget:
+                    self.append(self.ethernet_widget.popup)
 
-
-    def close_popups(self):
-        self.wifi_widget.popup.set_reveal_child(False)
-        self.power_profiles_widget.popup.set_reveal_child(False)

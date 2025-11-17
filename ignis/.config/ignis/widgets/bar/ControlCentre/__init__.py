@@ -5,6 +5,7 @@ from ignis.services.upower import UPowerService
 from ignis.services.backlight import BacklightService
 from gi.repository import Gtk  # type: ignore
 import util
+from widgets.bar.ControlCentre.popup_registry import popup_registry
 from widgets.bar.ControlCentre.brightness_slider import BrightnessSlider
 from widgets.bar.ControlCentre.main_widgets import MainWidgets
 from widgets.bar.ControlCentre.power_menu import PowerMenu
@@ -84,7 +85,7 @@ class ControlCentre(Widget.RevealerWindow):
             revealer=revealer,
         )
 
-        self.connect("notify::visible", lambda *_: self.close_popups() if self.visible else None)
+        self.connect("notify::visible", lambda *_: popup_registry.close_all() if self.visible else None)
 
         key_controller = Gtk.EventControllerKey()
         self.add_controller(key_controller)
@@ -93,7 +94,3 @@ class ControlCentre(Widget.RevealerWindow):
             lambda *x: util.popup_manager.clear_popupers() or util.popup_manager.reset_popup()
             if x[1] == 65307 else None  # 65307 = ESC
         )
-
-    def close_popups(self):
-        self.main_widgets.close_popups()
-        self.power_menu.set_reveal_child(False)

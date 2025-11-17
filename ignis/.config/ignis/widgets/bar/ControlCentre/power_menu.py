@@ -1,9 +1,11 @@
 from ignis.widgets import Widget
 import util
+from widgets.bar.ControlCentre.popup_registry import popup_registry
 from widgets.bar.ControlCentre.widget import ControlCentrePopup
 
 class PowerMenu(ControlCentrePopup):
     def __init__(self):
+        popup_registry.register(self)
         super().__init__(
             Widget.Box(
                 vertical=True,

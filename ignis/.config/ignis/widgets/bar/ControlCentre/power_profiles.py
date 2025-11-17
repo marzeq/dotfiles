@@ -1,6 +1,7 @@
 from typing import Callable
 from ignis.widgets import Widget
 from services.power_profiles.service import PowerProfilesService
+from widgets.bar.ControlCentre.popup_registry import popup_registry
 from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentrePopup, ControlCentreWidget
 
 power_profiles = PowerProfilesService.get_default()
@@ -79,12 +80,13 @@ class PowerProfilesPopup(ControlCentrePopup):
 class PowerProfilesWidget(ControlCentreWidget):
     def __init__(self):
         self.popup = PowerProfilesPopup()
+        popup_registry.register(self.popup)
 
         super().__init__(
             icon=power_profiles.bind("icon_name"),
             labels=power_profiles.bind("active-profile", lambda p: CCWLabels("Power Mode", transform_pp_name(p)) if p else CCWLabels("Power Mode")),
             on_click=lambda _: self.popup.toggle() if power_profiles.active_profile == "balanced" else set_power_profile("balanced"),
-            on_click_other=lambda _: self.popup.toggle(),
+            on_click_other=lambda _: popup_registry.close_all_but(self.popup) or self.popup.toggle(),
         )
 
         power_profiles.connect("notify::active-profile", lambda *_: self.set_disabled(power_profiles.active_profile == "balanced"))
