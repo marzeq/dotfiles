@@ -26,7 +26,7 @@ def wifi_connect(ap: WifiAccessPoint) -> None:
 def wifi_disconnect(ap: WifiAccessPoint) -> None:
     asyncio.create_task(ap.disconnect_from())
 
-class WiFiPopup(DeviceListPopup):
+class WiFiPopup(DeviceListPopup[WifiAccessPoint]):
     def __init__(self) -> None:
         dev: WifiDevice | None = network.wifi.devices[0] if network.wifi.devices else None
 
@@ -34,8 +34,8 @@ class WiFiPopup(DeviceListPopup):
             title="Wi-Fi Networks",
             device=dev,
             item_key="access_points",
-            icon_name_fn=lambda ap: ap.icon_name,
-            label_fn=lambda ap: ap.ssid,
+            icon_name_fn=lambda ap: ap.bind("icon_name"),
+            label_fn=lambda ap: ap.bind("ssid"),
             connect_fn=wifi_connect,
             disconnect_fn=wifi_disconnect,
             header_icon="network-wireless-symbolic",
@@ -43,7 +43,7 @@ class WiFiPopup(DeviceListPopup):
             connected_check=lambda is_connected: is_connected
         )
 
-    def filter_items(self, items: list[WifiAccessPoint]) -> list[WifiAccessPoint]:
+    def filter_items(self, items):
         return pick_strongest_aps_for_each_ssid(items)
 
 

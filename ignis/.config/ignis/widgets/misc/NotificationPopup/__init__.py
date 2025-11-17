@@ -70,7 +70,6 @@ class NotificationPopup(Widget.Window):
             namespace=f"ignis_notification_popup_{monitor}",
             layer="top",
             visible=False,
-            style="min-width: 35rem;",
             css_classes=["notification-popups", "window"],
             child=PopupBox(window=self),
             dynamic_input_region=True

@@ -1,19 +1,41 @@
 from ignis.widgets import Widget
-from ignis.services.audio import AudioService
+from ignis.services.audio import AudioService, Stream
 import util
+from widgets.bar.ControlCentre.popup_registry import popup_registry
+from widgets.bar.ControlCentre.device_list_popup import DeviceListPopup
 
 audio = AudioService.get_default()
 
-def print_speakers(speakers):
-    for speaker in speakers:
-        print(speaker.name)
-        print(speaker.description)
-        print("--------")
+def speaker_select(sp: Stream) -> None:
+    util.run_cmd(f"pactl set-default-sink {sp.name}")
+
+def speaker_deselect(sp: Stream) -> None:
+    util.run_cmd(f"pactl set-default-sink {sp.name}")
+
+class SpeakerPopup(DeviceListPopup[Stream]):
+    def __init__(self) -> None:
+        super().__init__(
+            title="Select Speaker",
+            device=audio,
+            item_key="speakers",
+            icon_name_fn=lambda sp: sp.bind("icon_name"),
+            label_fn=lambda sp: sp.bind("description"),
+            connect_fn=speaker_select,
+            disconnect_fn=speaker_deselect,
+            header_icon="audio-volume-high-symbolic",
+            connected_property="is_default",
+            connected_check=lambda is_default: is_default
+        )
+
+    def filter_items(self, items):
+        default_items = [item for item in items if item.is_default]
+        other_items = [item for item in items if not item.is_default]
+        return default_items + other_items
 
 class VolumeSlider(Widget.Box):
     def __init__(self):
-        # TODO: implement audio popup
-        # audio.connect("notify::speakers", lambda *_: print_speakers(audio.speakers))
+        self.popup = SpeakerPopup()
+        popup_registry.register(self.popup)
 
         super().__init__(
             css_classes=["runset", "control-centre-slider"],
@@ -43,10 +65,7 @@ class VolumeSlider(Widget.Box):
                 Widget.Button(
                     child=Widget.Icon(image="go-next-symbolic"),
                     css_classes=["cc-slider-icon"],
-                    on_click=lambda _: util.run_cmd_and_run(
-                        "pavucontrol",
-                        lambda: util.popup_manager.close_curr_popup()
-                    ),
+                    on_click=lambda _: popup_registry.close_all_but(self.popup) or self.popup.toggle(),
                 ),
             ]
         )

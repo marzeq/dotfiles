@@ -2,19 +2,19 @@ from typing import Any, Callable
 from ignis.widgets import Widget
 from widgets.bar.ControlCentre.widget import ControlCentrePopup
 
-class DeviceListPopup(ControlCentrePopup):
+class DeviceListPopup[T](ControlCentrePopup):
     def __init__(
         self,
         title: str,
         device: Any,
         item_key: str,
-        icon_name_fn: Callable[[Any], str],
-        label_fn: Callable[[Any], str],
-        connect_fn: Callable[[Any], Any],
-        disconnect_fn: Callable[[Any], Any],
+        icon_name_fn: Callable[[T], str],
+        label_fn: Callable[[T], str],
+        connect_fn: Callable[[T], Any],
+        disconnect_fn: Callable[[T], Any],
         header_icon: str,
         connected_property: str,
-        connected_check: Callable[[Any], bool]
+        connected_check: Callable[[T], bool]
     ) -> None:
         self.device: Any = device
         self.item_key: str = item_key
@@ -30,7 +30,7 @@ class DeviceListPopup(ControlCentrePopup):
             super().__init__(Widget.Box())
             return
 
-        self.items_box: Widget.Box = Widget.Box(
+        self.items_box = Widget.Box(
             vertical=True,
             child=self.device.bind(self.item_key, transform=self.render_items)
         )
@@ -48,7 +48,7 @@ class DeviceListPopup(ControlCentrePopup):
                             ),
                             Widget.Label(
                                 label=title,
-                                css_classes=["cc-popup-label"]
+                                css_classes=["cc-popup-label"],
                             ),
                         ],
                         css_classes=["cc-popup-header"],
@@ -59,8 +59,8 @@ class DeviceListPopup(ControlCentrePopup):
             )
         )
 
-    def render_items(self, items: list[Any]) -> list[Widget]:
-        items_filtered: list[Any] = self.filter_items(items)
+    def render_items(self, items: list[T]) -> list[Widget]:
+        items_filtered: list[T] = self.filter_items(items)
         if not self.wants_see_more:
             items_filtered = items_filtered[:5]
 
@@ -78,13 +78,19 @@ class DeviceListPopup(ControlCentrePopup):
                 image="object-select-symbolic",
                 pixel_size=18,
                 css_classes=["cc-popup-opt-check"],
-                visible=item.bind(
+                visible=item.bind( # type: ignore
                     self.connected_property,
                     lambda val: self.connected_check(val)
                 )
             )
 
-            label_widget = Widget.Label(label=self.label_fn(item))
+            label_widget = Widget.Label(
+                label=self.label_fn(item),
+                max_width_chars=30,
+                hexpand=True,
+                halign="start",
+                ellipsize="end",
+            )
             children = [icon_widget, checkmark_widget] if icon_widget else []
             children.append(label_widget)
 
@@ -92,10 +98,11 @@ class DeviceListPopup(ControlCentrePopup):
                 Widget.Button(
                     child=Widget.Box(
                         child=children,
-                        css_classes=["cc-popup-opt-label"]
+                        css_classes=["cc-popup-opt-label"],
                     ),
                     on_click=lambda _, it=item: self.disconnect_fn(it) if self.connected_check(getattr(it, self.connected_property)) else self.connect_fn(it),
                     css_classes=["cc-popup-option"],
+                    hexpand=True,
                 )
             )
 
@@ -112,7 +119,7 @@ class DeviceListPopup(ControlCentrePopup):
             Widget.Label(label="None found", css_classes=["cc-popup-no-wifi"])
         ]
 
-    def filter_items(self, items: list[Any]) -> list[Any]:
+    def filter_items(self, items: list[T]) -> list[T]:
         return items
 
     def set_see_more(self, see_more: bool) -> None:

@@ -13,7 +13,7 @@ def eth_connect(dev: EthernetDevice) -> None:
 def eth_disconnect(dev: EthernetDevice) -> None:
     asyncio.create_task(dev.disconnect_from())
 
-class EthernetPopup(DeviceListPopup):
+class EthernetPopup(DeviceListPopup[EthernetDevice]):
     def __init__(self) -> None:
         eth: Ethernet | None = network.ethernet
         super().__init__(
@@ -21,7 +21,7 @@ class EthernetPopup(DeviceListPopup):
             device=eth,
             item_key="devices",
             icon_name_fn=lambda _: "network-wired-symbolic",
-            label_fn=lambda d: d.name or d.perm_hw_address,
+            label_fn=lambda d: d.bind_many(["name", "perm_hw_address"], lambda name, addr: name or addr),
             connect_fn=eth_connect,
             disconnect_fn=eth_disconnect,
             header_icon="network-wired-symbolic",
@@ -29,7 +29,7 @@ class EthernetPopup(DeviceListPopup):
             connected_check=lambda is_connected: is_connected
         )
 
-    def filter_items(self, items: list[EthernetDevice]) -> list[EthernetDevice]:
+    def filter_items(self, items):
         return sorted(items, key=lambda d: (not d.is_connected, d.name or d.perm_hw_address))
 
 

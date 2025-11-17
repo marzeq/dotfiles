@@ -25,6 +25,7 @@ class ControlCentre(Widget.RevealerWindow):
     def __init__(self, monitor: int):
         self.main_widgets = MainWidgets()
         self.power_menu = PowerMenu()
+        self.volume_slider = VolumeSlider()
 
         box = Widget.Box(
             vertical=True,
@@ -32,7 +33,8 @@ class ControlCentre(Widget.RevealerWindow):
             child=[
                 TopBox(self.power_menu),
                 self.power_menu,
-                VolumeSlider()
+                self.volume_slider,
+                self.volume_slider.popup,
             ] + ([
                 BrightnessSlider()
             ] if backlight.available and backlight.devices else []) + [
