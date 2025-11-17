@@ -29,7 +29,7 @@ run the `install.sh` script to stow the config files for the specified package o
 
 #### hyprland desktop
 
-https://github.com/marzeq/dotfiles/raw/refs/heads/dev/media/desktop_showcase.mkv
+https://github.com/user-attachments/assets/8c3fa6c1-fb62-4822-b7b1-b3e03b1f4b3f
 
 #### neovim
 
