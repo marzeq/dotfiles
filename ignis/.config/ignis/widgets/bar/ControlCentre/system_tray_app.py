@@ -7,7 +7,7 @@ class SystemTrayApp(Widget.CenterBox):
         self.item = item
         self.menu = item.menu.copy() if item.menu else None
         self.icon = self._normalize_icon(item.icon)
-        self.title = self._guess_title(item)
+        self.title = self._normalize_title(item)
 
         start_widget = Widget.Box(
             child=[
@@ -49,13 +49,14 @@ class SystemTrayApp(Widget.CenterBox):
             return "spotify-client"
         return icon
 
-    def _guess_title(self, item: SystemTrayItem):
+    def _normalize_title(self, item: SystemTrayItem):
         if item.id == "chrome_status_icon_1" and \
-           getattr(item.menu, "object_path", None) == "/com/canonical/dbusmenu" and \
-           not item.title and not item.tooltip and \
-           type(item.icon).__name__ == "Pixbuf":
+            getattr(item.menu, "object_path", None) == "/com/canonical/dbusmenu" and \
+            not item.title and not item.tooltip and \
+            type(item.icon).__name__ == "Pixbuf":
             return "Discord"
-        return item.title
+
+        return item.title.capitalize()
 
     def _set_button_active(self, active: bool):
         if hasattr(self, "button"):
