@@ -1,7 +1,9 @@
 import asyncio
+from typing import Any, Callable
 from gi.repository import Gtk  # type: ignore
 from ignis.widgets import Widget
 from widgets.misc.Settings.style_manager import StyleManager
+from widgets.bar.Clock import clock_settings
 
 sm = StyleManager.instance()
 
@@ -32,6 +34,54 @@ class WallpaperButton(Widget.Button):
         )
 
 
+class SwitchWithLabel(Widget.Box):
+    def __init__(
+        self,
+        label: str,
+        active: bool = True,
+        on_change: Callable[[Widget.Switch, bool], Any] = lambda *_: None,
+        css_classes: list[str] = []
+    ):
+        super().__init__(
+            child=[
+                Widget.Switch(
+                    active=active,
+                    on_change=on_change,
+                    valign="center",
+                ),
+                Widget.Label(
+                    label=label,
+                    css_classes=["settings-switch-label"],
+                    halign="start",
+                    valign="center",
+                ),
+            ],
+            halign="start",
+            css_classes=css_classes,
+        )
+
+
+class SettingsSection(Widget.Box):
+    def __init__(self, title: str, description: str, child: list[Widget]):
+        super().__init__(
+            vertical=True,
+            child=[
+                Widget.Label(
+                    label=title,
+                    css_classes=["settings-subtitle"],
+                    halign="start",
+                ),
+                Widget.Label(
+                    label=description,
+                    css_classes=["settings-description"],
+                    halign="start",
+                ),
+                *child,
+            ],
+            css_classes=["settings-section"],
+        )
+
+
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
         self.suggested_accent_colours = Widget.Box(css_classes=["settings-suggested-accent-colours"])
@@ -54,19 +104,10 @@ class SettingsWindow(Widget.RegularWindow):
                     vertical=True,
                     vexpand=True,
                     child=[
-                        Widget.Box(
-                            vertical=True,
+                        SettingsSection(
+                            title="Wallpaper",
+                            description="Change the wallpaper of the desktop by clicking on one of them.",
                             child=[
-                                Widget.Label(
-                                    label="Wallpaper",
-                                    css_classes=["settings-subtitle"],
-                                    halign="start",
-                                ),
-                                Widget.Label(
-                                    label="Change the wallpaper of the desktop by clicking on one of them.",
-                                    css_classes=["settings-description"],
-                                    halign="start",
-                                ),
                                 Widget.Scroll(
                                     child=self.wallpapers_box,
                                     css_classes=["settings-wallpapers-scroll"],
@@ -88,21 +129,11 @@ class SettingsWindow(Widget.RegularWindow):
                                     ],
                                 ),
                             ],
-                            css_classes=["settings-section"],
                         ),
-                        Widget.Box(
-                            vertical=True,
+                        SettingsSection(
+                            title="Accent Colour",
+                            description="Change the accent colour of the desktop.",
                             child=[
-                                Widget.Label(
-                                    label="Accent Colour",
-                                    css_classes=["settings-subtitle"],
-                                    halign="start",
-                                ),
-                                Widget.Label(
-                                    label="Pick one of the suggested colours based on your wallpaper:",
-                                    css_classes=["settings-description"],
-                                    halign="start",
-                                ),
                                 self.suggested_accent_colours,
                                 Widget.Label(
                                     label="Or:",
@@ -114,7 +145,7 @@ class SettingsWindow(Widget.RegularWindow):
                                         Widget.Button(
                                             halign="start",
                                             label="Set custom accent colour",
-                                            on_click=lambda _: color_chooser.choose_rgba(parent=None, cancellable=None, callback=self.on_color_chosen), # type: ignore
+                                            on_click=lambda _: self.color_chooser.choose_rgba(parent=None, cancellable=None, callback=self.on_color_chosen), # type: ignore
                                             css_classes=["change-accent-colour-button"],
                                         ),
                                         Widget.Button(
@@ -126,7 +157,35 @@ class SettingsWindow(Widget.RegularWindow):
                                     ],
                                 ),
                             ],
-                            css_classes=["settings-section"],
+                        ),
+                        SettingsSection(
+                            title="Clock",
+                            description="Customize the clock in the top bar",
+                            child=[
+                                Widget.Box(
+                                    vertical=True,
+                                    child=[
+                                        SwitchWithLabel(
+                                            label="Use 24-hour format",
+                                            active=clock_settings.use_24h,
+                                            on_change=lambda _, active: clock_settings.set_use_24h(active),
+                                            css_classes=["settings-clock-switch"]
+                                        ),
+                                        SwitchWithLabel(
+                                            label="Show day of week",
+                                            active=clock_settings.show_dow,
+                                            on_change=lambda _, active: clock_settings.set_show_dow(active),
+                                            css_classes=["settings-clock-switch"]
+                                        ),
+                                        SwitchWithLabel(
+                                            label="Show seconds",
+                                            active=clock_settings.show_seconds,
+                                            on_change=lambda _, active: clock_settings.set_show_seconds(active),
+                                            css_classes=["settings-clock-switch"]
+                                        )
+                                    ],
+                                )
+                            ],
                         ),
                     ],
                     css_classes=["settings"],

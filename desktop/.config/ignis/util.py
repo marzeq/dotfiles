@@ -1,4 +1,5 @@
 import subprocess
+import asyncio
 import os
 from typing import Callable
 
@@ -30,12 +31,12 @@ def active_monitor() -> int:
     return hyprland.active_workspace.monitor_id
 
 def run_cmd(cmd: str) -> None:
-    subprocess.Popen(
-        ["/bin/bash", "-c", cmd],
+    asyncio.create_task(asyncio.create_subprocess_exec(
+        "/usr/bin/bash", "-c", cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         preexec_fn=os.setpgrp
-    )
+    ))
 
 def run_cmd_and_run(cmd: str, runnable: Callable) -> None:
     runnable()

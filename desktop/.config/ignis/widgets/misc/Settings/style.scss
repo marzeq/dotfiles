@@ -3,6 +3,10 @@
   padding: 2rem;
 }
 
+.settings-switch-label {
+  margin-left: 0.5rem;
+}
+
 .settings-section {
   background-color: $bg;
   border-radius: 1rem;
@@ -73,4 +77,8 @@
 .change-accent-colour-button {
   margin-top: 1rem;
   margin-right: 1rem;
+}
+
+.settings-clock-switch {
+  margin-top: 0.5rem;
 }
