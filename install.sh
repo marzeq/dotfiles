@@ -194,7 +194,7 @@ install_desktop() {
   echo -e "${BLUE}Installing desktop...${RESET}"
   desktop_installed=true
   install_packages "${DESKTOP_DEPS[@]}"
-  run_or_echo "stow -t $HOME hypr wallpapers ignis"
+  run_or_echo "stow -t $HOME desktop"
   run_or_echo "sudo systemctl enable gdm"
   run_or_echo "gsettings set org.gnome.desktop.wm.preferences button-layout :"
   run_or_echo "systemctl --user enable gcr-ssh-agent.socket"
