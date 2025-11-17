@@ -17,7 +17,7 @@ class EthernetPopup(DeviceListPopup[EthernetDevice]):
     def __init__(self) -> None:
         eth: Ethernet | None = network.ethernet
         super().__init__(
-            title="Ethernet Devices",
+            title="Wired Connections",
             device=eth,
             item_key="devices",
             icon_name_fn=lambda _: "network-wired-symbolic",

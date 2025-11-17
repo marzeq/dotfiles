@@ -15,14 +15,14 @@ def speaker_deselect(sp: Stream) -> None:
 class SpeakerPopup(DeviceListPopup[Stream]):
     def __init__(self) -> None:
         super().__init__(
-            title="Select Speaker",
+            title="Sound Output",
             device=audio,
             item_key="speakers",
             icon_name_fn=lambda sp: sp.bind("icon_name"),
             label_fn=lambda sp: sp.bind("description"),
             connect_fn=speaker_select,
             disconnect_fn=speaker_deselect,
-            header_icon="audio-volume-high-symbolic",
+            header_icon="audio-headphones-symbolic",
             connected_property="is_default",
             connected_check=lambda is_default: is_default
         )

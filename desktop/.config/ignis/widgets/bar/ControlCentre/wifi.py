@@ -31,7 +31,7 @@ class WiFiPopup(DeviceListPopup[WifiAccessPoint]):
         dev: WifiDevice | None = network.wifi.devices[0] if network.wifi.devices else None
 
         super().__init__(
-            title="Wi-Fi Networks",
+            title="Wi-Fi",
             device=dev,
             item_key="access_points",
             icon_name_fn=lambda ap: ap.bind("icon_name"),
