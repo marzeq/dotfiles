@@ -1,5 +1,0 @@
-@theme "rounded-gnome"
-
-configuration {
-  terminal: "ghostty";
-}
