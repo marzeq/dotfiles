@@ -1,4 +1,4 @@
 hyprlandd.conf
 monitors.conf
 workspaces.conf
-hyprland-custom.conf
+*-custom.conf
