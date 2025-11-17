@@ -4,8 +4,17 @@ import util
 
 audio = AudioService.get_default()
 
+def print_speakers(speakers):
+    for speaker in speakers:
+        print(speaker.name)
+        print(speaker.description)
+        print("--------")
+
 class VolumeSlider(Widget.Box):
     def __init__(self):
+        # TODO: implement audio popup
+        # audio.connect("notify::speakers", lambda *_: print_speakers(audio.speakers))
+
         super().__init__(
             css_classes=["runset", "control-centre-slider"],
             child=[
