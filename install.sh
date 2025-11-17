@@ -232,6 +232,7 @@ main() {
     echo -e "${RED_BOLD}ATTENTION!${RESET}"
     echo "This script was made for my personal use. You should probably not run it yourself."
     echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
+    echo "You can always use the --dry-run option to see what would be done without actually making any changes and adjust anything you might think is wrong."
     read -p "Proceed? (y/n) " -n 1 -r
     echo
 
