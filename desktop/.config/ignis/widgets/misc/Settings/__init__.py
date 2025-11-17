@@ -81,7 +81,7 @@ class SettingsWindow(Widget.RegularWindow):
                                         ),
                                         Widget.Button(
                                             label="Refresh wallpapers",
-                                            on_click=lambda _: refresh_wallpapers(),
+                                            on_click=lambda _: self.refresh_wallpapers(),
                                             css_classes=["settings-wallpaper-button"],
                                             halign="start",
                                         ),
