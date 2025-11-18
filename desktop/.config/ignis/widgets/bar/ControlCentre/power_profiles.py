@@ -89,6 +89,7 @@ class PowerProfilesWidget(ControlCentreWidget):
             on_click_other=lambda _: popup_registry.close_all_but(self.popup) or self.popup.toggle(),
         )
 
+        self.set_disabled(power_profiles.active_profile == "balanced")
         power_profiles.connect("notify::active-profile", lambda *_: self.set_disabled(power_profiles.active_profile == "balanced"))
         power_profiles.connect("notify::is-available", lambda *_: self.update_widgets())
 
