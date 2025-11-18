@@ -9,4 +9,5 @@ class DNDWidget(ControlCentreWidget):
             on_click=lambda _: options.notifications.set_dnd(not options.notifications.dnd), # type: ignore
         )
 
+        self.set_disabled(not options.notifications.dnd) # type: ignore
         options.notifications.connect("changed", lambda _, name: None if name != "dnd" else self.set_disabled(not options.notifications.dnd)) # type: ignore
