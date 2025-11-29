@@ -202,8 +202,9 @@ def load_interface_xml(
 
     return Gio.DBusNodeInfo.new_for_xml(xml_string).interfaces[0]
 
-T = TypeVar("T", bound=type)
-def JsonSettings(path: str) -> Callable[[T], T]:
+def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
+    expanded_path = os.path.expanduser(path)
+
     def _make_pspec(name: str, typ: type) -> GObject.ParamSpec:
         gname = name.replace("_", "-")
         flags = (
@@ -213,70 +214,28 @@ def JsonSettings(path: str) -> Callable[[T], T]:
         )
 
         if typ is bool:
-            return GObject.param_spec_boolean(
-                gname,
-                name,
-                name,
-                False,
-                flags,
-            )
-
+            return GObject.param_spec_boolean(gname, name, name, False, flags)
         if typ is int:
-            return GObject.param_spec_int(
-                gname,
-                name,
-                name,
-                -2**31,
-                2**31 - 1,
-                0,
-                flags,
-            )
-
+            return GObject.param_spec_int(gname, name, name, -2**31, 2**31 - 1, 0, flags)
         if typ is float:
-            return GObject.param_spec_double(
-                gname,
-                name,
-                name,
-                -1e308,
-                1e308,
-                0.0,
-                flags,
-            )
+            return GObject.param_spec_double(gname, name, name, -1e308, 1e308, 0.0, flags)
+        return GObject.param_spec_string(gname, name, name, None, flags)
 
-        return GObject.param_spec_string(
-            gname,
-            name,
-            name,
-            None,
-            flags,
-        )
-
-    expanded_path = os.path.expanduser(path)
-
-    def decorator(cls: T) -> T:
+    def decorator(cls: type[T]) -> type[T]:
         hints = get_type_hints(cls)
 
-        if issubclass(cls, IgnisGObject):
-            prop_id = 1
-            for name, typ in hints.items():
-                if cls.find_property(name) is None:
-                    cls.install_property(
-                        prop_id,
-                        _make_pspec(name, typ),
-                    )
-                    prop_id += 1
+        bases = (cls,) if issubclass(cls, IgnisGObject) else (IgnisGObject, cls)
 
-        class Wrapper(cls): # type: ignore
+        class Wrapper(*bases): # type: ignore[misc]
             _path: str
             _defaults: dict[str, Any]
             _data: dict[str, Any]
 
             def __init__(self, **kwargs):
                 super().__init__(**kwargs)
-
                 self._path = expanded_path
                 self._defaults = {k: getattr(self, k) for k in hints}
-                self._data = {}
+                self._data: dict[str, Any] = {}
                 self._read()
                 self._save()
 
@@ -292,8 +251,7 @@ def JsonSettings(path: str) -> Callable[[T], T]:
                     super().__setattr__(k, self._data[k])
 
             def do_get_property(self, pspec):
-                name = pspec.name.replace("-", "_")
-                return self._data[name]
+                return self._data[pspec.name.replace("-", "_")]
 
             def do_set_property(self, pspec, value):
                 name = pspec.name.replace("-", "_")
@@ -307,16 +265,13 @@ def JsonSettings(path: str) -> Callable[[T], T]:
                 with open(self._path, "w") as f:
                     json.dump(self._data, f, indent=2)
 
-            def __setattr__(self, key: str, value: Any) -> None:
-                super().__setattr__(key, value)
+        prop_id = 1
+        for name, typ in hints.items():
+            if Wrapper.find_property(name) is None:
+                Wrapper.install_property(prop_id, _make_pspec(name, typ))
+                prop_id += 1
 
-                if hasattr(self, "_data") and key in self._defaults:
-                    self._data[key] = value
-                    self._save()
-                    if isinstance(self, IgnisGObject) and self.find_property(key):
-                        self.notify(key)
-
-        return cast(T, Wrapper)
+        return Wrapper
 
     return decorator
 
