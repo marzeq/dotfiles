@@ -5,7 +5,7 @@ from gi.repository import Gtk # type: ignore
 import util
 from widgets.misc.Launcher.base_mode import LauncherResult
 
-from .app_mode import AppMode, LauncherAppResult, get_visible_apps
+from .app_mode import AppMode, LauncherAppResult, app_settings
 from .calc_mode import CalcMode
 from .shell_mode import ShellMode
 from .files_mode import FilesMode
@@ -32,7 +32,7 @@ class Launcher(Widget.Window):
         monitor_geo = monitor.get_geometry() # type:ignore (Gdk.Rectangle)
         monitor_h_px: int = monitor_geo.height
 
-        self.set_results([LauncherAppResult(app, self) for app in get_visible_apps()])
+        self.set_results([LauncherAppResult(app, self, self.update_mode_and_list) for app in app_settings.visible_apps])
 
         super().__init__(
             visible=False,

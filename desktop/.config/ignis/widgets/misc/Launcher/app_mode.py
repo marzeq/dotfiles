@@ -1,8 +1,10 @@
 from __future__ import annotations
 import json
+import os
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
+from ignis.gobject import IgnisGObject
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
 
@@ -13,9 +15,7 @@ from .base_mode import LauncherMode, LauncherResult
 import util
 from rapidfuzz import process, fuzz
 
-DATA_PATH = Path.home() / ".local/share/ignis"
-FREQ_FILE = DATA_PATH / "app_freq.json"
-HIDDEN_FILE = DATA_PATH / "hidden_apps.json"
+SETTINGS_PATH = os.path.expanduser("~/.local/share/ignis/apps.json")
 DECAY_HALF_LIFE_DAYS = 30
 
 applications = ApplicationsService.get_default()
@@ -23,84 +23,61 @@ applications = ApplicationsService.get_default()
 FrequencyEntry = dict[str, float]
 Frequencies = dict[str, FrequencyEntry]
 
-
-def load_frequencies() -> Frequencies:
-    if not FREQ_FILE.exists():
-        return {}
-    with open(FREQ_FILE, "r") as f:
-        data = json.load(f)
-    if not isinstance(data, dict):
-        return {}
-    freqs: Frequencies = {}
-    for k, v in data.items():
-        if isinstance(v, dict):
-            freqs[k] = {
-                "count": float(v.get("count", 0)),
-                "last_launch": float(v.get("last_launch", 0)),
-            }
-    return freqs
-
-
-def save_frequencies(freqs: Frequencies):
-    DATA_PATH.mkdir(parents=True, exist_ok=True)
-    with open(FREQ_FILE, "w") as f:
-        json.dump(freqs, f)
-
-
-def decay_frequency(freq_entry: FrequencyEntry) -> float:
+def decay_frequency(entry: FrequencyEntry) -> float:
     now = time.time()
-    freq = freq_entry.get("count", 0)
-    last = freq_entry.get("last_launch", 0)
-    if freq <= 0 or last == 0:
-        return 0
+    freq = entry.get("count", 0.0)
+    last = entry.get("last_launch", 0.0)
+    if freq <= 0 or last <= 0:
+        return 0.0
     age_days = (now - last) / 86400
-    decay_factor = 0.5 ** (age_days / DECAY_HALF_LIFE_DAYS)
-    return freq * decay_factor
+    return freq * (0.5 ** (age_days / DECAY_HALF_LIFE_DAYS))
 
 
-def load_hidden_apps() -> list[str]:
-    if not HIDDEN_FILE.exists():
-        return []
-    with open(HIDDEN_FILE, "r") as f:
-        data = json.load(f)
-    if not isinstance(data, list):
-        return []
-    return [str(x).lower() for x in data]
+@util.JsonSettings(SETTINGS_PATH)
+class AppSettings(IgnisGObject):
+    frequencies: Frequencies = {}
+    hidden_apps: list[str] = []
+
+    def hide_app(self, app_name: str) -> None:
+        name = app_name.lower()
+        if name not in self.hidden_apps:
+            self.hidden_apps = self.hidden_apps + [name]
+
+    def unhide_app(self, app_name: str) -> None:
+        name = app_name.lower()
+        self.hidden_apps = [x for x in self.hidden_apps if x != name]
+
+    def record_launch(self, app_name: str) -> None:
+        name = app_name.lower()
+        entry = self.frequencies.get(
+            name, {"count": 0.0, "last_launch": 0.0}
+        )
+        entry["count"] = float(entry.get("count", 0.0)) + 1.0
+        entry["last_launch"] = time.time()
+
+        freqs = dict(self.frequencies)
+        freqs[name] = entry
+        self.frequencies = freqs
+
+    def decayed_frequency(self, app_name: str) -> float:
+        entry = self.frequencies.get(app_name.lower())
+        if not entry:
+            return 0.0
+        return decay_frequency(entry)
+
+    def is_hidden(self, app_name: str) -> bool:
+        return app_name.lower() in self.hidden_apps
+
+    @property
+    def visible_apps(self) -> list[Application]:
+        hidden = set(self.hidden_apps)
+        return [
+            app for app in applications.apps
+            if app.name.lower() not in hidden
+        ]
 
 
-def save_hidden_apps(hidden: list[str]):
-    DATA_PATH.mkdir(parents=True, exist_ok=True)
-    with open(HIDDEN_FILE, "w") as f:
-        json.dump(hidden, f)
-
-FREQUENCIES: Frequencies = load_frequencies()
-HIDDEN_APPS: list[str] = load_hidden_apps()
-
-
-def hide_app(app_name: str):
-    """Add app to hidden apps and reload HIDDEN_APPS."""
-    global HIDDEN_APPS
-    hidden = load_hidden_apps()
-    name = app_name.lower()
-    if name not in hidden:
-        hidden.append(name)
-        save_hidden_apps(hidden)
-        HIDDEN_APPS = hidden
-
-def record_launch(app_name: str):
-    """Increment launch count and reload FREQUENCIES."""
-    global FREQUENCIES
-    name = app_name.lower()
-    entry = FREQUENCIES.get(name, {"count": 0.0, "last_launch": 0.0})
-    entry["count"] = entry.get("count", 0.0) + 1.0
-    entry["last_launch"] = time.time()
-    FREQUENCIES[name] = entry
-    save_frequencies(FREQUENCIES)
-
-
-def get_visible_apps() -> list[Application]:
-    """Return all apps that are not hidden."""
-    return [app for app in applications.apps if app.name.lower() not in HIDDEN_APPS]
+app_settings = AppSettings()
 
 
 class AppMode(LauncherMode):
@@ -109,22 +86,22 @@ class AppMode(LauncherMode):
 
     def update(self, launcher, query: str):
         query = query.strip().lower()
-        visible_apps = get_visible_apps()
         if not query:
             launcher.reset_entry()
-            launcher.set_results([LauncherAppResult(app, launcher) for app in visible_apps])
+            launcher.set_results([LauncherAppResult(app, launcher, self.update) for app in app_settings.visible_apps])
             return
 
-        apps = fuzzy_search(visible_apps, query)
+        apps = fuzzy_search(app_settings.visible_apps, query)
         launcher.entry.css_classes = ["launcher-entry-input"]
-        launcher.set_results([LauncherAppResult(app, launcher) for app in apps])
+        launcher.set_results([LauncherAppResult(app, launcher, self.update) for app in apps])
 
     def launch(self, launcher):
         launcher.trigger_result()
 
 
 class LauncherAppResult(LauncherResult):
-    def __init__(self, app: Application, launcher: Launcher):
+    def __init__(self, app: Application, launcher: Launcher, refresh_results: Callable[..., None]):
+        self.refresh_results = refresh_results
         super().__init__(
             label=app.name,
             icon_name=app.icon,
@@ -133,7 +110,7 @@ class LauncherAppResult(LauncherResult):
                 items=[
                     Widget.MenuItem(
                         label="Hide",
-                        on_activate=lambda _: hide_app(app.name)
+                        on_activate=lambda _: self.hide_app()
                     )
                 ]
             )
@@ -143,13 +120,12 @@ class LauncherAppResult(LauncherResult):
 
     def launch_app(self):
         util.popup_manager.close_curr_popup()
-        record_launch(self.app.name)
+        app_settings.record_launch(self.app.name)
         self.app.launch()
 
-    def hide_app(self):
-        hide_app(self.app.name)
-        self.launcher.update_mode_and_list()
-
+    def hide_app(self) -> None:
+        app_settings.hide_app(self.app.name)
+        self.refresh_results()
 
 def fuzzy_search(apps: list[Application], query: str) -> list[Application]:
     query = query.lower()
@@ -167,7 +143,7 @@ def fuzzy_search(apps: list[Application], query: str) -> list[Application]:
 
     scored: list[tuple[str, float]] = []
     for name, score, _ in matches:
-        freq_score = decay_frequency(FREQUENCIES.get(name, {}))
+        freq_score = app_settings.decayed_frequency(name)
         boosted_score = score + min(freq_score * 3, 40)
         scored.append((name, boosted_score))
 

@@ -3,15 +3,24 @@ from typing import Any, Callable
 from ignis.gobject import IgnisGObject
 from ignis.utils import Utils
 from ignis.widgets import Widget
+import locale
 import os
 import util
 
 
 SETTINGS_PATH = os.path.expanduser("~/.local/share/ignis/clock.json")
 
+def system_uses_24h():
+    try:
+        locale.setlocale(locale.LC_TIME, "")
+        fmt = locale.nl_langinfo(locale.T_FMT)
+        return "%p" not in fmt
+    except Exception:
+        return True
+
 @util.JsonSettings(SETTINGS_PATH)
 class ClockSettings(IgnisGObject):
-    use_24h: bool = True
+    use_24h: bool = system_uses_24h()
     def set_use_24h(self, value: bool) -> None: self.use_24h = value
 
     show_dow: bool = True
@@ -47,7 +56,8 @@ class Clock(Widget.EventBox):
                     child=Widget.Label(
                         label=clock_settings.bind_many(
                             ["use_24h", "show_dow", "show_seconds"],
-                            lambda *_: Utils.Poll(1000, lambda _: datetime.now().strftime(clock_settings.time_format)).bind("output")
+                            lambda *_: Utils.Poll(1000, lambda _:
+                                datetime.now().strftime(clock_settings.time_format)).bind("output")
                         )
                     ),
                     css_classes=["box"],
