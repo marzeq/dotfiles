@@ -1,14 +1,11 @@
 from datetime import datetime
 from typing import Any, Callable
-from ignis.gobject import IgnisGObject
 from ignis.utils import Utils
 from ignis.widgets import Widget
 import locale
-import os
+from util import JsonSettings, BindableSetting
 import util
 
-
-SETTINGS_PATH = os.path.expanduser("~/.local/share/ignis/clock.json")
 
 def system_uses_24h():
     try:
@@ -18,8 +15,8 @@ def system_uses_24h():
     except Exception:
         return True
 
-@util.JsonSettings(SETTINGS_PATH)
-class ClockSettings(IgnisGObject):
+@JsonSettings("clock")
+class ClockSettings(BindableSetting):
     use_24h: bool = system_uses_24h()
     def set_use_24h(self, value: bool) -> None: self.use_24h = value
 
@@ -54,8 +51,7 @@ class Clock(Widget.EventBox):
             child=[
                 Widget.Button(
                     child=Widget.Label(
-                        label=clock_settings.bind_many(
-                            ["use_24h", "show_dow", "show_seconds"],
+                        label=clock_settings.bind_properties(
                             lambda *_: Utils.Poll(1000, lambda _:
                                 datetime.now().strftime(clock_settings.time_format)).bind("output")
                         )

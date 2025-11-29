@@ -2,10 +2,10 @@ import json
 import subprocess
 import asyncio
 import os
-from typing import Any, Callable, TypeVar, cast, get_type_hints
+from typing import Any, Callable, Protocol, TypeVar, cast, get_type_hints
 
 from ignis.app import IgnisApp
-from ignis.gobject import IgnisGObject
+from ignis.gobject import Binding, IgnisGObject
 from gi.repository import GObject  # type: ignore
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
@@ -202,8 +202,16 @@ def load_interface_xml(
 
     return Gio.DBusNodeInfo.new_for_xml(xml_string).interfaces[0]
 
+class BindableSetting(IgnisGObject):
+    def bind_properties(
+        self,
+        lambda_func: Callable[[], Any],
+    ) -> Binding:
+        return self.bind_many([], lambda *_: lambda_func())
+
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
-    expanded_path = os.path.expanduser(path)
+    expanded_path = os.path.expanduser("~/.local/share/ignis/settings/" + path + ".json")
+    os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
     def _make_pspec(name: str, typ: type) -> GObject.ParamSpec:
         gname = name.replace("_", "-")
@@ -224,9 +232,7 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
     def decorator(cls: type[T]) -> type[T]:
         hints = get_type_hints(cls)
 
-        bases = (cls,) if issubclass(cls, IgnisGObject) else (IgnisGObject, cls)
-
-        class Wrapper(*bases): # type: ignore[misc]
+        class Wrapper(cls, BindableSetting): # type: ignore
             _path: str
             _defaults: dict[str, Any]
             _data: dict[str, Any]
@@ -265,11 +271,16 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 with open(self._path, "w") as f:
                     json.dump(self._data, f, indent=2)
 
+            def bind_properties(self, lambda_func: Callable[[], T]):
+                return self.bind_many([k for k in hints], lambda *_: lambda_func())
+
         prop_id = 1
         for name, typ in hints.items():
             if Wrapper.find_property(name) is None:
                 Wrapper.install_property(prop_id, _make_pspec(name, typ))
                 prop_id += 1
+
+        assert hasattr(Wrapper, "bind_properties")
 
         return Wrapper
 

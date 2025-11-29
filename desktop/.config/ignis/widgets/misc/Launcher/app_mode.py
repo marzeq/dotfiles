@@ -1,12 +1,9 @@
 from __future__ import annotations
-import json
-import os
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Callable
-from ignis.gobject import IgnisGObject
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
+from util import JsonSettings
 
 if TYPE_CHECKING:
     from . import Launcher
@@ -15,7 +12,6 @@ from .base_mode import LauncherMode, LauncherResult
 import util
 from rapidfuzz import process, fuzz
 
-SETTINGS_PATH = os.path.expanduser("~/.local/share/ignis/apps.json")
 DECAY_HALF_LIFE_DAYS = 30
 
 applications = ApplicationsService.get_default()
@@ -33,8 +29,8 @@ def decay_frequency(entry: FrequencyEntry) -> float:
     return freq * (0.5 ** (age_days / DECAY_HALF_LIFE_DAYS))
 
 
-@util.JsonSettings(SETTINGS_PATH)
-class AppSettings(IgnisGObject):
+@JsonSettings("apps")
+class AppSettings:
     frequencies: Frequencies = {}
     hidden_apps: list[str] = []
 
