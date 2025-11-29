@@ -58,6 +58,7 @@ class StyleManager:
         if h in self.accent_map:
             del self.accent_map[h]
             self.save_accent_map(self.accent_map)
+        self.save_lockfile()
         util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
 
     def handle_color_chosen(self, rgba, wallpaper: str):
