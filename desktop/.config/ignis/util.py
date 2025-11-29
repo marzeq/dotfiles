@@ -1,9 +1,12 @@
+import json
 import subprocess
 import asyncio
 import os
-from typing import Callable
+from typing import Any, Callable, TypeVar, cast, get_type_hints
 
 from ignis.app import IgnisApp
+from ignis.gobject import IgnisGObject
+from gi.repository import GObject  # type: ignore
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 
@@ -198,4 +201,122 @@ def load_interface_xml(
         )
 
     return Gio.DBusNodeInfo.new_for_xml(xml_string).interfaces[0]
+
+T = TypeVar("T", bound=type)
+def JsonSettings(path: str) -> Callable[[T], T]:
+    def _make_pspec(name: str, typ: type) -> GObject.ParamSpec:
+        gname = name.replace("_", "-")
+        flags = (
+            GObject.ParamFlags.READABLE
+            | GObject.ParamFlags.WRITABLE
+            | GObject.ParamFlags.EXPLICIT_NOTIFY
+        )
+
+        if typ is bool:
+            return GObject.param_spec_boolean(
+                gname,
+                name,
+                name,
+                False,
+                flags,
+            )
+
+        if typ is int:
+            return GObject.param_spec_int(
+                gname,
+                name,
+                name,
+                -2**31,
+                2**31 - 1,
+                0,
+                flags,
+            )
+
+        if typ is float:
+            return GObject.param_spec_double(
+                gname,
+                name,
+                name,
+                -1e308,
+                1e308,
+                0.0,
+                flags,
+            )
+
+        return GObject.param_spec_string(
+            gname,
+            name,
+            name,
+            None,
+            flags,
+        )
+
+    expanded_path = os.path.expanduser(path)
+
+    def decorator(cls: T) -> T:
+        hints = get_type_hints(cls)
+
+        if issubclass(cls, IgnisGObject):
+            prop_id = 1
+            for name, typ in hints.items():
+                if cls.find_property(name) is None:
+                    cls.install_property(
+                        prop_id,
+                        _make_pspec(name, typ),
+                    )
+                    prop_id += 1
+
+        class Wrapper(cls): # type: ignore
+            _path: str
+            _defaults: dict[str, Any]
+            _data: dict[str, Any]
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+
+                self._path = expanded_path
+                self._defaults = {k: getattr(self, k) for k in hints}
+                self._data = {}
+                self._read()
+                self._save()
+
+            def _read(self) -> None:
+                try:
+                    with open(self._path, "r") as f:
+                        self._data = json.load(f)
+                except FileNotFoundError:
+                    self._data = {}
+
+                for k, v in self._defaults.items():
+                    self._data.setdefault(k, v)
+                    super().__setattr__(k, self._data[k])
+
+            def do_get_property(self, pspec):
+                name = pspec.name.replace("-", "_")
+                return self._data[name]
+
+            def do_set_property(self, pspec, value):
+                name = pspec.name.replace("-", "_")
+                self._data[name] = value
+                super().__setattr__(name, value)
+                self.notify(name)
+                self._save()
+
+            def _save(self) -> None:
+                os.makedirs(os.path.dirname(self._path), exist_ok=True)
+                with open(self._path, "w") as f:
+                    json.dump(self._data, f, indent=2)
+
+            def __setattr__(self, key: str, value: Any) -> None:
+                super().__setattr__(key, value)
+
+                if hasattr(self, "_data") and key in self._defaults:
+                    self._data[key] = value
+                    self._save()
+                    if isinstance(self, IgnisGObject) and self.find_property(key):
+                        self.notify(key)
+
+        return cast(T, Wrapper)
+
+    return decorator
 

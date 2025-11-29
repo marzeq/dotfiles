@@ -4,6 +4,7 @@ from gi.repository import Gtk  # type: ignore
 from ignis.widgets import Widget
 from widgets.misc.Settings.style_manager import StyleManager
 from widgets.bar.Clock import clock_settings
+from widgets.bar.Workspaces import workspace_settings
 
 sm = StyleManager.instance()
 
@@ -184,6 +185,18 @@ class SettingsWindow(Widget.RegularWindow):
                                             css_classes=["settings-clock-switch"]
                                         )
                                     ],
+                                )
+                            ],
+                        ),
+                        SettingsSection(
+                            title="Workspaces",
+                            description="Customize how workspaces are displayed in the top bar",
+                            child=[
+                                SwitchWithLabel(
+                                    label="Show all workspaces on each monitor",
+                                    active=workspace_settings.show_all_ws_on_monitor,
+                                    on_change=lambda _, active: workspace_settings.set_show_all_ws_on_monitor(active),
+                                    css_classes=["settings-clock-switch"]
                                 )
                             ],
                         ),

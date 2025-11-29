@@ -1,12 +1,29 @@
+import os
+from ignis.gobject import IgnisGObject
 from ignis.widgets import Widget
 from ignis.services.hyprland import HyprlandService, HyprlandWorkspace
+
+import util
 
 hyprland = HyprlandService.get_default()
 workspaces_first = 1
 workspaces_last = 10
 
-class WorkspaceButton(Widget.Box):
+SETTINGS_PATH = os.path.expanduser("~/.local/share/ignis/workspaces.json")
+
+@util.JsonSettings(SETTINGS_PATH)
+class WorkspaceSettings(IgnisGObject):
+    show_all_ws_on_monitor: bool = True
+    def set_show_all_ws_on_monitor(self, value: bool) -> None: self.show_all_ws_on_monitor = value
+
+workspace_settings = WorkspaceSettings()
+
+class Workspace(Widget.Box):
     def __init__(self, monitor_name: str, workspace: HyprlandWorkspace):
+        if workspace.monitor != monitor_name and not workspace_settings.show_all_ws_on_monitor:
+            super().__init__()
+            return
+
         super().__init__(
             css_classes=["workspace"],
             halign="start",
@@ -24,9 +41,9 @@ class Workspaces(Widget.Box):
                 Widget.Button(
                     child=Widget.Box(child=hyprland.bind_many(
                         ["workspaces", "active_workspace"],
-                        transform=lambda workspaces, *_: [
-                            WorkspaceButton(monitor_name, i) for i in workspaces
-                        ],
+                        transform=lambda workspaces, *_: workspace_settings.bind("show_all_ws_on_monitor", lambda *_: [
+                            Workspace(monitor_name, i) for i in workspaces
+                        ]),
                     )),
                     css_classes=["box"],
                 ),
