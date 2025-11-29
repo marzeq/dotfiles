@@ -11,7 +11,7 @@ return {
       "lua_ls",
       "gopls",
       "pyright",
-      "tinymist",
+      "clangd",
     },
     ---@param opts LspOpts
     config = function(_, opts)
