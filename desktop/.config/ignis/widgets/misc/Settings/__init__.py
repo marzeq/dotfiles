@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any, Callable
-from gi.repository import Gtk  # type: ignore
+from gi.repository import Gtk
 from ignis.widgets import Widget
 from widgets.misc.Settings.style_manager import StyleManager
 from widgets.bar.Clock import clock_settings
@@ -117,12 +117,12 @@ class SettingsWindow(Widget.RegularWindow):
                                     halign="start",
                                     child=[
                                         Widget.Button(
-                                            label="Add a new wallpaper",
+                                            label="Add new",
                                             on_click=lambda _: asyncio.create_task(add_wallpaper_dialog.open_dialog()),
                                             css_classes=["settings-wallpaper-button"],
                                         ),
                                         Widget.Button(
-                                            label="Refresh wallpapers",
+                                            label="Refresh",
                                             on_click=lambda _: self.refresh_wallpapers(),
                                             css_classes=["settings-wallpaper-button"],
                                             halign="start",
@@ -133,25 +133,20 @@ class SettingsWindow(Widget.RegularWindow):
                         ),
                         SettingsSection(
                             title="Accent Colour",
-                            description="Change the accent colour of the desktop.",
+                            description="Change the accent colour of the desktop",
                             child=[
                                 self.suggested_accent_colours,
-                                Widget.Label(
-                                    label="Or:",
-                                    css_classes=["settings-description"],
-                                    halign="start",
-                                ),
                                 Widget.Box(
                                     child=[
                                         Widget.Button(
                                             halign="start",
-                                            label="Set custom accent colour",
+                                            label="Set custom",
                                             on_click=lambda _: self.color_chooser.choose_rgba(parent=None, cancellable=None, callback=self.on_color_chosen), # type: ignore
                                             css_classes=["change-accent-colour-button"],
                                         ),
                                         Widget.Button(
                                             halign="start",
-                                            label="Restore default accent colour",
+                                            label="Restore default",
                                             on_click=lambda _: sm.restore_accent_colour(sm.wallpaper_symlink),
                                             css_classes=["change-accent-colour-button"],
                                         ),
@@ -170,19 +165,19 @@ class SettingsWindow(Widget.RegularWindow):
                                             label="Use 24-hour format",
                                             active=clock_settings.use_24h,
                                             on_change=lambda _, active: clock_settings.set_use_24h(active),
-                                            css_classes=["settings-clock-switch"]
+                                            css_classes=["settings-switch"]
                                         ),
                                         SwitchWithLabel(
                                             label="Show day of week",
                                             active=clock_settings.show_dow,
                                             on_change=lambda _, active: clock_settings.set_show_dow(active),
-                                            css_classes=["settings-clock-switch"]
+                                            css_classes=["settings-switch"]
                                         ),
                                         SwitchWithLabel(
                                             label="Show seconds",
                                             active=clock_settings.show_seconds,
                                             on_change=lambda _, active: clock_settings.set_show_seconds(active),
-                                            css_classes=["settings-clock-switch"]
+                                            css_classes=["settings-switch"]
                                         )
                                     ],
                                 )
@@ -196,7 +191,7 @@ class SettingsWindow(Widget.RegularWindow):
                                     label="Show all workspaces on each monitor",
                                     active=workspace_settings.show_all_ws_on_monitor,
                                     on_change=lambda _, active: workspace_settings.set_show_all_ws_on_monitor(active),
-                                    css_classes=["settings-clock-switch"]
+                                    css_classes=["settings-switch"]
                                 )
                             ],
                         ),

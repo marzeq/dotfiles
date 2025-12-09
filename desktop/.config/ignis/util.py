@@ -2,11 +2,11 @@ import json
 import subprocess
 import asyncio
 import os
-from typing import Any, Callable, Protocol, TypeVar, cast, get_type_hints
+from typing import Any, Callable, get_type_hints
 
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
-from gi.repository import GObject  # type: ignore
+from gi.repository import GObject, Gio
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 
@@ -162,8 +162,6 @@ class PopupManager:
 
 popup_manager = PopupManager.instance()
 
-from gi.repository import Gio # type: ignore
-
 DBUS_DIR = os.path.dirname(__file__) + "/services/dbus"
 
 def load_interface_xml(
@@ -202,7 +200,7 @@ def load_interface_xml(
 
     return Gio.DBusNodeInfo.new_for_xml(xml_string).interfaces[0]
 
-class BindableSetting(IgnisGObject):
+class BindableSettings(IgnisGObject):
     def bind_properties(
         self,
         lambda_func: Callable[[], Any],
@@ -232,7 +230,7 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
     def decorator(cls: type[T]) -> type[T]:
         hints = get_type_hints(cls)
 
-        class Wrapper(cls, BindableSetting): # type: ignore
+        class Wrapper(cls, BindableSettings): # type: ignore
             _path: str
             _defaults: dict[str, Any]
             _data: dict[str, Any]
@@ -276,13 +274,13 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
 
         prop_id = 1
         for name, typ in hints.items():
-            if Wrapper.find_property(name) is None:
-                Wrapper.install_property(prop_id, _make_pspec(name, typ))
+            if Wrapper.find_property(name) is None: # type: ignore
+                Wrapper.install_property(prop_id, _make_pspec(name, typ)) # type: ignore
                 prop_id += 1
 
         assert hasattr(Wrapper, "bind_properties")
 
-        return Wrapper
+        return Wrapper # type: ignore
 
     return decorator
 

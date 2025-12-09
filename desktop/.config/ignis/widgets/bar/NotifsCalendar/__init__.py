@@ -2,7 +2,7 @@ from ignis.widgets import Widget
 import util
 from widgets.bar.NotifsCalendar.calendar import Calendar
 from widgets.bar.NotifsCalendar.notifications import Notifications
-from gi.repository import Gtk  # type: ignore
+from gi.repository import Gtk
 
 app = util.get_app()
 

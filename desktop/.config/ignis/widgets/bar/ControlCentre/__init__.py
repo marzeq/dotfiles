@@ -3,7 +3,7 @@ from ignis.services.audio import AudioService
 from ignis.services.system_tray import SystemTrayService
 from ignis.services.upower import UPowerService
 from ignis.services.backlight import BacklightService
-from gi.repository import Gtk  # type: ignore
+from gi.repository import Gtk
 import util
 from widgets.bar.ControlCentre.popup_registry import popup_registry
 from widgets.bar.ControlCentre.brightness_slider import BrightnessSlider

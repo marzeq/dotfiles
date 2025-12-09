@@ -3,7 +3,7 @@ from typing import Any, Callable
 from ignis.utils import Utils
 from ignis.widgets import Widget
 import locale
-from util import JsonSettings, BindableSetting
+from util import JsonSettings, BindableSettings
 import util
 
 
@@ -16,7 +16,7 @@ def system_uses_24h():
         return True
 
 @JsonSettings("clock")
-class ClockSettings(BindableSetting):
+class ClockSettings(BindableSettings):
     use_24h: bool = system_uses_24h()
     def set_use_24h(self, value: bool) -> None: self.use_24h = value
 

@@ -1,0 +1,5 @@
+[tool.pyright]
+typeCheckingMode = "basic"
+useLibraryCodeForTypes = true
+reportMissingModuleSource = false
+pythonPlatform = "Linux"
