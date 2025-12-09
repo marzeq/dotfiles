@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Sequence
 from ignis.widgets import Widget
-from gi.repository import Gtk # type: ignore
+from gi.repository import Gtk, Gdk
 import util
 from widgets.misc.Launcher.base_mode import LauncherResult
 
@@ -11,7 +11,7 @@ from .shell_mode import ShellMode
 from .files_mode import FilesMode
 
 class Launcher(Widget.Window):
-    def __init__(self, monitorid: int, monitor):
+    def __init__(self, monitorid: int, monitor: Gdk.Monitor):
         self.entry = Widget.Entry(
             hexpand=True,
             placeholder_text="Search",
@@ -29,7 +29,7 @@ class Launcher(Widget.Window):
             css_classes=[],
         )
 
-        monitor_geo = monitor.get_geometry() # type:ignore (Gdk.Rectangle)
+        monitor_geo = monitor.get_geometry()
         monitor_h_px: int = monitor_geo.height
 
         self.set_results([LauncherAppResult(app, self, self.update_mode_and_list) for app in app_settings.visible_apps])
