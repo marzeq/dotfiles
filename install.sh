@@ -52,6 +52,7 @@ DESKTOP_DEPS=(
   ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
   "python-pillow" "python-numpy" "python-rapidfuzz" # dependencies for ignis
   "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
+  "python-pam"
   "cantarell-fonts"                                 # sans font for the shell
   
   "gdm"                                             # login manager of choice

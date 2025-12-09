@@ -6,6 +6,7 @@ from ignis.widgets import Widget
 import util
 from widgets.bar.ControlCentre.popup_registry import popup_registry
 from widgets.bar.ControlCentre.power_menu import PowerMenu
+from widgets.misc.Lockscreen import lock
 
 app = util.get_app()
 upower = UPowerService.get_default()
@@ -65,11 +66,7 @@ class TopBox(Widget.CenterBox):
             Widget.Button(
                 child=Widget.Icon(image="system-lock-screen-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda _: util.run_cmd_and_run_delayed(
-                    "loginctl lock-session",
-                    lambda *_: util.popup_manager.close_curr_popup(),
-                    100
-                ),
+                on_click=lambda _: util.popup_manager.close_curr_popup() or lock()
             ),
             Widget.Button(
                 child=Widget.Icon(image="system-shutdown-symbolic"),

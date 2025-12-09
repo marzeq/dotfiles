@@ -25,17 +25,25 @@ class ClockSettings(BindableSettings):
 
     show_seconds: bool = True
     def set_show_seconds(self, value: bool) -> None: self.show_seconds = value
-
-    @property
-    def time_format(self) -> str:
-        fmt = ""
-        if self.show_dow:
-            fmt += "%a "
-        fmt += "%-d %b  "
-
+    
+    def hour_format(self, show_seconds: bool) -> str:
         if self.use_24h:
-            return fmt + ("%H:%M:%S" if self.show_seconds else "%H:%M")
-        return fmt + ("%I:%M:%S %p" if self.show_seconds else "%I:%M %p")
+            return "%H:%M:%S" if show_seconds else "%H:%M"
+        return "%I:%M:%S %p" if show_seconds else "%I:%M %p"
+
+    def date_format(self, long: bool, show_dow: bool) -> str:
+        if long:
+            fmt = ""
+            if show_dow:
+                fmt += "%A, "
+            fmt += "%B %-d"
+            return fmt
+        
+        fmt = ""
+        if show_dow:
+            fmt += "%a "
+        fmt += "%-d %b"
+        return fmt
 
 clock_settings = ClockSettings()
 
@@ -53,7 +61,10 @@ class Clock(Widget.EventBox):
                     child=Widget.Label(
                         label=clock_settings.bind_properties(
                             lambda *_: Utils.Poll(1000, lambda _:
-                                datetime.now().strftime(clock_settings.time_format)).bind("output")
+                                datetime.now().strftime(
+                                    clock_settings.date_format(long=False, show_dow=clock_settings.show_dow) + "  " +
+                                        clock_settings.hour_format(clock_settings.show_seconds)
+                                )).bind("output")
                         )
                     ),
                     css_classes=["box"],
