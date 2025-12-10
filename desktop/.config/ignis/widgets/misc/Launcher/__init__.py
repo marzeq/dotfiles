@@ -10,7 +10,7 @@ from .calc_mode import CalcMode
 from .shell_mode import ShellMode
 from .files_mode import FilesMode
 
-class Launcher(Widget.Window):
+class Launcher(Widget.RevealerWindow):
     def __init__(self, monitorid: int, monitor: Gdk.Monitor):
         self.entry = Widget.Entry(
             hexpand=True,
@@ -34,6 +34,41 @@ class Launcher(Widget.Window):
 
         self.set_results([LauncherAppResult(app, self, self.update_mode_and_list) for app in app_settings.visible_apps])
 
+
+        revealer = Widget.Revealer(
+            transition_type="slide_down",
+            child=Widget.Box(
+                vertical=True,
+                child=[
+                    Widget.EventBox(
+                        vexpand=True,
+                        hexpand=True,
+                        style=f"min-height: {monitor_h_px / 3}px;",
+                        on_click=lambda _: util.popup_manager.close_curr_popup(),
+                    ),
+                    Widget.Box(
+                        vertical=True,
+                        css_classes=["launcher"],
+                        child=[
+                            Widget.Box(
+                                css_classes=["launcher-entry"],
+                                child=[
+                                    Widget.Icon(
+                                        icon_name="system-search-symbolic",
+                                        css_classes=["launcher-entry-icon"],
+                                    ),
+                                    self.entry,
+                                ],
+                            ),
+                            self.scroller
+                        ],
+                    )
+                ],
+            ),
+            transition_duration=util.popup_manager.popup_anim_speed,
+            reveal_child=True,
+        )
+
         super().__init__(
             visible=False,
             popup=True,
@@ -55,33 +90,12 @@ class Launcher(Widget.Window):
                         halign="center",
                         vertical=True,
                         child=[
-                            Widget.EventBox(
-                                vexpand=True,
-                                hexpand=True,
-                                on_click=lambda _: util.popup_manager.close_curr_popup(),
-                                style=f"min-height: {monitor_h_px / 3}px;"
-                            ),
-                            Widget.Box(
-                                vertical=True,
-                                css_classes=["launcher"],
-                                child=[
-                                    Widget.Box(
-                                        css_classes=["launcher-entry"],
-                                        child=[
-                                            Widget.Icon(
-                                                icon_name="system-search-symbolic",
-                                                css_classes=["launcher-entry-icon"],
-                                            ),
-                                            self.entry,
-                                        ],
-                                    ),
-                                    self.scroller
-                                ],
-                            ),
+                            revealer,
                         ]
                     )
                 ],
             ),
+            revealer=revealer,
         )
 
         self.modes = [CalcMode(), ShellMode(), FilesMode(), AppMode()]
