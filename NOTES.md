@@ -8,16 +8,16 @@ Edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settin
 
 ### Window management
 
-| Keys                                                 | Action              |
-|------------------------------------------------------|---------------------|
-| `super` + `q`                                        | Kill active window  |
-| `super` + `t`                                        | Toggle floating     |
-| `super` + `s`                                        | Toggle split        |
-| `super` + `shift` + `f`                              | Fullscreen          |
-| `super` + `h` / `j` / `k` / `l`                      | Move focus          |
-| `super` + `left` / `down` / `up` / `right`           | Move focus          |
-| `super` + `shift` + `h` / `j` / `k` / `l`            | Move window         |
-| `super` + `shift` + `left` / `down` / `up` / `right` | Move window         |
+| Keys                                                 | Action                 |
+|------------------------------------------------------|------------------------|
+| `super` + `q`                                        | Kill active window     |
+| `super` + `t`                                        | Toggle floating        |
+| `super` + `s`                                        | Swap slave with master |
+| `super` + `shift` + `f`                              | Fullscreen             |
+| `super` + `h` / `j` / `k` / `l`                      | Move focus             |
+| `super` + `left` / `down` / `up` / `right`           | Move focus             |
+| `super` + `shift` + `h` / `j` / `k` / `l`            | Move window            |
+| `super` + `shift` + `left` / `down` / `up` / `right` | Move window            |
 
 ### Shell
 
