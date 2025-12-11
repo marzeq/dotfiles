@@ -161,6 +161,8 @@ class Launcher(Widget.RevealerWindow):
             self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
             self.scroller.css_classes = ["launcher-scroller-scrolling"]
 
+        self.scroller.get_vadjustment().set_value(0)
+
     def trigger_result(self, index: int = 0):
         if self.result_list.child and index < len(self.result_list.child):
             self.result_list.child[index].on_click()
