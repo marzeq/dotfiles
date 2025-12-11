@@ -1,29 +1,28 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING, Literal
+from typing import Callable, TYPE_CHECKING, NamedTuple, Sequence
 from ignis.widgets import Widget
 
 if TYPE_CHECKING:
     from . import Launcher
 
+class GetResultsResponse(NamedTuple):
+    results: Sequence[LauncherResult]
+    include_in_fuzzing: bool = True
+
 class LauncherMode:
-    def matches(self, query: str) -> bool:
-        raise NotImplementedError
-
-    def update(self, launcher: Launcher, query: str):
-        raise NotImplementedError
-
-    def launch(self, launcher: Launcher):
+    def get_results(self, launcher: Launcher, query: str) -> GetResultsResponse:
         raise NotImplementedError
 
 class LauncherResult(Widget.Button):
     def __init__(
         self,
-        label: str,
+        value: str,
         icon_name: str,
         launch: Callable[[], None],
         css_classes: list[str] | None = None,
         popover_menu: Widget.PopoverMenu | None = None,
     ):
+        self.value = value
         super().__init__(
             css_classes=["launcher-result"] + (css_classes or []),
             child=Widget.Box(
@@ -36,7 +35,7 @@ class LauncherResult(Widget.Button):
                                 pixel_size=32,
                             ),
                             Widget.Label(
-                                label=label,
+                                label=value,
                                 css_classes=["launcher-result-label"],
                                 ellipsize="middle",
                             ),

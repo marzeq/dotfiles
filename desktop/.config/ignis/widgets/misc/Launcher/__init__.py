@@ -2,13 +2,13 @@ from __future__ import annotations
 from typing import Sequence
 from ignis.widgets import Widget
 from gi.repository import Gtk, Gdk
+from rapidfuzz import fuzz, process
 import util
 from widgets.misc.Launcher.base_mode import LauncherResult
 
-from .app_mode import AppMode, LauncherAppResult, app_settings
+from .app_mode import AppMode
 from .calc_mode import CalcMode
-from .shell_mode import ShellMode
-from .files_mode import FilesMode
+from .base_mode import LauncherMode
 
 class Launcher(Widget.RevealerWindow):
     def __init__(self, monitorid: int, monitor: Gdk.Monitor):
@@ -31,9 +31,6 @@ class Launcher(Widget.RevealerWindow):
 
         monitor_geo = monitor.get_geometry()
         monitor_h_px: int = monitor_geo.height
-
-        self.set_results([LauncherAppResult(app, self, self.update_mode_and_list) for app in app_settings.visible_apps])
-
 
         revealer = Widget.Revealer(
             transition_type="slide_down",
@@ -98,11 +95,10 @@ class Launcher(Widget.RevealerWindow):
             revealer=revealer,
         )
 
-        self.modes = [CalcMode(), ShellMode(), FilesMode(), AppMode()]
-        self.active_mode = self.modes[-1]
+        self.modes: list[LauncherMode] = [AppMode(), CalcMode()]
 
-        self.entry.on_change = lambda *_: self.update_mode_and_list() # type: ignore
-        self.entry.on_accept = lambda *_: self.active_mode.launch(self) # type: ignore
+        self.entry.on_change = lambda *_: self.update_mode_and_list()
+        self.entry.on_accept = lambda *_: self.trigger_result(0)
 
         key_controller = Gtk.EventControllerKey()
         self.add_controller(key_controller)
@@ -117,6 +113,8 @@ class Launcher(Widget.RevealerWindow):
             "notify::visible",
             lambda *_: self.reset_entry() if self.visible else None,
         )
+        
+        self.update_mode_and_list()
 
     def set_entry_text(self, text: str):
         self.entry.text = text
@@ -137,17 +135,25 @@ class Launcher(Widget.RevealerWindow):
         else:
             self.entry.css_classes = ["launcher-entry-input"]
 
+        results = []
+        results_no_fuzz = []
+
         for mode in self.modes:
-            if mode.matches(query):
-                self.active_mode = mode
-                mode.update(self, query)
-                return
+            got = mode.get_results(self, query)
+            if got.include_in_fuzzing:
+                results.extend(got.results)
+            else:
+                results_no_fuzz.extend(got.results)
+
+        searched_results = results_no_fuzz + fuzzy_search(results, query)
+
+        self.set_results(searched_results)
     
     def get_results(self) -> list[LauncherResult]:
-        return self.result_list.child  # type: ignore
+        return self.result_list.child
 
     def set_results(self, results: Sequence[LauncherResult]):
-        self.result_list.child = results # type: ignore
+        self.result_list.child = results
         if len(results) <= 4:
             self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
             self.scroller.css_classes = []
@@ -156,8 +162,8 @@ class Launcher(Widget.RevealerWindow):
             self.scroller.css_classes = ["launcher-scroller-scrolling"]
 
     def trigger_result(self, index: int = 0):
-        if self.result_list.child and index < len(self.result_list.child): # type: ignore
-            self.result_list.child[index].on_click()  # type: ignore
+        if self.result_list.child and index < len(self.result_list.child):
+            self.result_list.child[index].on_click()
 
 class LauncherProxy(Widget.Window):
     def __init__(self):
@@ -177,3 +183,19 @@ class LauncherProxy(Widget.Window):
 
     def close(self):
         self.visible = False
+
+def fuzzy_search(results: list[LauncherResult], query: str) -> list[LauncherResult]:
+    query = query.lower()
+    if not query:
+        return results
+
+    apps_by_name = {result.value.lower(): result for result in results}
+    matches = process.extract(
+        query,
+        apps_by_name.keys(),
+        scorer=fuzz.WRatio,
+        limit=20,
+        score_cutoff=60,
+    )
+
+    return [apps_by_name[match[0]] for match in matches]

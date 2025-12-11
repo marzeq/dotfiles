@@ -1,16 +1,12 @@
 import math
 from typing import Callable
-from .base_mode import LauncherMode, LauncherResult
+from .base_mode import GetResultsResponse, LauncherMode, LauncherResult
 
 class CalcMode(LauncherMode):
-    def matches(self, query: str) -> bool:
-        return query.strip().startswith("=")
-
-    def update(self, launcher, query: str):
-        expr = query.lstrip("=").strip()
+    def get_results(self, launcher, query: str):
+        expr = query.strip()
         if not expr:
-            launcher.result_list.child = [] # type: ignore
-            return
+            return GetResultsResponse([])
         try:
             result = eval(expr, {"__builtins__": {
                 "pi": math.pi,
@@ -32,35 +28,25 @@ class CalcMode(LauncherMode):
                 "todeg": lambda x: math.degrees(x),
             }})
             if not isinstance(result, (int, float)):
-                raise ValueError("Invalid result type")
-            launcher.set_results([LauncherCalcResult(result, lambda: self.launch(launcher))])
+                return GetResultsResponse([])
+            return GetResultsResponse([LauncherCalcResult(result, lambda: self.launch(launcher))], False)
         except Exception:
-            launcher.set_results([LauncherCalcResult(None, lambda: None)])
+            return GetResultsResponse([], False)
 
     def launch(self, launcher):
         result = launcher.get_results()[0]
         if isinstance(result, LauncherCalcResult) and result.result is not None:
-            launcher.set_entry_text(f"={result.result}")
+            launcher.set_entry_text(f"{result.result}")
 
 class LauncherCalcResult(LauncherResult):
-    def __init__(self, result: int | float | None, launch: Callable[[], None]):
-        if result is None:
-            super().__init__(
-                label="Error",
-                icon_name="dialog-warning-symbolic",
-                launch=lambda: None,
-                css_classes=["launcher-result-error"],
-            )
-            self.result = None
-            return
-
+    def __init__(self, result: int | float, launch: Callable[[], None]):
         if result == int(result):
             result = int(result)
         elif isinstance(result, float):
             result = round(result, 10)
 
         super().__init__(
-            label=str(result),
+            value=str(result),
             icon_name="accessories-calculator-symbolic",
             launch=launch,
             css_classes=["launcher-result-value"],
