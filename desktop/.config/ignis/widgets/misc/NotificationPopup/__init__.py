@@ -68,7 +68,6 @@ class NotificationPopup(Widget.Window):
             anchor=["top", "bottom"],
             monitor=monitor,
             namespace=f"ignis_notification_popup_{monitor}",
-            layer="top",
             visible=False,
             css_classes=["notification-popups", "window"],
             child=PopupBox(window=self),
