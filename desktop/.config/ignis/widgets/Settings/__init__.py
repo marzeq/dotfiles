@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any, Callable
 from gi.repository import Gtk
+from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
 from widgets.Settings.style_manager import StyleManager
 from widgets.Clock import clock_settings
@@ -62,7 +63,7 @@ class SwitchWithLabel(Widget.Box):
 
 
 class SettingsSection(Widget.Box):
-    def __init__(self, title: str, description: str, child: list[Widget]):
+    def __init__(self, title: str, description: str, child: list[BaseWidget]):
         super().__init__(
             vertical=True,
             child=[

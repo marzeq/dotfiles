@@ -8,8 +8,12 @@ gi.require_version("Gtk4SessionLock", "1.0")
 
 from ignis.widgets import Widget
 from ignis.utils import Utils
-from gi.repository import Gtk4SessionLock
+from gi.repository import Gtk4SessionLock # type: ignore
 from widgets.Clock import clock_settings
+from widgets.BlurredPicture import BlurredPicture
+from widgets.Settings.style_manager import StyleManager
+
+sm = StyleManager.instance()
 
 lock_windows = []
 
@@ -34,37 +38,50 @@ class LockScreen(Widget.Window):
             hexpand=False,
         )
         self.entry.set_visibility(False)
+
+        content = Widget.CenterBox(
+            vertical=True,
+            center_widget=Widget.Box(
+                vertical=True,
+                hexpand=False,
+                halign="center",
+                child=[
+                    Widget.Label(
+                        label=clock_settings.bind_properties(
+                            lambda *_: Utils.Poll(1000, lambda _:
+                                datetime.now().strftime(
+                                    clock_settings.hour_format(
+                                        show_seconds=False
+                                    )
+                                )).bind("output")
+                        )
+                    ),
+                    Widget.Label(
+                        label=clock_settings.bind_properties(
+                            lambda *_: Utils.Poll(1000, lambda _:
+                                datetime.now().strftime(
+                                    clock_settings.date_format(long=True, show_dow=True)
+                                )).bind("output")
+                        )
+                    ),
+                    self.entry
+                ] if monitor_id == 0 else []
+            )
+        )
+
+        wallpaper = BlurredPicture(
+            image=sm.wallpaper_symlink,
+            blur_radius=16,
+            content_fit="cover"
+        )
+
         super().__init__(
             visible=False,
             layer="top",
-            namespace=f"lockcreen-window-{monitor_id}",
-            child=Widget.CenterBox(
-                vertical=True,
-                hexpand=False,
-                center_widget=Widget.Box(
-                    vertical=True,
-                    child=[
-                        Widget.Label(
-                            label=clock_settings.bind_properties(
-                                lambda *_: Utils.Poll(1000, lambda _:
-                                    datetime.now().strftime(
-                                        clock_settings.hour_format(
-                                            show_seconds=False
-                                        )
-                                    )).bind("output")
-                            )
-                        ),
-                        Widget.Label(
-                            label=clock_settings.bind_properties(
-                                lambda *_: Utils.Poll(1000, lambda _:
-                                    datetime.now().strftime(
-                                        clock_settings.date_format(long=True, show_dow=True)
-                                    )).bind("output")
-                            )
-                        ),
-                        self.entry
-                    ] if monitor_id == 0 else []
-                )
+            namespace=f"ignis_lockcreen_{monitor_id}",
+            child=Widget.Overlay(
+                child=wallpaper,
+                overlays=[content]
             )
         )
 
