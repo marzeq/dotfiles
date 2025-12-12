@@ -111,7 +111,7 @@ class Launcher(Widget.RevealerWindow):
 
         self.connect(
             "notify::visible",
-            lambda *_: self.reset_entry() if self.visible else None,
+            lambda *_: self.reset_scroll_state() or (self.reset_entry() if self.visible else None),
         )
         
         self.update_mode_and_list()
@@ -152,6 +152,9 @@ class Launcher(Widget.RevealerWindow):
     def get_results(self) -> list[LauncherResult]:
         return self.result_list.child
 
+    def reset_scroll_state(self):
+        self.scroller.get_vadjustment().set_value(0)
+
     def set_results(self, results: Sequence[LauncherResult]):
         self.result_list.child = results
         if len(results) <= 4:
@@ -161,7 +164,7 @@ class Launcher(Widget.RevealerWindow):
             self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
             self.scroller.css_classes = ["launcher-scroller-scrolling"]
 
-        self.scroller.get_vadjustment().set_value(0)
+        self.reset_scroll_state()
 
     def trigger_result(self, index: int = 0):
         if self.result_list.child and index < len(self.result_list.child):
