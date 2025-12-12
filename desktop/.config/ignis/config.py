@@ -1,14 +1,14 @@
 import os
 from ignis.utils import Utils
 import util
-from widgets.bar.Bar import Bar
-from widgets.bar.ClosePopupers import ClosePopuper
-from widgets.bar.ControlCentre import ControlCentre
-from widgets.bar.NotifsCalendar import NotifsCalendar
-from widgets.misc.Launcher import LauncherProxy, Launcher
-from widgets.misc.NotificationPopup import NotificationPopup
-from widgets.misc.OSD import OSD
-from widgets.misc.Settings import SettingsWindow
+from widgets.Bar import Bar
+from widgets.ClosePopupers import ClosePopuper
+from widgets.ControlCentre import ControlCentre
+from widgets.NotifsCalendar import NotifsCalendar
+from widgets.Launcher import LauncherProxy, Launcher
+from widgets.NotificationPopup import NotificationPopup
+from widgets.OSD import OSD
+from widgets.Settings import SettingsWindow
 
 app = util.get_app()
 dir = Utils.get_current_dir() # type: ignore

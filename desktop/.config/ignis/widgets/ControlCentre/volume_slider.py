@@ -1,8 +1,8 @@
 from ignis.widgets import Widget
 from ignis.services.audio import AudioService, Stream
 import util
-from widgets.bar.ControlCentre.popup_registry import popup_registry
-from widgets.bar.ControlCentre.device_list_popup import DeviceListPopup
+from widgets.ControlCentre.popup_registry import popup_registry
+from widgets.ControlCentre.device_list_popup import DeviceListPopup
 
 audio = AudioService.get_default()
 

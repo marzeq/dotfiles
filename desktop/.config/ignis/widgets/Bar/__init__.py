@@ -2,9 +2,9 @@ from ignis.utils import Utils
 from ignis.widgets import Widget
 
 import util
-from widgets.bar.Clock import Clock
-from widgets.bar.Workspaces import Workspaces 
-from widgets.bar.Tray import Tray 
+from widgets.Clock import Clock
+from widgets.Workspaces import Workspaces 
+from widgets.Tray import Tray 
 
 app = util.get_app()
 

@@ -1,7 +1,7 @@
 from ignis.widgets import Widget
 import util
-from widgets.bar.NotifsCalendar.calendar import Calendar
-from widgets.bar.NotifsCalendar.notifications import Notifications
+from widgets.NotifsCalendar.calendar import Calendar
+from widgets.NotifsCalendar.notifications import Notifications
 from gi.repository import Gtk
 
 app = util.get_app()

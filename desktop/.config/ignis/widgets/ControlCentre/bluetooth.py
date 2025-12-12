@@ -1,8 +1,8 @@
 import asyncio
 from ignis.services.bluetooth import BluetoothDevice, BluetoothService
-from widgets.bar.ControlCentre.popup_registry import popup_registry
-from widgets.bar.ControlCentre.device_list_popup import DeviceListPopup
-from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentreWidget
+from widgets.ControlCentre.popup_registry import popup_registry
+from widgets.ControlCentre.device_list_popup import DeviceListPopup
+from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
 
 bluetooth = BluetoothService.get_default()
 

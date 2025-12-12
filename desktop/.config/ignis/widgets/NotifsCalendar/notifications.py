@@ -3,7 +3,7 @@ from ignis.services.notifications import NotificationService
 from ignis.services.mpris import MprisPlayer, MprisService
 from ignis.utils import Utils
 from ignis.widgets import Widget
-from widgets.shared.Notification import NotificationWidget
+from widgets.Notification import NotificationWidget
 
 mpris = MprisService.get_default()
 notifications = NotificationService.get_default()

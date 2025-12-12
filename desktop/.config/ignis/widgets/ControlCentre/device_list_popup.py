@@ -1,6 +1,6 @@
 from typing import Any, Callable
 from ignis.widgets import Widget
-from widgets.bar.ControlCentre.widget import ControlCentrePopup
+from widgets.ControlCentre.widget import ControlCentrePopup
 
 class DeviceListPopup[T](ControlCentrePopup):
     def __init__(

@@ -5,13 +5,13 @@ from ignis.services.upower import UPowerService
 from ignis.services.backlight import BacklightService
 from gi.repository import Gtk
 import util
-from widgets.bar.ControlCentre.popup_registry import popup_registry
-from widgets.bar.ControlCentre.brightness_slider import BrightnessSlider
-from widgets.bar.ControlCentre.main_widgets import MainWidgets
-from widgets.bar.ControlCentre.power_menu import PowerMenu
-from widgets.bar.ControlCentre.system_tray_app import SystemTrayApp
-from widgets.bar.ControlCentre.topbox import TopBox
-from widgets.bar.ControlCentre.volume_slider import VolumeSlider
+from widgets.ControlCentre.popup_registry import popup_registry
+from widgets.ControlCentre.brightness_slider import BrightnessSlider
+from widgets.ControlCentre.main_widgets import MainWidgets
+from widgets.ControlCentre.power_menu import PowerMenu
+from widgets.ControlCentre.system_tray_app import SystemTrayApp
+from widgets.ControlCentre.topbox import TopBox
+from widgets.ControlCentre.volume_slider import VolumeSlider
 
 
 system_tray = SystemTrayService.get_default()

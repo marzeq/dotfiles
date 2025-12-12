@@ -4,7 +4,7 @@ from ignis.widgets import Widget
 from gi.repository import Gtk, Gdk
 from rapidfuzz import fuzz, process
 import util
-from widgets.misc.Launcher.base_mode import LauncherResult
+from widgets.Launcher.base_mode import LauncherResult
 
 from .app_mode import AppMode
 from .calc_mode import CalcMode

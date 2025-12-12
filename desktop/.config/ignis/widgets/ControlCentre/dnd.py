@@ -1,5 +1,5 @@
 from ignis.options import options
-from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentreWidget
+from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
 
 class DNDWidget(ControlCentreWidget):
     def __init__(self):

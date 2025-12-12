@@ -1,4 +1,4 @@
-from widgets.bar.ControlCentre.widget import ControlCentrePopup
+from widgets.ControlCentre.widget import ControlCentrePopup
 
 class PopupRegistry:
     def __init__(self):

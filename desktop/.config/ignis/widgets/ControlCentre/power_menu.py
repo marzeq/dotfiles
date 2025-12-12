@@ -1,7 +1,7 @@
 from ignis.widgets import Widget
 import util
-from widgets.bar.ControlCentre.popup_registry import popup_registry
-from widgets.bar.ControlCentre.widget import ControlCentrePopup
+from widgets.ControlCentre.popup_registry import popup_registry
+from widgets.ControlCentre.widget import ControlCentrePopup
 
 class PowerMenu(ControlCentrePopup):
     def __init__(self):

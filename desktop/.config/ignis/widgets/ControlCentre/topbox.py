@@ -4,8 +4,8 @@ from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
 
 import util
-from widgets.bar.ControlCentre.popup_registry import popup_registry
-from widgets.bar.ControlCentre.power_menu import PowerMenu
+from widgets.ControlCentre.popup_registry import popup_registry
+from widgets.ControlCentre.power_menu import PowerMenu
 
 app = util.get_app()
 upower = UPowerService.get_default()

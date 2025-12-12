@@ -1,8 +1,8 @@
 from typing import Callable
 from ignis.widgets import Widget
 from services.power_profiles.service import PowerProfilesService
-from widgets.bar.ControlCentre.popup_registry import popup_registry
-from widgets.bar.ControlCentre.widget import CCWLabels, ControlCentrePopup, ControlCentreWidget
+from widgets.ControlCentre.popup_registry import popup_registry
+from widgets.ControlCentre.widget import CCWLabels, ControlCentrePopup, ControlCentreWidget
 
 power_profiles = PowerProfilesService.get_default()
 

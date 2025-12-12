@@ -2,9 +2,9 @@ import asyncio
 from typing import Any, Callable
 from gi.repository import Gtk
 from ignis.widgets import Widget
-from widgets.misc.Settings.style_manager import StyleManager
-from widgets.bar.Clock import clock_settings
-from widgets.bar.Workspaces import workspace_settings
+from widgets.Settings.style_manager import StyleManager
+from widgets.Clock import clock_settings
+from widgets.Workspaces import workspace_settings
 
 sm = StyleManager.instance()
 
@@ -16,7 +16,6 @@ class AccentColourButton(Widget.Button):
             css_classes=["settings-suggested-accent-colour"],
             on_click=lambda _: sm.set_accent_colour(colour, wallpaper),
         )
-
 
 class WallpaperButton(Widget.Button):
     def __init__(self, path: str, on_wallpaper_picked):

@@ -2,11 +2,11 @@ from ignis.services.bluetooth import BluetoothService
 from ignis.services.network import NetworkService
 from ignis.widgets import Widget
 
-from widgets.bar.ControlCentre.bluetooth import BluetoothWidget
-from widgets.bar.ControlCentre.dnd import DNDWidget
-from widgets.bar.ControlCentre.ethernet import EthernetWidget
-from widgets.bar.ControlCentre.power_profiles import PowerProfilesWidget
-from widgets.bar.ControlCentre.wifi import WiFiWidget
+from widgets.ControlCentre.bluetooth import BluetoothWidget
+from widgets.ControlCentre.dnd import DNDWidget
+from widgets.ControlCentre.ethernet import EthernetWidget
+from widgets.ControlCentre.power_profiles import PowerProfilesWidget
+from widgets.ControlCentre.wifi import WiFiWidget
 
 
 network = NetworkService.get_default()
