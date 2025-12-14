@@ -1,4 +1,5 @@
 from typing import Any, Callable
+from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
 from widgets.ControlCentre.widget import ControlCentrePopup
 
@@ -38,6 +39,7 @@ class DeviceListPopup[T](ControlCentrePopup):
         super().__init__(
             Widget.Box(
                 vertical=True,
+                hexpand=True,
                 child=[
                     Widget.Box(
                         child=[
@@ -59,12 +61,12 @@ class DeviceListPopup[T](ControlCentrePopup):
             )
         )
 
-    def render_items(self, items: list[T]) -> list[Widget]:
+    def render_items(self, items: list[T]) -> list[BaseWidget]:
         items_filtered: list[T] = self.filter_items(items)
         if not self.wants_see_more:
             items_filtered = items_filtered[:5]
 
-        widgets: list[Widget] = []
+        widgets: list[BaseWidget] = []
         for item in items_filtered:
             icon_widget = None
             if self.icon_name_fn:
@@ -86,12 +88,10 @@ class DeviceListPopup[T](ControlCentrePopup):
 
             label_widget = Widget.Label(
                 label=self.label_fn(item),
-                max_width_chars=30,
-                hexpand=True,
-                halign="start",
                 ellipsize="end",
+                max_width_chars=30,
             )
-            children = [icon_widget, checkmark_widget] if icon_widget else []
+            children: list[BaseWidget] = [icon_widget, checkmark_widget] if icon_widget else []
             children.append(label_widget)
 
             widgets.append(
@@ -112,6 +112,7 @@ class DeviceListPopup[T](ControlCentrePopup):
                     label="See more" if not self.wants_see_more else "See fewer",
                     on_click=lambda _: self.toggle_see_more(),
                     css_classes=["cc-popup-option"],
+                    hexpand=True,
                 )
             )
 

@@ -53,6 +53,7 @@ class PowerProfilesPopup(ControlCentrePopup):
         super().__init__(
             Widget.Box(
                 vertical=True,
+                hexpand=True,
                 child=[
                     Widget.Box(
                         child=[
