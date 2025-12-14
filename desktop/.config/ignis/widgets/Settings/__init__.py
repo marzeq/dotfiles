@@ -99,6 +99,11 @@ class SettingsWindow(Widget.RegularWindow):
                                        default=True, name="Image")]
         )
 
+        self.wallpapers_scroll = Widget.Scroll(
+                child=self.wallpapers_box,
+                css_classes=["settings-wallpapers-scroll"],
+            )
+
         super().__init__(
             child=Widget.Scroll(
                 child=Widget.Box(
@@ -109,10 +114,7 @@ class SettingsWindow(Widget.RegularWindow):
                             title="Wallpaper",
                             description="Change the wallpaper of the desktop by clicking on one of them.",
                             child=[
-                                Widget.Scroll(
-                                    child=self.wallpapers_box,
-                                    css_classes=["settings-wallpapers-scroll"],
-                                ),
+                                self.wallpapers_scroll,
                                 Widget.Box(
                                     halign="start",
                                     child=[
@@ -201,11 +203,10 @@ class SettingsWindow(Widget.RegularWindow):
             ),
             namespace="ignis_settings",
             css_classes=["window"],
-            visible=sm.has_lockfile(),
+            visible=False,
             hide_on_close=True,
         )
 
-        sm.remove_lockfile()
     
     def on_color_chosen(self, source, result):
         try:
@@ -228,3 +229,4 @@ class SettingsWindow(Widget.RegularWindow):
     async def on_wallpaper_picked(self, file):
         await sm.pick_wallpaper(file, self.refresh_wallpapers)
         await self.update_suggested_accent_colours(file)
+        self.wallpapers_scroll.get_vadjustment().set_value(0)

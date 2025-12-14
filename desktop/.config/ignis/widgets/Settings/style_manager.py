@@ -1,3 +1,4 @@
+import asyncio
 import os
 import shutil
 import subprocess
@@ -5,6 +6,9 @@ import hashlib
 from typing import Callable
 import util
 
+async def recompile_css():
+    await asyncio.sleep(0.01)
+    util.get_app().reload_css()
 
 class StyleManager:
     _instance = None
@@ -50,16 +54,18 @@ class StyleManager:
         h = self.hash_file(wallpaper)
         self.accent_map[h] = colour
         self.save_accent_map(self.accent_map)
-        self.save_lockfile()
-        util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"")
+        asyncio.create_task(
+            util.run_cmd_async(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"", awaitable=recompile_css())
+        )
 
     def restore_accent_colour(self, wallpaper: str):
         h = self.hash_file(wallpaper)
         if h in self.accent_map:
             del self.accent_map[h]
             self.save_accent_map(self.accent_map)
-        self.save_lockfile()
-        util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
+        asyncio.create_task(
+            util.run_cmd_async(f"{util.root_dir}/scripts/restore_accent.sh", awaitable=recompile_css())
+        )
 
     def handle_color_chosen(self, rgba, wallpaper: str):
         hex_colour = f"#{int(rgba.red*255):02x}{int(rgba.green*255):02x}{int(rgba.blue*255):02x}"
@@ -134,22 +140,13 @@ class StyleManager:
 
         saved = self.accent_map.get(self.hash_file(file))
         if saved:
-            self.save_lockfile()
-            util.run_cmd(f"{util.root_dir}/scripts/change_accent.sh \"{saved}\"")
+            asyncio.create_task(
+                util.run_cmd_async(f"{util.root_dir}/scripts/change_accent.sh \"{saved}\"",
+                                   awaitable=recompile_css())
+            )
         else:
-            self.save_lockfile()
-            util.run_cmd(f"{util.root_dir}/scripts/restore_accent.sh")
-
-    def has_lockfile(self) -> bool:
-        return os.path.isfile("/tmp/ignis_reopen_settings")
-
-    def save_lockfile(self):
-        with open("/tmp/ignis_reopen_settings", "w") as f:
-            f.write("1")
-
-    def remove_lockfile(self):
-        try:
-            os.remove("/tmp/ignis_reopen_settings")
-        except FileNotFoundError:
-            pass
+            asyncio.create_task(
+                util.run_cmd_async(f"{util.root_dir}/scripts/restore_accent.sh",
+                                   awaitable=recompile_css())
+            )
 

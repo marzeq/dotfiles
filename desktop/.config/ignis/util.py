@@ -2,7 +2,7 @@ import json
 import subprocess
 import asyncio
 import os
-from typing import Any, Callable, get_type_hints
+from typing import Any, Awaitable, Callable, get_type_hints
 
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
@@ -32,6 +32,16 @@ root_dir = Utils.get_current_dir() # type: ignore
 
 def active_monitor() -> int:
     return hyprland.active_workspace.monitor_id
+
+async def run_cmd_async(cmd: str, awaitable: Awaitable | None = None) -> None:
+    await asyncio.create_subprocess_exec(
+        "/usr/bin/bash", "-c", cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        preexec_fn=os.setpgrp
+    )
+    if awaitable is not None:
+        await awaitable
 
 def run_cmd(cmd: str) -> None:
     asyncio.create_task(asyncio.create_subprocess_exec(

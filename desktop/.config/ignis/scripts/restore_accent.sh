@@ -26,5 +26,3 @@ restore_backup "$gtk4_file"
 echo "" > ~/.local/share/ignis/accent.scss
 
 gsettings reset org.gnome.desktop.interface accent-color
-
-goignis reload

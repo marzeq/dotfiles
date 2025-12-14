@@ -37,5 +37,3 @@ mkdir -p ~/.local/share/ignis
 echo "\$accent: $hex_colour;" > ~/.local/share/ignis/accent.scss
 
 gsettings set org.gnome.desktop.interface accent-color "$hex_colour"
-
-goignis reload
