@@ -4,7 +4,7 @@ import util
 from widgets.Bar import Bar
 from widgets.ClosePopupers import ClosePopuper
 from widgets.ControlCentre import ControlCentre
-from widgets.Lockscreen import LockProxy, register_lockscreen
+from widgets.Lockscreen import LockProxy
 from widgets.NotifsCalendar import NotifsCalendar
 from widgets.Launcher import LauncherProxy, Launcher
 from widgets.NotificationPopup import NotificationPopup
@@ -41,4 +41,3 @@ OSD()
 LauncherProxy()
 SettingsWindow()
 LockProxy()
-register_lockscreen()

@@ -13,7 +13,7 @@ gi.require_version("Gtk4SessionLock", "1.0")
 
 from ignis.widgets import Widget
 from ignis.utils import Utils
-from gi.repository import Gtk, GLib, Gdk, Gio, Gtk4SessionLock # type: ignore
+from gi.repository import Gtk,  Gdk, Gio, Gtk4SessionLock # type: ignore
 from widgets.Clock import clock_settings
 from widgets.BlurredPicture import BlurredPicture
 from widgets.Settings.style_manager import StyleManager
@@ -317,59 +317,4 @@ def get_user_profile_picture() -> str:
         return s
 
     return ""
-
-def register_lockscreen():
-    session_id = os.getenv("XDG_SESSION_ID")
-    if not session_id:
-        raise RuntimeError("XDG_SESSION_ID not set")
-
-    bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
-
-    manager = Gio.DBusProxy.new_sync(
-        bus,
-        Gio.DBusProxyFlags.NONE,
-        None,
-        "org.freedesktop.login1",
-        "/org/freedesktop/login1",
-        "org.freedesktop.login1.Manager",
-        None,
-    )
-
-    session_path = manager.call_sync(
-        "GetSession",
-        GLib.Variant("(s)", (session_id,)),
-        Gio.DBusCallFlags.NONE,
-        -1,
-        None,
-    ).unpack()[0]
-
-    bus.signal_subscribe(
-        "org.freedesktop.login1",
-        "org.freedesktop.login1.Session",
-        "Lock",
-        session_path,
-        None,
-        Gio.DBusSignalFlags.NONE,
-        lambda *_: lock()
-    )
-
-    bus.signal_subscribe(
-        "org.freedesktop.login1",
-        "org.freedesktop.login1.Session",
-        "Unlock",
-        session_path,
-        None,
-        Gio.DBusSignalFlags.NONE,
-        lambda *_: destroy_windows()
-    )
-
-    bus.signal_subscribe(
-        "org.freedesktop.login1",
-        "org.freedesktop.login1.Manager",
-        "LockSessions",
-        "/org/freedesktop/login1",
-        None,
-        Gio.DBusSignalFlags.NONE,
-        lambda *_: lock(),
-    )
 
