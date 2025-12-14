@@ -174,7 +174,7 @@ class LockScreen(Widget.Window):
         self.time_revealer = Widget.Revealer(
             child=TimeDateScreen(),
             transition_type="slide_down",
-            transition_duration=util.popup_manager.popup_anim_speed,
+            transition_duration=util.popup_manager.popup_anim_speed*2,
             reveal_child=True
         )
 
@@ -185,8 +185,8 @@ class LockScreen(Widget.Window):
         self.entry = entry_screen.entry
         self.entry_revealer = Widget.Revealer(
             child=entry_screen,
-            transition_type="slide_down",
-            transition_duration=util.popup_manager.popup_anim_speed,
+            transition_type="slide_up",
+            transition_duration=util.popup_manager.popup_anim_speed*2,
             reveal_child=False,
         )
 
