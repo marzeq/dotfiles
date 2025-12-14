@@ -35,8 +35,8 @@ class ClockSettings(BindableSettings):
         if long:
             fmt = ""
             if show_dow:
-                fmt += "%A, "
-            fmt += "%B %-d"
+                fmt += "%A "
+            fmt += "%-d %B"
             return fmt
         
         fmt = ""

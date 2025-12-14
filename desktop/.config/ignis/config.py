@@ -4,6 +4,7 @@ import util
 from widgets.Bar import Bar
 from widgets.ClosePopupers import ClosePopuper
 from widgets.ControlCentre import ControlCentre
+from widgets.Lockscreen import LockProxy, register_lockscreen
 from widgets.NotifsCalendar import NotifsCalendar
 from widgets.Launcher import LauncherProxy, Launcher
 from widgets.NotificationPopup import NotificationPopup
@@ -39,3 +40,5 @@ for i, m in enumerate(Utils.get_monitors()): # type: ignore
 OSD()
 LauncherProxy()
 SettingsWindow()
+LockProxy()
+register_lockscreen()

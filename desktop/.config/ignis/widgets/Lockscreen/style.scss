@@ -1,0 +1,40 @@
+.lockscreen-time {
+  font-weight: 800;
+  font-size: 6rem;
+  margin-bottom: 1rem;
+}
+
+.lockscreen-date {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #dddddd;
+}
+
+.lockscreen-usericon-default {
+  margin: 32px;
+}
+
+.lockscreen-usericon-bg {
+  border-radius: 99999rem;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.lockscreen-usericon-frame {
+  border-radius: 99999rem;
+  background: transparent;
+}
+
+.lockscreen-username {
+  font-size: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.lockscreen-entry {
+  margin-top: 1.5rem;
+  min-width: 15rem;
+  &.error entry {
+    color: red;
+    caret-color: red;
+    border-color: red;
+  }
+}
