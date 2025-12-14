@@ -5,6 +5,26 @@
   font-family: Adwaita Sans, Cantarell, sans-serif;
 }
 
+entry {
+  outline-color: $accent;
+
+  > text selection {
+    background-color: rgba($accent, 0.3);
+  }
+}
+
+button, menubutton, splitbutton {
+  &.suggested-action {
+    &, &:checked {
+      background-color: $accent;
+    }
+  }
+}
+
+switch:checked:not(:disabled) {
+  background-color: $accent;
+}
+
 @mixin popup {
   background-color: $bg;
   padding: 1.5rem;
