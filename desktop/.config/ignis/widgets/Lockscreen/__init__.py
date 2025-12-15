@@ -15,7 +15,7 @@ from ignis.widgets import Widget
 from ignis.utils import Utils
 from gi.repository import Gtk, Gdk, Gio, Gtk4SessionLock  # type: ignore
 from widgets.Clock import clock_settings
-from widgets.BlurredPicture import BlurredPicture
+from widgets.FilteredPicture import FilteredPicture
 from widgets.Settings.style_manager import StyleManager
 
 sm = StyleManager.instance()
@@ -153,6 +153,21 @@ class EntryScreen(Widget.Box):
             Gtk.EntryIconPosition.SECONDARY, "view-conceal-symbolic"
         )
 
+    def set_authenticating(self, authenticating: bool):
+        self.entry.set_editable(not authenticating)
+        self.entry.set_visibility(False)
+
+        if authenticating:
+            self.entry.set_icon_from_icon_name(
+                Gtk.EntryIconPosition.SECONDARY, "content-loading-symbolic"
+            )
+            self.entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, False)
+        else:
+            self.entry.set_icon_from_icon_name(
+                Gtk.EntryIconPosition.SECONDARY, "view-conceal-symbolic"
+            )
+            self.entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
+
 
 class LockScreen(Widget.Window):
     def __init__(self, lock_instance, monitor: Gdk.Display, monitor_id: int):
@@ -162,8 +177,11 @@ class LockScreen(Widget.Window):
 
         lock_instance.assign_window_to_monitor(self, monitor)
 
-        wallpaper = BlurredPicture(
-            image=sm.wallpaper_symlink, blur_radius=16, content_fit="cover"
+        wallpaper = FilteredPicture(
+            image=sm.wallpaper_symlink,
+            blur_radius=16,
+            darken=0.5,
+            content_fit="cover"
         )
 
         if monitor_id != 0:
@@ -180,15 +198,15 @@ class LockScreen(Widget.Window):
             reveal_child=True,
         )
 
-        entry_screen = EntryScreen(
+        self.entry_screen = EntryScreen(
             on_accept=lambda t: None
             if self.authenticating
             else asyncio.create_task(self._on_accept(t)),
             on_change=lambda: self._on_change(),
         )
-        self.entry = entry_screen.entry
+        self.entry = self.entry_screen.entry
         self.entry_revealer = Widget.Revealer(
-            child=entry_screen,
+            child=self.entry_screen,
             transition_type="slide_up",
             transition_duration=util.popup_manager.popup_anim_speed * 2,
             reveal_child=False,
@@ -222,7 +240,7 @@ class LockScreen(Widget.Window):
             self.time_revealer.set_reveal_child(True)
 
             self.entry.set_text("")
-        elif self.time_revealer.get_reveal_child() and not is_esc:
+        elif self.time_revealer.get_reveal_child():
             self.time_revealer.set_reveal_child(False)
             self.entry_revealer.set_reveal_child(True)
 
@@ -236,19 +254,20 @@ class LockScreen(Widget.Window):
     def _on_change(self):
         self.entry.remove_css_class("error")
 
+    def set_authenticating(self, authenticating: bool):
+        self.authenticating = authenticating
+        self.entry_screen.set_authenticating(authenticating)
+
     async def _on_accept(self, text: str):
-        self.authenticating = True
-        self.entry.set_editable(False)
+        self.set_authenticating(True)
 
         if not await async_auth(getpass.getuser(), text.strip()):
-            self.authenticating = False
+            self.set_authenticating(False)
             self.entry.add_css_class("error")
-            self.entry.set_editable(True)
             return
 
-        self.autenticating = False
+        self.set_authenticating(False)
         self.entry.remove_css_class("error")
-        self.entry.set_editable(True)
 
         self._lock_instance.unlock()
         destroy_windows()

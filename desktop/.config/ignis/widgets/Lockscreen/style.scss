@@ -32,9 +32,12 @@
 .lockscreen-entry {
   margin-top: 1.5rem;
   min-width: 15rem;
-  &.error entry {
-    color: red;
-    caret-color: red;
-    border-color: red;
+  &.error {
+    outline-color: var(--error-bg-color);
+    & entry {
+      color: var(--error-bg-color);
+      caret-color: var(--error-bg-color);
+      border-color: var(--error-bg-color);
+    }
   }
 }
