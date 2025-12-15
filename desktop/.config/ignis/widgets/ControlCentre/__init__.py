@@ -35,9 +35,13 @@ class ControlCentre(Widget.RevealerWindow):
                 self.power_menu,
                 self.volume_slider,
                 self.volume_slider.popup,
-            ] + ([
-                BrightnessSlider()
-            ] if backlight.available and backlight.devices else []) + [
+            ]
+            + (
+                [BrightnessSlider()]
+                if backlight.available and backlight.devices
+                else []
+            )
+            + [
                 self.main_widgets,
                 Widget.Box(
                     vertical=True,
@@ -46,7 +50,7 @@ class ControlCentre(Widget.RevealerWindow):
                         "added", lambda _, item: self_.append(SystemTrayApp(item))
                     ),
                 ),
-            ]
+            ],
         )
 
         revealer = Widget.Revealer(
@@ -87,12 +91,17 @@ class ControlCentre(Widget.RevealerWindow):
             revealer=revealer,
         )
 
-        self.connect("notify::visible", lambda *_: popup_registry.close_all() if self.visible else None)
+        self.connect(
+            "notify::visible",
+            lambda *_: popup_registry.close_all() if self.visible else None,
+        )
 
         key_controller = Gtk.EventControllerKey()
         self.add_controller(key_controller)
         key_controller.connect(
             "key-pressed",
-            lambda *x: util.popup_manager.clear_popupers() or util.popup_manager.reset_popup()
-            if x[1] == 65307 else None  # 65307 = ESC
+            lambda *x: util.popup_manager.clear_popupers()
+            or util.popup_manager.reset_popup()
+            if x[1] == 65307
+            else None,  # 65307 = ESC
         )

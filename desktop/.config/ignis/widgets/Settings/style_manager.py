@@ -6,9 +6,11 @@ import hashlib
 from typing import Callable
 import util
 
+
 async def recompile_css():
     await asyncio.sleep(0.01)
     util.get_app().reload_css()
+
 
 class StyleManager:
     _instance = None
@@ -43,7 +45,12 @@ class StyleManager:
         if not os.path.isfile(self.accent_cache_path):
             return {}
         with open(self.accent_cache_path, "r") as f:
-            return {h: colour for h, colour in (line.strip().split(" ", 1) for line in f if " " in line)}
+            return {
+                h: colour
+                for h, colour in (
+                    line.strip().split(" ", 1) for line in f if " " in line
+                )
+            }
 
     def save_accent_map(self, accent_map):
         with open(self.accent_cache_path, "w") as f:
@@ -55,7 +62,10 @@ class StyleManager:
         self.accent_map[h] = colour
         self.save_accent_map(self.accent_map)
         asyncio.create_task(
-            util.run_cmd_async(f"{util.root_dir}/scripts/change_accent.sh \"{colour}\"", awaitable=recompile_css())
+            util.run_cmd_async(
+                f'{util.root_dir}/scripts/change_accent.sh "{colour}"',
+                awaitable=recompile_css(),
+            )
         )
 
     def restore_accent_colour(self, wallpaper: str):
@@ -64,11 +74,13 @@ class StyleManager:
             del self.accent_map[h]
             self.save_accent_map(self.accent_map)
         asyncio.create_task(
-            util.run_cmd_async(f"{util.root_dir}/scripts/restore_accent.sh", awaitable=recompile_css())
+            util.run_cmd_async(
+                f"{util.root_dir}/scripts/restore_accent.sh", awaitable=recompile_css()
+            )
         )
 
     def handle_color_chosen(self, rgba, wallpaper: str):
-        hex_colour = f"#{int(rgba.red*255):02x}{int(rgba.green*255):02x}{int(rgba.blue*255):02x}"
+        hex_colour = f"#{int(rgba.red * 255):02x}{int(rgba.green * 255):02x}{int(rgba.blue * 255):02x}"
         self.set_accent_colour(hex_colour, wallpaper)
 
     def set_wallpaper(self, selected_path: str):
@@ -78,7 +90,9 @@ class StyleManager:
 
         dest_path = os.path.join(self.wallpapers_dir, os.path.basename(selected_abs))
         if not selected_abs.startswith(self.wallpapers_dir + os.sep):
-            if not os.path.exists(dest_path) or not os.path.samefile(selected_abs, dest_path):
+            if not os.path.exists(dest_path) or not os.path.samefile(
+                selected_abs, dest_path
+            ):
                 shutil.copy2(selected_abs, dest_path)
             selected_abs = dest_path
 
@@ -97,7 +111,9 @@ class StyleManager:
         if selected_abs.startswith(self.wallpapers_dir + os.sep):
             return
         dest_path = os.path.join(self.wallpapers_dir, os.path.basename(selected_abs))
-        if not os.path.exists(dest_path) or not os.path.samefile(selected_abs, dest_path):
+        if not os.path.exists(dest_path) or not os.path.samefile(
+            selected_abs, dest_path
+        ):
             shutil.copy2(selected_abs, dest_path)
 
     def get_wallpapers(self):
@@ -141,12 +157,15 @@ class StyleManager:
         saved = self.accent_map.get(self.hash_file(file))
         if saved:
             asyncio.create_task(
-                util.run_cmd_async(f"{util.root_dir}/scripts/change_accent.sh \"{saved}\"",
-                                   awaitable=recompile_css())
+                util.run_cmd_async(
+                    f'{util.root_dir}/scripts/change_accent.sh "{saved}"',
+                    awaitable=recompile_css(),
+                )
             )
         else:
             asyncio.create_task(
-                util.run_cmd_async(f"{util.root_dir}/scripts/restore_accent.sh",
-                                   awaitable=recompile_css())
+                util.run_cmd_async(
+                    f"{util.root_dir}/scripts/restore_accent.sh",
+                    awaitable=recompile_css(),
+                )
             )
-

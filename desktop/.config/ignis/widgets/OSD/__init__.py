@@ -6,6 +6,7 @@ import util
 
 audio = AudioService.get_default()
 
+
 class OSD(Widget.RevealerWindow):
     def __init__(self):
         revealer = Widget.Revealer(
@@ -15,26 +16,29 @@ class OSD(Widget.RevealerWindow):
                 child=[
                     Widget.Icon(
                         style="margin-right: 0.5rem;",
-                        image=audio.speaker.bind( # type: ignore
-                            "icon_name", lambda icon: icon if icon != "image-missing" else "audio-volume-muted-symbolic"
+                        image=audio.speaker.bind(  # type: ignore
+                            "icon_name",
+                            lambda icon: icon
+                            if icon != "image-missing"
+                            else "audio-volume-muted-symbolic",
                         ),
-                        css_classes=["osd-audio-icon"]
+                        css_classes=["osd-audio-icon"],
                     ),
                     Widget.Scale(
                         hexpand=True,
                         min=0,
                         max=100,
                         step=1,
-                        value=audio.speaker.bind_many( # type: ignore
+                        value=audio.speaker.bind_many(  # type: ignore
                             ["volume", "is_muted"],
-                            lambda volume, is_muted: 0 if is_muted else volume
-                                                      ),
+                            lambda volume, is_muted: 0 if is_muted else volume,
+                        ),
                         css_classes=["osd-audio-slider"],
-                    )
+                    ),
                 ],
             ),
             transition_duration=util.popup_manager.popup_anim_speed,
-            reveal_child=True
+            reveal_child=True,
         )
 
         super().__init__(
@@ -46,7 +50,7 @@ class OSD(Widget.RevealerWindow):
             popup=True,
             child=Widget.Box(child=[revealer]),
             revealer=revealer,
-            monitor=0
+            monitor=0,
         )
 
     def set_property(self, prop_name, value):
@@ -55,7 +59,6 @@ class OSD(Widget.RevealerWindow):
 
         super().set_property(prop_name, value)
 
-    @Utils.debounce(3000) # type: ignore
+    @Utils.debounce(3000)  # type: ignore
     def __update_visible(self) -> None:
         super().set_property("visible", False)
-

@@ -3,6 +3,7 @@ import util
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.widget import ControlCentrePopup
 
+
 class PowerMenu(ControlCentrePopup):
     def __init__(self):
         popup_registry.register(self)
@@ -19,8 +20,7 @@ class PowerMenu(ControlCentrePopup):
                                 pixel_size=24,
                             ),
                             Widget.Label(
-                                label="Power Off",
-                                css_classes=["cc-popup-label"]
+                                label="Power Off", css_classes=["cc-popup-label"]
                             ),
                         ],
                         css_classes=["cc-popup-header"],
@@ -33,7 +33,11 @@ class PowerMenu(ControlCentrePopup):
                             css_classes=["cc-popup-opt-label"],
                         ),
                         css_classes=["cc-popup-option"],
-                        on_click=lambda _: self.toggle() or util.run_cmd_and_run("systemctl suspend", lambda: util.popup_manager.close_curr_popup()),
+                        on_click=lambda _: self.toggle()
+                        or util.run_cmd_and_run(
+                            "systemctl suspend",
+                            lambda: util.popup_manager.close_curr_popup(),
+                        ),
                     ),
                     Widget.Button(
                         child=Widget.Label(
@@ -42,7 +46,11 @@ class PowerMenu(ControlCentrePopup):
                             css_classes=["cc-popup-opt-label"],
                         ),
                         css_classes=["cc-popup-option"],
-                        on_click=lambda _: self.toggle() or util.run_cmd_and_run("systemctl reboot", lambda: util.popup_manager.close_curr_popup()),
+                        on_click=lambda _: self.toggle()
+                        or util.run_cmd_and_run(
+                            "systemctl reboot",
+                            lambda: util.popup_manager.close_curr_popup(),
+                        ),
                     ),
                     Widget.Button(
                         child=Widget.Label(
@@ -51,7 +59,11 @@ class PowerMenu(ControlCentrePopup):
                             css_classes=["cc-popup-opt-label"],
                         ),
                         css_classes=["cc-popup-option"],
-                        on_click=lambda _: self.toggle() or util.run_cmd_and_run("systemctl poweroff", lambda: util.popup_manager.close_curr_popup()),
+                        on_click=lambda _: self.toggle()
+                        or util.run_cmd_and_run(
+                            "systemctl poweroff",
+                            lambda: util.popup_manager.close_curr_popup(),
+                        ),
                     ),
                     Widget.Button(
                         child=Widget.Label(
@@ -60,7 +72,11 @@ class PowerMenu(ControlCentrePopup):
                             css_classes=["cc-popup-opt-label"],
                         ),
                         css_classes=["cc-popup-option"],
-                        on_click=lambda _: self.toggle() or util.run_cmd_and_run("hyprctl dispatch exit", lambda: util.popup_manager.close_curr_popup()),
+                        on_click=lambda _: self.toggle()
+                        or util.run_cmd_and_run(
+                            "hyprctl dispatch exit",
+                            lambda: util.popup_manager.close_curr_popup(),
+                        ),
                     ),
                 ],
             ),

@@ -15,17 +15,24 @@ def system_uses_24h():
     except Exception:
         return True
 
+
 @JsonSettings("clock")
 class ClockSettings(BindableSettings):
     use_24h: bool = system_uses_24h()
-    def set_use_24h(self, value: bool) -> None: self.use_24h = value
+
+    def set_use_24h(self, value: bool) -> None:
+        self.use_24h = value
 
     show_dow: bool = True
-    def set_show_dow(self, value: bool) -> None: self.show_dow = value
+
+    def set_show_dow(self, value: bool) -> None:
+        self.show_dow = value
 
     show_seconds: bool = True
-    def set_show_seconds(self, value: bool) -> None: self.show_seconds = value
-    
+
+    def set_show_seconds(self, value: bool) -> None:
+        self.show_seconds = value
+
     def hour_format(self, show_seconds: bool) -> str:
         if self.use_24h:
             return "%H:%M:%S" if show_seconds else "%H:%M"
@@ -38,21 +45,23 @@ class ClockSettings(BindableSettings):
                 fmt += "%A "
             fmt += "%-d %B"
             return fmt
-        
+
         fmt = ""
         if show_dow:
             fmt += "%a "
         fmt += "%-d %b"
         return fmt
 
+
 clock_settings = ClockSettings()
+
 
 class Clock(Widget.EventBox):
     def __init__(
         self,
         monitor: int,
         on_hover: Callable[..., Any],
-        on_hover_lost: Callable[..., Any]
+        on_hover_lost: Callable[..., Any],
     ):
         super().__init__(
             css_classes=["clock"],
@@ -60,11 +69,18 @@ class Clock(Widget.EventBox):
                 Widget.Button(
                     child=Widget.Label(
                         label=clock_settings.bind_properties(
-                            lambda *_: Utils.Poll(1000, lambda _:
-                                datetime.now().strftime(
-                                    clock_settings.date_format(long=False, show_dow=clock_settings.show_dow) + "  " +
-                                        clock_settings.hour_format(clock_settings.show_seconds)
-                                )).bind("output")
+                            lambda *_: Utils.Poll(
+                                1000,
+                                lambda _: datetime.now().strftime(
+                                    clock_settings.date_format(
+                                        long=False, show_dow=clock_settings.show_dow
+                                    )
+                                    + "  "
+                                    + clock_settings.hour_format(
+                                        clock_settings.show_seconds
+                                    )
+                                ),
+                            ).bind("output")
                         )
                     ),
                     css_classes=["box"],
@@ -74,4 +90,6 @@ class Clock(Widget.EventBox):
             on_hover_lost=on_hover_lost,
         )
 
-        util.popup_manager.register_popup_trigger("ignis_notifs_calendar", monitor, self)
+        util.popup_manager.register_popup_trigger(
+            "ignis_notifs_calendar", monitor, self
+        )

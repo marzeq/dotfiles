@@ -2,9 +2,10 @@ from ignis.utils import Utils
 from ignis.widgets import Widget
 from datetime import datetime
 
+
 def get_month_days(month: int, year: int) -> int:
     if month == 2:
-        if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0): # leap year check
+        if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):  # leap year check
             return 29
         else:
             return 28
@@ -13,6 +14,7 @@ def get_month_days(month: int, year: int) -> int:
         return 30
 
     return 31
+
 
 def starting_dow_for_month(month: int, year: int) -> int:
     # zeller's congruence
@@ -28,51 +30,83 @@ def starting_dow_for_month(month: int, year: int) -> int:
     # adjust to monday=0, ..., sunday=6
     return (h + 5) % 7
 
+
 def ending_dow_for_month(month: int, year: int) -> int:
     last_day = get_month_days(month, year)
     return (starting_dow_for_month(month, year) + last_day - 1) % 7
 
+
 def calendar_month_reset_label(month: int, year: int) -> str:
-    return datetime(year, month, 1).strftime("%B") if year == datetime.now().year else datetime(year, month, 1).strftime("%B %Y")
+    return (
+        datetime(year, month, 1).strftime("%B")
+        if year == datetime.now().year
+        else datetime(year, month, 1).strftime("%B %Y")
+    )
+
 
 class CalendarGrid(Widget.Grid):
     def __init__(self, month: int, year: int):
         super().__init__(
             column_num=7,
-            child=([
-                Widget.Label(
-                    label=day,
-                    css_classes=["nc-calendar-dow-label"],
-                    halign="center",
-                ) for day in ["M", "T", "W", "T", "F", "S", "S"]
-            ] + [
+            child=(
+                [
+                    Widget.Label(
+                        label=day,
+                        css_classes=["nc-calendar-dow-label"],
+                        halign="center",
+                    )
+                    for day in ["M", "T", "W", "T", "F", "S", "S"]
+                ]
+                + [
                     # previous month days to fill out the first week
                     Widget.Label(
                         label=str(get_month_days(month - 1, year) - x).zfill(2),
                         css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
                         halign="center",
-                    ) for x in range(
-                        starting_dow_for_month(month, year)
                     )
-                ] + [
+                    for x in range(starting_dow_for_month(month, year))
+                ]
+                + [
                     # current month days
                     Widget.Label(
                         label=str(day).zfill(2),
-                        css_classes=
-                        ["nc-calendar-day", "nc-calendar-day-currmo"] +
-                            (["nc-calendar-day-today"] if day == datetime.now().day and datetime.now().month == month and datetime.now().year == year else []) +
-                            (["nc-calendar-day-workday"] if (day+starting_dow_for_month(month, year) - 1) % 7 not in [5, 6] else []),
+                        css_classes=["nc-calendar-day", "nc-calendar-day-currmo"]
+                        + (
+                            ["nc-calendar-day-today"]
+                            if day == datetime.now().day
+                            and datetime.now().month == month
+                            and datetime.now().year == year
+                            else []
+                        )
+                        + (
+                            ["nc-calendar-day-workday"]
+                            if (day + starting_dow_for_month(month, year) - 1) % 7
+                            not in [5, 6]
+                            else []
+                        ),
                         halign="center",
-                    ) for day in range(1, get_month_days(month, year) + 1)
-                ] + [
+                    )
+                    for day in range(1, get_month_days(month, year) + 1)
+                ]
+                + [
                     # next month days to fill out the last week
                     Widget.Label(
                         label=str(day).zfill(2),
                         css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
                         halign="center",
-                    ) for day in range(1, 43 - (starting_dow_for_month(month, year) + get_month_days(month, year)))
-                ])
+                    )
+                    for day in range(
+                        1,
+                        43
+                        - (
+                            starting_dow_for_month(month, year)
+                            + get_month_days(month, year)
+                        ),
+                    )
+                ]
+            ),
         )
+
 
 class Calendar(Widget.Box):
     def __init__(self):
@@ -94,7 +128,9 @@ class Calendar(Widget.Box):
 
         self.calendar_month_reset_button = Widget.Button(
             child=Widget.Label(
-                label=calendar_month_reset_label(self.selected_month, self.selected_year),
+                label=calendar_month_reset_label(
+                    self.selected_month, self.selected_year
+                ),
             ),
             css_classes=["nc-calendar-month"],
             on_click=self.reset_month,
@@ -132,10 +168,14 @@ class Calendar(Widget.Box):
             ],
         )
 
-        Utils.Poll(60_000, lambda *_: self.update_calendar()) # to update the calendar if the month changes
+        Utils.Poll(
+            60_000, lambda *_: self.update_calendar()
+        )  # to update the calendar if the month changes
 
     def set_month(self, month: int, year: int):
-        self.calendar_month_reset_button.child.label = calendar_month_reset_label(month, year)
+        self.calendar_month_reset_button.child.label = calendar_month_reset_label(
+            month, year
+        )
         self.calendar_grid_box.set_child([CalendarGrid(month, year)])
 
     def reset_month(self, *_):
@@ -170,4 +210,3 @@ class Calendar(Widget.Box):
             self.selected_month = datetime.now().month
             self.selected_year = datetime.now().year
             self.set_month(self.selected_month, self.selected_year)
-

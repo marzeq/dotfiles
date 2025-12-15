@@ -3,20 +3,20 @@ from ignis.widgets import Widget
 
 import util
 
-def CCWLabels(label: str, secondary_label: str | None = None) -> tuple[Widget.Label, Widget.Label]:
+
+def CCWLabels(
+    label: str, secondary_label: str | None = None
+) -> tuple[Widget.Label, Widget.Label]:
     return (
-        Widget.Label(
-            label=label,
-            halign="start",
-            css_classes=["css-widget-label"]
-        ),
+        Widget.Label(label=label, halign="start", css_classes=["css-widget-label"]),
         Widget.Label(
             label=secondary_label,
             halign="start",
             css_classes=["css-widget-label", "cc-widget-secondary-label"],
-            visible=bool(secondary_label)
-        )
+            visible=bool(secondary_label),
+        ),
     )
+
 
 class ControlCentreWidget(Widget.Box):
     def __init__(
@@ -37,8 +37,8 @@ class ControlCentreWidget(Widget.Box):
                                     vertical=True,
                                     valign="center",
                                     css_classes=["cc-widget-label-box"],
-                                    child=labels
-                                )
+                                    child=labels,
+                                ),
                             ],
                         ),
                         css_classes=["cc-widget-left"],
@@ -63,24 +63,25 @@ class ControlCentreWidget(Widget.Box):
                                     vertical=True,
                                     valign="center",
                                     css_classes=["cc-widget-label-box"],
-                                    child=labels
-                                )
+                                    child=labels,
+                                ),
                             ],
                         ),
                         hexpand=True,
                         on_click=on_click,
-                        css_classes=["cc-widget-left", "cc-widget-left-full"]
+                        css_classes=["cc-widget-left", "cc-widget-left-full"],
                     ),
                 ],
             )
 
-        self.set_disabled(True) # initialise css classes
+        self.set_disabled(True)  # initialise css classes
 
     def set_disabled(self, disabled: bool) -> None:
         if disabled:
             self.css_classes = ["cc-widget", "cc-widget-disabled"]
         else:
             self.css_classes = ["cc-widget"]
+
 
 class ControlCentrePopup(Widget.Revealer):
     def __init__(self, box: Widget.Box, more_margin: bool = False):
@@ -89,6 +90,8 @@ class ControlCentrePopup(Widget.Revealer):
             transition_duration=util.popup_manager.popup_anim_speed,
             child=Widget.Box(
                 child=[box],
-                css_classes=["cc-popup"] if not more_margin else ["cc-popup", "cc-popup-more-margin"],
-            )
+                css_classes=["cc-popup"]
+                if not more_margin
+                else ["cc-popup", "cc-popup-more-margin"],
+            ),
         )

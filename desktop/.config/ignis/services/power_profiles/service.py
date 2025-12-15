@@ -6,6 +6,7 @@ from gi.repository import GLib
 
 import util
 
+
 class PowerProfilesService(BaseService):
     def __init__(self) -> None:
         super().__init__()
@@ -32,8 +33,8 @@ class PowerProfilesService(BaseService):
         return self._proxy.has_owner
 
     @IgnisProperty
-    def active_profile( # type: ignore
-        self
+    def active_profile(  # type: ignore
+        self,
     ) -> str:
         return self._active_profile
 
@@ -47,16 +48,15 @@ class PowerProfilesService(BaseService):
 
     def hold_profile(self, profile: str) -> None:
         if profile == "balanced":
-            raise ValueError("Cannot hold the balanced profile, only performance or power-saver.")
+            raise ValueError(
+                "Cannot hold the balanced profile, only performance or power-saver."
+            )
 
         if self._cookie != -1:
             return
 
         self._cookie = self._proxy.gproxy.HoldProfile(
-            "(sss)",
-            profile,
-            "",
-            "com.github.linkfrg.ignis"
+            "(sss)", profile, "", "com.github.linkfrg.ignis"
         )
 
     def release_profile(self) -> None:
@@ -90,4 +90,3 @@ class PowerProfilesService(BaseService):
         if "Profiles" in prop_dict:
             self._profiles = list(prop_dict["Profiles"].keys())
             self.notify("profiles")
-

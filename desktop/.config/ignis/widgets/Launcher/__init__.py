@@ -10,6 +10,7 @@ from .app_mode import AppMode
 from .calc_mode import CalcMode
 from .base_mode import LauncherMode
 
+
 class Launcher(Widget.RevealerWindow):
     def __init__(self, monitorid: int, monitor: Gdk.Monitor):
         self.entry = Widget.Entry(
@@ -19,9 +20,7 @@ class Launcher(Widget.RevealerWindow):
         )
 
         self.result_list = Widget.Box(
-            vertical=True,
-            css_classes=["launcher-result-list"],
-            child=[]
+            vertical=True, css_classes=["launcher-result-list"], child=[]
         )
 
         self.scroller = Widget.Scroll(
@@ -57,9 +56,9 @@ class Launcher(Widget.RevealerWindow):
                                     self.entry,
                                 ],
                             ),
-                            self.scroller
+                            self.scroller,
                         ],
-                    )
+                    ),
                 ],
             ),
             transition_duration=util.popup_manager.popup_anim_speed,
@@ -88,7 +87,7 @@ class Launcher(Widget.RevealerWindow):
                         vertical=True,
                         child=[
                             revealer,
-                        ]
+                        ],
                     )
                 ],
             ),
@@ -104,16 +103,18 @@ class Launcher(Widget.RevealerWindow):
         self.add_controller(key_controller)
         key_controller.connect(
             "key-pressed",
-            lambda *x: util.popup_manager.clear_popupers() or util.popup_manager.reset_popup()
+            lambda *x: util.popup_manager.clear_popupers()
+            or util.popup_manager.reset_popup()
             if x[1] == 65307
             else None,
         )
 
         self.connect(
             "notify::visible",
-            lambda *_: self.reset_scroll_state() or (self.reset_entry() if self.visible else None),
+            lambda *_: self.reset_scroll_state()
+            or (self.reset_entry() if self.visible else None),
         )
-        
+
         self.update_mode_and_list()
 
     def set_entry_text(self, text: str):
@@ -148,7 +149,7 @@ class Launcher(Widget.RevealerWindow):
         searched_results = results_no_fuzz + fuzzy_search(results, query)
 
         self.set_results(searched_results)
-    
+
     def get_results(self) -> list[LauncherResult]:
         return self.result_list.child
 
@@ -170,6 +171,7 @@ class Launcher(Widget.RevealerWindow):
         if self.result_list.child and index < len(self.result_list.child):
             self.result_list.child[index].on_click()
 
+
 class LauncherProxy(Widget.Window):
     def __init__(self):
         super().__init__(
@@ -181,13 +183,15 @@ class LauncherProxy(Widget.Window):
 
         self.connect(
             "notify::visible",
-            lambda *_: util.popup_manager.handle_popup_clicked("ignis_launcher") or self.close()
+            lambda *_: util.popup_manager.handle_popup_clicked("ignis_launcher")
+            or self.close()
             if self.visible
             else None,
         )
 
     def close(self):
         self.visible = False
+
 
 def fuzzy_search(results: list[LauncherResult], query: str) -> list[LauncherResult]:
     query = query.lower()

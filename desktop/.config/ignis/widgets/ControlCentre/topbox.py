@@ -17,15 +17,18 @@ class TopBox(Widget.CenterBox):
         self.power_menu = power_menu
         super().__init__(
             css_classes=["control-centre-top"],
-            start_widget=Widget.Box(child=upower.bind("batteries", self._start_children)),
-            end_widget=Widget.Box(child=upower.bind("batteries", self._end_children))
+            start_widget=Widget.Box(
+                child=upower.bind("batteries", self._start_children)
+            ),
+            end_widget=Widget.Box(child=upower.bind("batteries", self._end_children)),
         )
 
     def _start_children(self, _):
         settings_button = Widget.Button(
             child=Widget.Icon(image="applications-system-symbolic"),
             css_classes=["cc-top-button"],
-            on_click=lambda _: app.open_window("ignis_settings") or util.popup_manager.close_curr_popup()
+            on_click=lambda _: app.open_window("ignis_settings")
+            or util.popup_manager.close_curr_popup(),
         )
 
         children = [
@@ -35,7 +38,7 @@ class TopBox(Widget.CenterBox):
                 on_click=lambda _: util.run_cmd_and_run_delayed(
                     "hyprshot -szm region -o ~/pictures/screenshots/",
                     lambda: util.popup_manager.close_curr_popup(),
-                    100
+                    100,
                 ),
             )
         ]
@@ -46,10 +49,12 @@ class TopBox(Widget.CenterBox):
             batt = upower.batteries[0]
             children += [
                 Widget.Button(
-                    child=Widget.Box(child=[
-                        Widget.Icon(image=batt.icon_name),
-                        Widget.Label(label=f"{math.floor(batt.percent)}%")
-                    ]),
+                    child=Widget.Box(
+                        child=[
+                            Widget.Icon(image=batt.icon_name),
+                            Widget.Label(label=f"{math.floor(batt.percent)}%"),
+                        ]
+                    ),
                     css_classes=["cc-top-button"],
                 )
             ]
@@ -59,19 +64,21 @@ class TopBox(Widget.CenterBox):
         settings_button = Widget.Button(
             child=Widget.Icon(image="applications-system-symbolic"),
             css_classes=["cc-top-button"],
-            on_click=lambda _: app.open_window("ignis_settings") or util.popup_manager.close_curr_popup()
+            on_click=lambda _: app.open_window("ignis_settings")
+            or util.popup_manager.close_curr_popup(),
         )
 
         children = ([] if len(upower.batteries) == 0 else [settings_button]) + [
             Widget.Button(
                 child=Widget.Icon(image="system-lock-screen-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda _: util.popup_manager.close_curr_popup() or lock()
+                on_click=lambda _: util.popup_manager.close_curr_popup() or lock(),
             ),
             Widget.Button(
                 child=Widget.Icon(image="system-shutdown-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda *_: popup_registry.close_all_but(self.power_menu) or self.power_menu.toggle(),
+                on_click=lambda *_: popup_registry.close_all_but(self.power_menu)
+                or self.power_menu.toggle(),
             ),
         ]
         return children

@@ -16,6 +16,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 app: IgnisApp
+
+
 def get_app():
     global app
     try:
@@ -24,40 +26,54 @@ def get_app():
         pass
 
     return app
+
+
 app = get_app()
-        
+
 hyprland = HyprlandService.get_default()
 
-root_dir = Utils.get_current_dir() # type: ignore
+root_dir = Utils.get_current_dir()  # type: ignore
+
 
 def active_monitor() -> int:
     return hyprland.active_workspace.monitor_id
 
+
 async def run_cmd_async(cmd: str, awaitable: Awaitable | None = None) -> None:
     await asyncio.create_subprocess_exec(
-        "/usr/bin/bash", "-c", cmd,
+        "/usr/bin/bash",
+        "-c",
+        cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        preexec_fn=os.setpgrp
+        preexec_fn=os.setpgrp,
     )
     if awaitable is not None:
         await awaitable
 
+
 def run_cmd(cmd: str) -> None:
-    asyncio.create_task(asyncio.create_subprocess_exec(
-        "/usr/bin/bash", "-c", cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        preexec_fn=os.setpgrp
-    ))
+    asyncio.create_task(
+        asyncio.create_subprocess_exec(
+            "/usr/bin/bash",
+            "-c",
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            preexec_fn=os.setpgrp,
+        )
+    )
+
 
 def run_cmd_and_run(cmd: str, runnable: Callable) -> None:
     runnable()
     run_cmd(cmd)
 
+
 def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
     runnable()
     Utils.Timeout(delay, lambda *_: run_cmd(cmd))
+
 
 async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50):
     def rgb_distance(c1, c2):
@@ -65,7 +81,7 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50)
 
     img = Image.open(image_path).convert("RGB")
     img = img.resize((200, 200))
-    pixels = list(img.getdata()) # type: ignore
+    pixels = list(img.getdata())  # type: ignore
 
     kmeans = KMeans(n_clusters=num_colours, random_state=0)
     kmeans.fit(pixels)
@@ -87,8 +103,7 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50)
             break
 
     hex_colours = [
-        f'#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}'
-        for c in diverse_colours
+        f"#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}" for c in diverse_colours
     ]
 
     return hex_colours
@@ -161,18 +176,20 @@ class PopupManager:
             self.reset_popup()
 
     def clear_popupers(self):
-        for i in range(Utils.get_n_monitors()): # type: ignore
+        for i in range(Utils.get_n_monitors()):  # type: ignore
             if self.curr_popup_monitor is None or i != self.curr_popup_monitor:
                 app.close_window(f"ignis_close_popuper_{i}")
 
     def open_popupers(self):
-        for i in range(Utils.get_n_monitors()): # type: ignore
+        for i in range(Utils.get_n_monitors()):  # type: ignore
             if i != active_monitor():
                 app.open_window(f"ignis_close_popuper_{i}")
+
 
 popup_manager = PopupManager.instance()
 
 DBUS_DIR = os.path.dirname(__file__) + "/services/dbus"
+
 
 def load_interface_xml(
     interface_name: str | None = None, path: str | None = None, xml: str | None = None
@@ -210,6 +227,7 @@ def load_interface_xml(
 
     return Gio.DBusNodeInfo.new_for_xml(xml_string).interfaces[0]
 
+
 class BindableSettings(IgnisGObject):
     def bind_properties(
         self,
@@ -217,8 +235,11 @@ class BindableSettings(IgnisGObject):
     ) -> Binding:
         return self.bind_many([], lambda *_: lambda_func())
 
+
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
-    expanded_path = os.path.expanduser("~/.local/share/ignis/settings/" + path + ".json")
+    expanded_path = os.path.expanduser(
+        "~/.local/share/ignis/settings/" + path + ".json"
+    )
     os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
     def _make_pspec(name: str, typ: type) -> GObject.ParamSpec:
@@ -232,15 +253,19 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
         if typ is bool:
             return GObject.param_spec_boolean(gname, name, name, False, flags)
         if typ is int:
-            return GObject.param_spec_int(gname, name, name, -2**31, 2**31 - 1, 0, flags)
+            return GObject.param_spec_int(
+                gname, name, name, -(2**31), 2**31 - 1, 0, flags
+            )
         if typ is float:
-            return GObject.param_spec_double(gname, name, name, -1e308, 1e308, 0.0, flags)
+            return GObject.param_spec_double(
+                gname, name, name, -1e308, 1e308, 0.0, flags
+            )
         return GObject.param_spec_string(gname, name, name, None, flags)
 
     def decorator(cls: type[T]) -> type[T]:
         hints = get_type_hints(cls)
 
-        class Wrapper(cls, BindableSettings): # type: ignore
+        class Wrapper(cls, BindableSettings):  # type: ignore
             _path: str
             _defaults: dict[str, Any]
             _data: dict[str, Any]
@@ -284,13 +309,12 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
 
         prop_id = 1
         for name, typ in hints.items():
-            if Wrapper.find_property(name) is None: # type: ignore
-                Wrapper.install_property(prop_id, _make_pspec(name, typ)) # type: ignore
+            if Wrapper.find_property(name) is None:  # type: ignore
+                Wrapper.install_property(prop_id, _make_pspec(name, typ))  # type: ignore
                 prop_id += 1
 
         assert hasattr(Wrapper, "bind_properties")
 
-        return Wrapper # type: ignore
+        return Wrapper  # type: ignore
 
     return decorator
-

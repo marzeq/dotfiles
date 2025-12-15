@@ -5,13 +5,16 @@ from ignis.widgets import Widget
 if TYPE_CHECKING:
     from . import Launcher
 
+
 class GetResultsResponse(NamedTuple):
     results: Sequence[LauncherResult]
     include_in_fuzzing: bool = True
 
+
 class LauncherMode:
     def get_results(self, launcher: Launcher, query: str) -> GetResultsResponse:
         raise NotImplementedError
+
 
 class LauncherResult(Widget.Button):
     def __init__(
@@ -41,9 +44,8 @@ class LauncherResult(Widget.Button):
                             ),
                         ]
                     ),
-                ] + ([
-                        popover_menu
-                    ] if popover_menu else []),
+                ]
+                + ([popover_menu] if popover_menu else []),
             ),
             on_click=lambda *_: launch(),
             on_right_click=lambda *_: popover_menu.popup() if popover_menu else None,

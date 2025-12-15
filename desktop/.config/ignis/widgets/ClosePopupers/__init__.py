@@ -4,6 +4,7 @@ import util
 
 app = util.get_app()
 
+
 class ClosePopuper(Widget.Window):
     def __init__(self, window_id: int):
         super().__init__(
@@ -24,4 +25,3 @@ class ClosePopuper(Widget.Window):
                 ],
             ),
         )
-

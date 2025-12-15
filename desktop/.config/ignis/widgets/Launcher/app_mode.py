@@ -7,6 +7,7 @@ import util
 
 applications = ApplicationsService.get_default()
 
+
 @JsonSettings("apps")
 class AppSettings:
     hidden_apps: list[str] = []
@@ -26,10 +27,7 @@ class AppSettings:
     @property
     def visible_apps(self) -> list[Application]:
         hidden = set(self.hidden_apps)
-        return [
-            app for app in applications.apps
-            if app.name.lower() not in hidden
-        ]
+        return [app for app in applications.apps if app.name.lower() not in hidden]
 
 
 app_settings = AppSettings()
@@ -42,9 +40,13 @@ class AppMode(LauncherMode):
     def get_results(self, launcher, query: str):
         query = query.strip().lower()
         if not query:
-            return GetResultsResponse([LauncherAppResult(app) for app in app_settings.visible_apps])
+            return GetResultsResponse(
+                [LauncherAppResult(app) for app in app_settings.visible_apps]
+            )
 
-        return GetResultsResponse([LauncherAppResult(app) for app in app_settings.visible_apps])
+        return GetResultsResponse(
+            [LauncherAppResult(app) for app in app_settings.visible_apps]
+        )
 
 
 class LauncherAppResult(LauncherResult):
@@ -55,12 +57,9 @@ class LauncherAppResult(LauncherResult):
             launch=lambda: self.launch_app(),
             popover_menu=Widget.PopoverMenu(
                 items=[
-                    Widget.MenuItem(
-                        label="Hide",
-                        on_activate=lambda _: self.hide_app()
-                    )
+                    Widget.MenuItem(label="Hide", on_activate=lambda _: self.hide_app())
                 ]
-            )
+            ),
         )
         self.app = app
 

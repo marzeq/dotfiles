@@ -22,5 +22,5 @@ class BrightnessSlider(Widget.Box):
                     on_change=lambda x: backlight.devices[0].set_brightness(x.value),  # type: ignore
                     css_classes=["cc-slider-slider"],
                 ),
-            ]
+            ],
         )

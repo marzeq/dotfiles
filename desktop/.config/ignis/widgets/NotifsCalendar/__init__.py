@@ -6,6 +6,7 @@ from gi.repository import Gtk
 
 app = util.get_app()
 
+
 class NotifsCalendar(Widget.RevealerWindow):
     def __init__(self, monitor: int):
         revealer = Widget.Revealer(
@@ -13,14 +14,16 @@ class NotifsCalendar(Widget.RevealerWindow):
             child=Widget.Box(
                 vertical=True,
                 css_classes=["notifs-calendar-container"],
-                child=[Widget.Grid(
-                    column_num=2,
-                    css_classes=["notifs-calendar"],
-                    child=[
-                        Notifications(),
-                        Calendar(),
-                    ],
-                )],
+                child=[
+                    Widget.Grid(
+                        column_num=2,
+                        css_classes=["notifs-calendar"],
+                        child=[
+                            Notifications(),
+                            Calendar(),
+                        ],
+                    )
+                ],
             ),
             transition_duration=util.popup_manager.popup_anim_speed,
             reveal_child=True,
@@ -55,5 +58,10 @@ class NotifsCalendar(Widget.RevealerWindow):
 
         key_controller = Gtk.EventControllerKey()
         self.add_controller(key_controller)
-        key_controller.connect("key-pressed", lambda *x: util.popup_manager.clear_popupers() or util.popup_manager.reset_popup() if x[1] == 65307 else None)  # 65307 = ESC
-
+        key_controller.connect(
+            "key-pressed",
+            lambda *x: util.popup_manager.clear_popupers()
+            or util.popup_manager.reset_popup()
+            if x[1] == 65307
+            else None,
+        )  # 65307 = ESC

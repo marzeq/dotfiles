@@ -6,11 +6,14 @@ from widgets.ControlCentre.device_list_popup import DeviceListPopup
 
 audio = AudioService.get_default()
 
+
 def speaker_select(sp: Stream) -> None:
     util.run_cmd(f"pactl set-default-sink {sp.name}")
 
+
 def speaker_deselect(sp: Stream) -> None:
     util.run_cmd(f"pactl set-default-sink {sp.name}")
+
 
 class SpeakerPopup(DeviceListPopup[Stream]):
     def __init__(self) -> None:
@@ -19,18 +22,19 @@ class SpeakerPopup(DeviceListPopup[Stream]):
             device=audio,
             item_key="speakers",
             icon_name_fn=lambda sp: sp.bind("icon_name"),
-            label_fn=lambda sp: sp.bind("description", lambda d: d*2),
+            label_fn=lambda sp: sp.bind("description", lambda d: d * 2),
             connect_fn=speaker_select,
             disconnect_fn=speaker_deselect,
             header_icon="audio-headphones-symbolic",
             connected_property="is_default",
-            connected_check=lambda is_default: is_default
+            connected_check=lambda is_default: is_default,
         )
 
     def filter_items(self, items):
         default_items = [item for item in items if item.is_default]
         other_items = [item for item in items if not item.is_default]
         return default_items + other_items
+
 
 class VolumeSlider(Widget.Box):
     def __init__(self):
@@ -44,7 +48,9 @@ class VolumeSlider(Widget.Box):
                     child=Widget.Icon(
                         image=audio.speaker.bind(  # type: ignore
                             "icon_name",
-                            lambda icon: icon if icon != "image-missing" else "audio-volume-muted-symbolic"
+                            lambda icon: icon
+                            if icon != "image-missing"
+                            else "audio-volume-muted-symbolic",
                         ),
                     ),
                     on_click=lambda _: self.toggle_mute(),
@@ -57,7 +63,7 @@ class VolumeSlider(Widget.Box):
                     step=1,
                     value=audio.speaker.bind_many(  # type: ignore
                         ["volume", "is_muted"],
-                        lambda volume, is_muted: 0 if is_muted else volume
+                        lambda volume, is_muted: 0 if is_muted else volume,
                     ),
                     on_change=lambda x: self.adjust_volume(x.value),
                     css_classes=["cc-slider-slider"],
@@ -65,9 +71,10 @@ class VolumeSlider(Widget.Box):
                 Widget.Button(
                     child=Widget.Icon(image="go-next-symbolic"),
                     css_classes=["cc-slider-icon"],
-                    on_click=lambda _: popup_registry.close_all_but(self.popup) or self.popup.toggle(),
+                    on_click=lambda _: popup_registry.close_all_but(self.popup)
+                    or self.popup.toggle(),
                 ),
-            ]
+            ],
         )
 
     def adjust_volume(self, x: int):

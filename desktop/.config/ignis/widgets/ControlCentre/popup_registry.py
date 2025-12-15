@@ -1,5 +1,6 @@
 from widgets.ControlCentre.widget import ControlCentrePopup
 
+
 class PopupRegistry:
     def __init__(self):
         self.popups: list[ControlCentrePopup] = []
@@ -16,5 +17,6 @@ class PopupRegistry:
         for p in self.popups:
             if p is not except_popup:
                 p.set_reveal_child(False)
+
 
 popup_registry = PopupRegistry()

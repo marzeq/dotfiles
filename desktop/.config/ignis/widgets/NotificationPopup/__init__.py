@@ -5,6 +5,7 @@ from widgets.Notification import NotificationWidget
 
 notifications = NotificationService.get_default()
 
+
 class Popup(Widget.Box):
     def __init__(self, window: Widget.Window, notification: Notification):
         self.window = window
@@ -16,10 +17,7 @@ class Popup(Widget.Box):
         self.inner = Widget.Revealer(transition_type="slide_left", child=widget)
         self.outer = Widget.Revealer(transition_type="slide_down", child=self.inner)
 
-        super().__init__(
-            child=[self.outer],
-            halign="center"
-        )
+        super().__init__(child=[self.outer], halign="center")
 
         self.notification.connect("dismissed", lambda _: self.destroy())
 
@@ -71,5 +69,5 @@ class NotificationPopup(Widget.Window):
             visible=False,
             css_classes=["notification-popups", "window"],
             child=PopupBox(window=self),
-            dynamic_input_region=True
+            dynamic_input_region=True,
         )

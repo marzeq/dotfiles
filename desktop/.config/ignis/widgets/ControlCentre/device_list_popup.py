@@ -3,6 +3,7 @@ from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
 from widgets.ControlCentre.widget import ControlCentrePopup
 
+
 class DeviceListPopup[T](ControlCentrePopup):
     def __init__(
         self,
@@ -15,7 +16,7 @@ class DeviceListPopup[T](ControlCentrePopup):
         disconnect_fn: Callable[[T], Any],
         header_icon: str,
         connected_property: str,
-        connected_check: Callable[[T], bool]
+        connected_check: Callable[[T], bool],
     ) -> None:
         self.device: Any = device
         self.item_key: str = item_key
@@ -33,7 +34,7 @@ class DeviceListPopup[T](ControlCentrePopup):
 
         self.items_box = Widget.Box(
             vertical=True,
-            child=self.device.bind(self.item_key, transform=self.render_items)
+            child=self.device.bind(self.item_key, transform=self.render_items),
         )
 
         super().__init__(
@@ -56,8 +57,8 @@ class DeviceListPopup[T](ControlCentrePopup):
                         css_classes=["cc-popup-header"],
                         halign="start",
                     ),
-                    self.items_box
-                ]
+                    self.items_box,
+                ],
             )
         )
 
@@ -73,17 +74,16 @@ class DeviceListPopup[T](ControlCentrePopup):
                 icon_widget = Widget.Icon(
                     image=self.icon_name_fn(item),
                     pixel_size=18,
-                    css_classes=["cc-popup-opt-icon"]
+                    css_classes=["cc-popup-opt-icon"],
                 )
 
             checkmark_widget = Widget.Icon(
                 image="object-select-symbolic",
                 pixel_size=18,
                 css_classes=["cc-popup-opt-check"],
-                visible=item.bind( # type: ignore
-                    self.connected_property,
-                    lambda val: self.connected_check(val)
-                )
+                visible=item.bind(  # type: ignore
+                    self.connected_property, lambda val: self.connected_check(val)
+                ),
             )
 
             label_widget = Widget.Label(
@@ -91,7 +91,9 @@ class DeviceListPopup[T](ControlCentrePopup):
                 ellipsize="end",
                 max_width_chars=30,
             )
-            children: list[BaseWidget] = [icon_widget, checkmark_widget] if icon_widget else []
+            children: list[BaseWidget] = (
+                [icon_widget, checkmark_widget] if icon_widget else []
+            )
             children.append(label_widget)
 
             widgets.append(
@@ -100,7 +102,9 @@ class DeviceListPopup[T](ControlCentrePopup):
                         child=children,
                         css_classes=["cc-popup-opt-label"],
                     ),
-                    on_click=lambda _, it=item: self.disconnect_fn(it) if self.connected_check(getattr(it, self.connected_property)) else self.connect_fn(it),
+                    on_click=lambda _, it=item: self.disconnect_fn(it)
+                    if self.connected_check(getattr(it, self.connected_property))
+                    else self.connect_fn(it),
                     css_classes=["cc-popup-option"],
                     hexpand=True,
                 )
@@ -129,4 +133,3 @@ class DeviceListPopup[T](ControlCentrePopup):
 
     def toggle_see_more(self) -> None:
         self.set_see_more(not self.wants_see_more)
-

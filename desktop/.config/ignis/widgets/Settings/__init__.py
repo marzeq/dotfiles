@@ -18,6 +18,7 @@ class AccentColourButton(Widget.Button):
             on_click=lambda _: sm.set_accent_colour(colour, wallpaper),
         )
 
+
 class WallpaperButton(Widget.Button):
     def __init__(self, path: str, on_wallpaper_picked):
         wallpaper_size = 196
@@ -41,7 +42,7 @@ class SwitchWithLabel(Widget.Box):
         label: str,
         active: bool = True,
         on_change: Callable[[Widget.Switch, bool], Any] = lambda *_: None,
-        css_classes: list[str] = []
+        css_classes: list[str] = [],
     ):
         super().__init__(
             child=[
@@ -85,7 +86,9 @@ class SettingsSection(Widget.Box):
 
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
-        self.suggested_accent_colours = Widget.Box(css_classes=["settings-suggested-accent-colours"])
+        self.suggested_accent_colours = Widget.Box(
+            css_classes=["settings-suggested-accent-colours"]
+        )
         self.wallpapers_box = Widget.Box(child=[])
         self.color_chooser = Gtk.ColorDialog()
 
@@ -93,16 +96,24 @@ class SettingsWindow(Widget.RegularWindow):
         self.refresh_wallpapers()
 
         add_wallpaper_dialog = Widget.FileDialog(
-            on_file_set=lambda _, file: (sm.add_wallpaper(file), self.refresh_wallpapers()),
+            on_file_set=lambda _, file: (
+                sm.add_wallpaper(file),
+                self.refresh_wallpapers(),
+            ),
             select_folder=False,
-            filters=[Widget.FileFilter(mime_types=["image/jpeg", "image/png", "image/webp"],
-                                       default=True, name="Image")]
+            filters=[
+                Widget.FileFilter(
+                    mime_types=["image/jpeg", "image/png", "image/webp"],
+                    default=True,
+                    name="Image",
+                )
+            ],
         )
 
         self.wallpapers_scroll = Widget.Scroll(
-                child=self.wallpapers_box,
-                css_classes=["settings-wallpapers-scroll"],
-            )
+            child=self.wallpapers_box,
+            css_classes=["settings-wallpapers-scroll"],
+        )
 
         super().__init__(
             child=Widget.Scroll(
@@ -120,7 +131,9 @@ class SettingsWindow(Widget.RegularWindow):
                                     child=[
                                         Widget.Button(
                                             label="Add new",
-                                            on_click=lambda _: asyncio.create_task(add_wallpaper_dialog.open_dialog()),
+                                            on_click=lambda _: asyncio.create_task(
+                                                add_wallpaper_dialog.open_dialog()
+                                            ),
                                             css_classes=["settings-wallpaper-button"],
                                         ),
                                         Widget.Button(
@@ -143,13 +156,19 @@ class SettingsWindow(Widget.RegularWindow):
                                         Widget.Button(
                                             halign="start",
                                             label="Set custom",
-                                            on_click=lambda _: self.color_chooser.choose_rgba(parent=None, cancellable=None, callback=self.on_color_chosen), # type: ignore
+                                            on_click=lambda _: self.color_chooser.choose_rgba(
+                                                parent=None,
+                                                cancellable=None,
+                                                callback=self.on_color_chosen,
+                                            ),  # type: ignore
                                             css_classes=["change-accent-colour-button"],
                                         ),
                                         Widget.Button(
                                             halign="start",
                                             label="Restore default",
-                                            on_click=lambda _: sm.restore_accent_colour(sm.wallpaper_symlink),
+                                            on_click=lambda _: sm.restore_accent_colour(
+                                                sm.wallpaper_symlink
+                                            ),
                                             css_classes=["change-accent-colour-button"],
                                         ),
                                     ],
@@ -166,21 +185,26 @@ class SettingsWindow(Widget.RegularWindow):
                                         SwitchWithLabel(
                                             label="Use 24-hour format",
                                             active=clock_settings.use_24h,
-                                            on_change=lambda _, active: clock_settings.set_use_24h(active),
-                                            css_classes=["settings-switch"]
+                                            on_change=lambda _,
+                                            active: clock_settings.set_use_24h(active),
+                                            css_classes=["settings-switch"],
                                         ),
                                         SwitchWithLabel(
                                             label="Show day of week",
                                             active=clock_settings.show_dow,
-                                            on_change=lambda _, active: clock_settings.set_show_dow(active),
-                                            css_classes=["settings-switch"]
+                                            on_change=lambda _,
+                                            active: clock_settings.set_show_dow(active),
+                                            css_classes=["settings-switch"],
                                         ),
                                         SwitchWithLabel(
                                             label="Show seconds",
                                             active=clock_settings.show_seconds,
-                                            on_change=lambda _, active: clock_settings.set_show_seconds(active),
-                                            css_classes=["settings-switch"]
-                                        )
+                                            on_change=lambda _,
+                                            active: clock_settings.set_show_seconds(
+                                                active
+                                            ),
+                                            css_classes=["settings-switch"],
+                                        ),
                                     ],
                                 )
                             ],
@@ -192,8 +216,11 @@ class SettingsWindow(Widget.RegularWindow):
                                 SwitchWithLabel(
                                     label="Show all workspaces on each monitor",
                                     active=workspace_settings.show_all_ws_on_monitor,
-                                    on_change=lambda _, active: workspace_settings.set_show_all_ws_on_monitor(active),
-                                    css_classes=["settings-switch"]
+                                    on_change=lambda _,
+                                    active: workspace_settings.set_show_all_ws_on_monitor(
+                                        active
+                                    ),
+                                    css_classes=["settings-switch"],
                                 )
                             ],
                         ),
@@ -207,7 +234,6 @@ class SettingsWindow(Widget.RegularWindow):
             hide_on_close=True,
         )
 
-    
     def on_color_chosen(self, source, result):
         try:
             rgba = source.choose_rgba_finish(result)
@@ -217,12 +243,12 @@ class SettingsWindow(Widget.RegularWindow):
 
     async def update_suggested_accent_colours(self, path: str):
         top_colours = await sm.get_cached_top_colours(path)
-        self.suggested_accent_colours.child = [ # type: ignore
+        self.suggested_accent_colours.child = [  # type: ignore
             AccentColourButton(colour=c, wallpaper=path) for c in top_colours
         ]
 
     def refresh_wallpapers(self):
-        self.wallpapers_box.child = [ # type: ignore
+        self.wallpapers_box.child = [  # type: ignore
             WallpaperButton(p, self.on_wallpaper_picked) for p in sm.get_wallpapers()
         ]
 

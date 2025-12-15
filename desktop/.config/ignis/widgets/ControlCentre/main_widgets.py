@@ -12,6 +12,7 @@ from widgets.ControlCentre.wifi import WiFiWidget
 network = NetworkService.get_default()
 bluetooth = BluetoothService.get_default()
 
+
 class MainWidgets(Widget.Box):
     def __init__(self):
         super().__init__(
@@ -54,7 +55,7 @@ class MainWidgets(Widget.Box):
 
         for i in range(0, len(widgets), 2):
             row = Widget.Box()
-            for w in widgets[i:i+2]:
+            for w in widgets[i : i + 2]:
                 parent = w.get_parent()
                 if parent:
                     parent.remove(w)
@@ -71,4 +72,3 @@ class MainWidgets(Widget.Box):
                     self.append(self.bluetooth_widget.popup)
                 elif w is self.ethernet_widget:
                     self.append(self.ethernet_widget.popup)
-

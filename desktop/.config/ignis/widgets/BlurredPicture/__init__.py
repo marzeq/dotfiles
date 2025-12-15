@@ -1,6 +1,7 @@
 from ignis.gobject import IgnisProperty
 from ignis.widgets import Widget
 
+
 class BlurredPicture(Widget.Picture):
     def __init__(
         self,

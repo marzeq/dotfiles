@@ -12,7 +12,7 @@ from widgets.OSD import OSD
 from widgets.Settings import SettingsWindow
 
 app = util.get_app()
-dir = Utils.get_current_dir() # type: ignore
+dir = Utils.get_current_dir()  # type: ignore
 
 os.makedirs(os.path.expanduser("~/.local/share/ignis"), exist_ok=True)
 accent_file = os.path.expanduser("~/.local/share/ignis/accent.scss")
@@ -29,7 +29,7 @@ util.run_cmd("gsettings set org.gnome.desktop.wm.preferences button-layout :")
 util.run_cmd("hyprctl reload")
 
 
-for i, m in enumerate(Utils.get_monitors()): # type: ignore
+for i, m in enumerate(Utils.get_monitors()):  # type: ignore
     ClosePopuper(i)
     Bar(i)
     NotificationPopup(i)

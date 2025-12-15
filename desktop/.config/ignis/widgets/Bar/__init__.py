@@ -3,10 +3,11 @@ from ignis.widgets import Widget
 
 import util
 from widgets.Clock import Clock
-from widgets.Workspaces import Workspaces 
-from widgets.Tray import Tray 
+from widgets.Workspaces import Workspaces
+from widgets.Tray import Tray
 
 app = util.get_app()
+
 
 class Bar(Widget.Window):
     def set_clock_hovered(self, value: bool):
@@ -49,7 +50,9 @@ class Bar(Widget.Window):
                                 Clock(
                                     monitor=monitor_id,
                                     on_hover=lambda *_: self.set_clock_hovered(True),
-                                    on_hover_lost=lambda *_: self.set_clock_hovered(False),
+                                    on_hover_lost=lambda *_: self.set_clock_hovered(
+                                        False
+                                    ),
                                 ),
                             ],
                         ),
@@ -58,7 +61,9 @@ class Bar(Widget.Window):
                                 Tray(
                                     monitor=monitor_id,
                                     on_hover=lambda *_: self.set_tray_hovered(True),
-                                    on_hover_lost=lambda *_: self.set_tray_hovered(False),
+                                    on_hover_lost=lambda *_: self.set_tray_hovered(
+                                        False
+                                    ),
                                 ),
                             ],
                         ),
