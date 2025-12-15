@@ -235,6 +235,12 @@ class BindableSettings(IgnisGObject):
     ) -> Binding:
         return self.bind_many([], lambda *_: lambda_func())
 
+    def sync(self) -> None:
+        """
+        Called after the settings have been loaded or saved to disk.
+        """
+        pass
+
 
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
     expanded_path = os.path.expanduser(
@@ -289,6 +295,8 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                     self._data.setdefault(k, v)
                     super().__setattr__(k, self._data[k])
 
+                self.sync()
+
             def do_get_property(self, pspec):
                 return self._data[pspec.name.replace("-", "_")]
 
@@ -303,6 +311,8 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 os.makedirs(os.path.dirname(self._path), exist_ok=True)
                 with open(self._path, "w") as f:
                     json.dump(self._data, f, indent=2)
+
+                self.sync()
 
             def bind_properties(self, lambda_func: Callable[[], T]):
                 return self.bind_many([k for k in hints], lambda *_: lambda_func())

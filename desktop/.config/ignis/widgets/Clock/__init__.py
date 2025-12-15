@@ -33,10 +33,12 @@ class ClockSettings(BindableSettings):
     def set_show_seconds(self, value: bool) -> None:
         self.show_seconds = value
 
-    def hour_format(self, show_seconds: bool) -> str:
+    def hour_format(self, show_seconds: bool, show_am_pm: bool) -> str:
         if self.use_24h:
             return "%H:%M:%S" if show_seconds else "%H:%M"
-        return "%I:%M:%S %p" if show_seconds else "%I:%M %p"
+        if show_am_pm:
+            return "%I:%M:%S %p" if show_seconds else "%I:%M %p"
+        return "%I:%M:%S" if show_seconds else "%I:%M"
 
     def date_format(self, long: bool, show_dow: bool) -> str:
         if long:
@@ -77,7 +79,8 @@ class Clock(Widget.EventBox):
                                     )
                                     + "  "
                                     + clock_settings.hour_format(
-                                        clock_settings.show_seconds
+                                        show_seconds=clock_settings.show_seconds,
+                                            show_am_pm=True
                                     )
                                 ),
                             ).bind("output")

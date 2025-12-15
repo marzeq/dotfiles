@@ -1,13 +1,69 @@
 import asyncio
-from typing import Any, Callable
-from gi.repository import Gtk
+import os
+from typing import Any, Callable, Literal
+from gi.repository import GLib, Gtk
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
+from util import BindableSettings, JsonSettings
 from widgets.Settings.style_manager import StyleManager
 from widgets.Clock import clock_settings
 from widgets.Workspaces import workspace_settings
 
 sm = StyleManager.instance()
+
+HyprlandLayout = Literal["master"] | Literal["dwindle"]
+hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
+
+@JsonSettings("hyprland")
+class HyprlandSettings(BindableSettings):
+    keyboard_layout: str = "us"
+    def set_keyboard_layout(self, value: str) -> None:
+        self.keyboard_layout = value
+
+    layout_type: HyprlandLayout = "master"
+    def set_layout_type(self, value: HyprlandLayout) -> None:
+        self.layout_type = value
+
+    
+    def sync(self) -> None:
+        with open(
+            os.path.expanduser("~/.local/share/ignis/hyprland.conf"), "w"
+        ) as f:
+            f.write(
+                f"""
+# Ignis generated Hyprland config, do not edit
+# Please put manual changes in ~/.config/hypr/hyprland-custom.conf
+
+input {{
+    kb_layout = {self.keyboard_layout}
+}}
+
+general {{
+    layout = {self.layout_type}
+}}
+""")
+
+hyprland_settings = HyprlandSettings()
+
+
+def get_keyboard_layouts() -> list[str]:
+    layouts = []
+    with open("/usr/share/X11/xkb/rules/base.lst", "r") as f:
+        lines = f.readlines()
+        in_layouts_section = False
+        for line in lines:
+            line = line.strip()
+            if line.startswith("! layout"):
+                in_layouts_section = True
+                continue
+            if in_layouts_section:
+                if line.startswith("!"):
+                    break
+                if line and not line.startswith("#"):
+                    parts = line.split()
+                    if parts:
+                        layouts.append(parts[0])
+    return layouts
 
 
 class AccentColourButton(Widget.Button):
@@ -83,6 +139,90 @@ class SettingsSection(Widget.Box):
             css_classes=["settings-section"],
         )
 
+
+def KeyboardLayoutDropdown() -> BaseWidget:
+    layouts = get_keyboard_layouts()
+
+    model = Gtk.StringList()
+    for l in layouts:
+        model.append(l)
+
+    dropdown = Gtk.DropDown(
+        model=model,
+        expression=Gtk.PropertyExpression.new(
+            Gtk.StringObject, None, "string"
+        ),
+    )
+    dropdown.set_hexpand(False)
+    dropdown.set_halign(Gtk.Align.START)
+    dropdown.set_valign(Gtk.Align.CENTER)
+    dropdown.add_css_class("settings-dropdown")
+    dropdown.set_enable_search(True)
+
+    def on_selected(dd, _):
+        item = dd.get_selected_item()
+        if item:
+            hyprland_settings.set_keyboard_layout(item.props.string)
+
+    dropdown.connect("notify::selected-item", on_selected)
+
+    def sync_from_settings(*_):
+        try:
+            dropdown.set_selected(
+                layouts.index(hyprland_settings.keyboard_layout)
+            )
+        except ValueError:
+            pass
+
+    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
+
+    hyprland_settings.bind("keyboard_layout", sync_from_settings)
+
+    return dropdown # type: ignore
+
+
+def LayoutDropdown() -> BaseWidget:
+    labels = [layout.capitalize() for layout in hyprland_layouts]
+
+    model = Gtk.StringList()
+    for label in labels:
+        model.append(label)
+
+    dropdown = Gtk.DropDown(
+        model=model,
+        expression=Gtk.PropertyExpression.new(
+            Gtk.StringObject, None, "string"
+        ),
+    )
+    dropdown.set_hexpand(False)
+    dropdown.set_halign(Gtk.Align.START)
+    dropdown.set_valign(Gtk.Align.CENTER)
+    dropdown.add_css_class("settings-dropdown")
+
+    def on_selected(dd, _):
+        item = dd.get_selected_item()
+        if item:
+            hyprland_settings.set_layout_type(
+                item.props.string.lower()
+            )
+
+    dropdown.connect("notify::selected-item", on_selected)
+
+    def sync_from_settings(*_):
+        try:
+            dropdown.set_selected(
+                hyprland_layouts.index(
+                    hyprland_settings.layout_type
+                )
+            )
+        except ValueError:
+            pass
+
+    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
+
+    hyprland_settings.bind("layout_type", sync_from_settings)
+
+    return dropdown # type: ignore
 
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
@@ -223,6 +363,16 @@ class SettingsWindow(Widget.RegularWindow):
                                     css_classes=["settings-switch"],
                                 )
                             ],
+                        ),
+                        SettingsSection(
+                            title="Keyboard layout",
+                            description="Change the keyboard layout used by Hyprland",
+                            child=[KeyboardLayoutDropdown()],
+                        ),
+                        SettingsSection(
+                            title="Layout type",
+                            description="Tiling mode/layout used by Hyprland\nDwindle - windows get smaller as more are added\nMaster - one large window with others tiled alongside",
+                            child=[LayoutDropdown()],
                         ),
                     ],
                     css_classes=["settings"],

@@ -63,7 +63,10 @@ class TimeDateScreen(Widget.Box):
                         lambda *_: Utils.Poll(
                             1000,
                             lambda _: datetime.now().strftime(
-                                clock_settings.hour_format(show_seconds=False)
+                                clock_settings.hour_format(
+                                    show_seconds=False,
+                                    show_am_pm=False,
+                                )
                             ),
                         ).bind("output")
                     ),
