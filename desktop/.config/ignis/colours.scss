@@ -18,25 +18,26 @@ $button-bg-active-more: adjust-color($button-bg, $lightness: 20%);
 
 $accent: #3584E4 !default;
 
-$al: if(
-  color.channel($accent, "lightness", $space: hsl) > 80%,
-  -1,
-  1
-);
+@function cap-hsl-lightness($color, $min: 25%, $max: 75%) {
+  $l: lightness($color);
 
-$fg-on-accent: if(
-  color.channel($accent, "lightness", $space: hsl) > 80%,
-  $bg-light,
-  $fg
-);
+  @if $l < $min {
+    @return hsl(hue($color), saturation($color), $min);
+  } @else if $l > $max {
+    @return hsl(hue($color), saturation($color), $max);
+  }
 
-$accent-secondary: adjust-color($accent, $lightness: -3%*$al);
-$accent-tertiary: adjust-color($accent, $lightness: 10%*$al);
+  @return $color;
+}
+
+$accent: cap-hsl-lightness($accent, 10%, 65%);
+
+$fg-on-accent: $fg;
+
+$accent-tertiary: adjust-color($accent, $lightness: 8%);
 
 $accent-hover: adjust-color($accent, $lightness: 5%);
-$accent-secondary-hover: adjust-color($accent-secondary, $lightness: 5%);
 $accent-tertiary-hover: adjust-color($accent-tertiary, $lightness: 5%);
 
 $accent-active: adjust-color($accent-hover, $lightness: 5%);
-$accent-secondary-active: adjust-color($accent-secondary-hover, $lightness: 5%);
 $accent-tertiary-active: adjust-color($accent-tertiary-hover, $lightness: 5%);

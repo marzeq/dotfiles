@@ -112,7 +112,7 @@ class SettingsWindow(Widget.RegularWindow):
                     child=[
                         SettingsSection(
                             title="Wallpaper",
-                            description="Change the wallpaper of the desktop by clicking on one of them.",
+                            description="Select from one of the available wallpapers or add a new one",
                             child=[
                                 self.wallpapers_scroll,
                                 Widget.Box(
@@ -135,7 +135,7 @@ class SettingsWindow(Widget.RegularWindow):
                         ),
                         SettingsSection(
                             title="Accent Colour",
-                            description="Change the accent colour of the desktop",
+                            description="Pick an accent colour to match your wallpaper\nYour colour may be slightly adjusted for legibility purposes",
                             child=[
                                 self.suggested_accent_colours,
                                 Widget.Box(
@@ -158,7 +158,7 @@ class SettingsWindow(Widget.RegularWindow):
                         ),
                         SettingsSection(
                             title="Clock",
-                            description="Customize the clock in the top bar",
+                            description="Customise how the clock behaves in the top bar and lock screen",
                             child=[
                                 Widget.Box(
                                     vertical=True,
@@ -187,7 +187,7 @@ class SettingsWindow(Widget.RegularWindow):
                         ),
                         SettingsSection(
                             title="Workspaces",
-                            description="Customize how workspaces are displayed in the top bar",
+                            description="Change the behaviour of the workspaces widget in the top bar",
                             child=[
                                 SwitchWithLabel(
                                     label="Show all workspaces on each monitor",
