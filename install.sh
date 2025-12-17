@@ -67,7 +67,7 @@ DESKTOP_DEPS=(
   "gst-plugin-pipewire"                             # gstreamer pipewire plugin
   "alsa-utils"                                      # alsa utilities
 
-  "hyprpaper"                                       # wallpaper manager
+  "swww"                                            # wallpaper manager
   "hyprpicker"                                      # colour picker
   "hypridle"                                        # idle manager (sleep after inactivity etc.)
 

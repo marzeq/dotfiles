@@ -16,9 +16,7 @@ from ignis.utils import Utils
 from gi.repository import Gtk, Gdk, Gio, Gtk4SessionLock  # type: ignore
 from widgets.Clock import clock_settings
 from widgets.FilteredPicture import FilteredPicture
-from widgets.Settings.style_manager import StyleManager
-
-sm = StyleManager.instance()
+from widgets.Settings.style_settings import style_settings
 
 lock_windows = []
 
@@ -65,7 +63,7 @@ class TimeDateScreen(Widget.Box):
                             lambda _: datetime.now().strftime(
                                 clock_settings.hour_format(
                                     show_seconds=False,
-                                    show_am_pm=False,
+                                    show_am_pm=True,
                                 )
                             ),
                         ).bind("output")
@@ -181,7 +179,7 @@ class LockScreen(Widget.Window):
         lock_instance.assign_window_to_monitor(self, monitor)
 
         wallpaper = FilteredPicture(
-            image=sm.wallpaper_symlink,
+            image=style_settings.bind("wallpaper"),
             blur_radius=16,
             darken=0.5,
             content_fit="cover"

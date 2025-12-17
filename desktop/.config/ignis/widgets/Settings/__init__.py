@@ -5,11 +5,9 @@ from gi.repository import GLib, Gtk
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
 from util import BindableSettings, JsonSettings
-from widgets.Settings.style_manager import StyleManager
+from widgets.Settings.style_settings import style_settings
 from widgets.Clock import clock_settings
 from widgets.Workspaces import workspace_settings
-
-sm = StyleManager.instance()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -71,7 +69,7 @@ class AccentColourButton(Widget.Button):
         super().__init__(
             style=f"background-color: {colour};",
             css_classes=["settings-suggested-accent-colour"],
-            on_click=lambda _: sm.set_accent_colour(colour, wallpaper),
+            on_click=lambda _: style_settings.set_accent_colour(colour, wallpaper),
         )
 
 
@@ -229,17 +227,17 @@ class SettingsWindow(Widget.RegularWindow):
         self.suggested_accent_colours = Widget.Box(
             css_classes=["settings-suggested-accent-colours"]
         )
-        self.wallpapers_box = Widget.Box(child=[])
+        self.wallpapers_box = Widget.Box(
+            child=style_settings.bind_many(["wallpaper", "addedwallpapers"], lambda *_: [
+                WallpaperButton(p, self.on_wallpaper_picked) for p in style_settings.get_wallpapers()
+            ])
+        )
         self.color_chooser = Gtk.ColorDialog()
 
-        asyncio.create_task(self.update_suggested_accent_colours(sm.wallpaper_symlink))
-        self.refresh_wallpapers()
+        asyncio.create_task(self.update_suggested_accent_colours(style_settings.wallpaper))
 
         add_wallpaper_dialog = Widget.FileDialog(
-            on_file_set=lambda _, file: (
-                sm.add_wallpaper(file),
-                self.refresh_wallpapers(),
-            ),
+            on_file_set=lambda _, file: style_settings.add_wallpaper(file),
             select_folder=False,
             filters=[
                 Widget.FileFilter(
@@ -276,12 +274,6 @@ class SettingsWindow(Widget.RegularWindow):
                                             ),
                                             css_classes=["settings-wallpaper-button"],
                                         ),
-                                        Widget.Button(
-                                            label="Refresh",
-                                            on_click=lambda _: self.refresh_wallpapers(),
-                                            css_classes=["settings-wallpaper-button"],
-                                            halign="start",
-                                        ),
                                     ],
                                 ),
                             ],
@@ -306,8 +298,8 @@ class SettingsWindow(Widget.RegularWindow):
                                         Widget.Button(
                                             halign="start",
                                             label="Restore default",
-                                            on_click=lambda _: sm.restore_accent_colour(
-                                                sm.wallpaper_symlink
+                                            on_click=lambda _: style_settings.restore_accent_colour(
+                                                style_settings.wallpaper
                                             ),
                                             css_classes=["change-accent-colour-button"],
                                         ),
@@ -370,7 +362,7 @@ class SettingsWindow(Widget.RegularWindow):
                             child=[KeyboardLayoutDropdown()],
                         ),
                         SettingsSection(
-                            title="Layout type",
+                            title="Tiling mode",
                             description="Tiling mode/layout used by Hyprland\nDwindle - windows get smaller as more are added\nMaster - one large window with others tiled alongside",
                             child=[LayoutDropdown()],
                         ),
@@ -387,22 +379,17 @@ class SettingsWindow(Widget.RegularWindow):
     def on_color_chosen(self, source, result):
         try:
             rgba = source.choose_rgba_finish(result)
-            sm.handle_color_chosen(rgba, sm.wallpaper_symlink)
+            style_settings.handle_color_chosen(rgba, style_settings.wallpaper)
         except:
             return
 
     async def update_suggested_accent_colours(self, path: str):
-        top_colours = await sm.get_cached_top_colours(path)
-        self.suggested_accent_colours.child = [  # type: ignore
+        top_colours = await style_settings.get_cached_top_colours(path)
+        self.suggested_accent_colours.set_child([
             AccentColourButton(colour=c, wallpaper=path) for c in top_colours
-        ]
-
-    def refresh_wallpapers(self):
-        self.wallpapers_box.child = [  # type: ignore
-            WallpaperButton(p, self.on_wallpaper_picked) for p in sm.get_wallpapers()
-        ]
+        ])
 
     async def on_wallpaper_picked(self, file):
-        await sm.pick_wallpaper(file, self.refresh_wallpapers)
+        await style_settings.pick_wallpaper(file)
         await self.update_suggested_accent_colours(file)
         self.wallpapers_scroll.get_vadjustment().set_value(0)

@@ -239,7 +239,13 @@ class BindableSettings(IgnisGObject):
         """
         Called after the settings have been loaded or saved to disk.
         """
-        pass
+        ...
+
+    def reset(self) -> None:
+        """
+        Reset all settings to their default values.
+        """
+        ...
 
 
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
@@ -317,8 +323,18 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
             def bind_properties(self, lambda_func: Callable[[], T]):
                 return self.bind_many([k for k in hints], lambda *_: lambda_func())
 
+            def reset(self) -> None:
+                for k, v in self._defaults.items():
+                    setattr(self, k, v)
+                try:
+                    os.remove(self._path)
+                except FileNotFoundError:
+                    pass
+
         prop_id = 1
         for name, typ in hints.items():
+            if name.startswith("_"):
+                continue
             if Wrapper.find_property(name) is None:  # type: ignore
                 Wrapper.install_property(prop_id, _make_pspec(name, typ))  # type: ignore
                 prop_id += 1

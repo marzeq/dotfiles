@@ -36,6 +36,7 @@ class Bar(Widget.Window):
             anchor=["left", "top", "right"],
             css_classes=["window"],
             exclusivity="exclusive",
+            layer="bottom",
             child=Widget.EventBox(
                 child=[
                     Widget.CenterBox(
