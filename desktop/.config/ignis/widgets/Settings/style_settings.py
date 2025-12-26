@@ -30,12 +30,6 @@ class StyleSettings(BindableSettings):
 
         self._accent_map = self._load_accent_map()
 
-        for file in os.listdir(os.path.expanduser("~/.wallpapers")):
-            try:
-                self.add_wallpaper(os.path.join(os.path.expanduser("~/.wallpapers"), file))
-            except FileNotFoundError:
-                pass
-
     def _hash_file(self, path: str) -> str:
         h = hashlib.md5()
         with open(path, "rb") as f:

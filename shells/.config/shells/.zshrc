@@ -23,6 +23,7 @@ zstyle :compinstall filename "$HOME/.config/shells/.zshrc"
 # ------------------------------
 
 export EDITOR="nvim"
+export MANPAGER="nvim +Man!"
 export PATH="$PATH:$HOME/.bin:$HOME/.local/bin"
 export GPG_TTY="$(tty)"
 

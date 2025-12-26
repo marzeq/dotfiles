@@ -46,6 +46,10 @@ if hascmd vim || hascmd nvim; then
   }
 fi
 
+if hascmd lazygit; then
+  alias lg="lazygit"
+fi
+
 if hascmd hyprctl; then
   function hyprplugrl() {
     # expect $1 as plugin path

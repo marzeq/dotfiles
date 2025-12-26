@@ -12,6 +12,7 @@ return {
       "gopls",
       "pyright",
       "clangd",
+      "ts_ls",
     },
     ---@param opts LspOpts
     config = function(_, opts)

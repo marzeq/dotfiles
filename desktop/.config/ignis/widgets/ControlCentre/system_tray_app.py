@@ -6,29 +6,17 @@ class SystemTrayApp(Widget.CenterBox):
     def __init__(self, item: SystemTrayItem):
         self.item = item
         self.menu = item.menu.copy() if item.menu else None
-        self.icon = self._normalize_icon(item.icon)
         self.title = self._normalize_title(item)
 
         start_widget = Widget.Box(
             child=[
                 Widget.Icon(
-                    image=self.item.bind("icon")
-                    if self.icon == self.item.icon
-                    else self.icon,
+                    image=self.item.bind("icon", lambda *_: self._normalize_icon(item.icon)),
                     pixel_size=28,
                     css_classes=["system-tray-item-icon"],
                 ),
                 Widget.Label(
-                    label=self.item.bind_many(
-                        ["title", "tooltip"],
-                        lambda title, tooltip: title
-                        if title
-                        else tooltip
-                        if tooltip
-                        else "",
-                    )
-                    if self.title == self.item.title
-                    else self.title,
+                    label=self.item.bind("title", lambda *_: self._normalize_title(item)),
                     css_classes=["system-tray-item-label"],
                 ),
             ]
@@ -42,8 +30,8 @@ class SystemTrayApp(Widget.CenterBox):
             )
             self.menu.connect(
                 "notify::visible",
-                lambda *_: self._set_button_active(self.menu.is_visible()),
-            )  # type: ignore
+                lambda *_: self._set_button_active(self.menu.is_visible()), # type: ignore
+            )
             end_widget = Widget.Box(child=[self.menu, self.button])
         else:
             end_widget = Widget.Box(child=[])
@@ -61,14 +49,8 @@ class SystemTrayApp(Widget.CenterBox):
         return icon
 
     def _normalize_title(self, item: SystemTrayItem):
-        if (
-            item.id == "chrome_status_icon_1"
-            and getattr(item.menu, "object_path", None) == "/com/canonical/dbusmenu"
-            and not item.title
-            and not item.tooltip
-            and type(item.icon).__name__ == "Pixbuf"
-        ):
-            return "Discord"
+        if item.title == "":
+            return "-"
 
         return item.title.capitalize()
 
