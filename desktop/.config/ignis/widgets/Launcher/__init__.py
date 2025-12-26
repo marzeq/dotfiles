@@ -9,6 +9,7 @@ from widgets.Launcher.base_mode import LauncherResult
 from .app_mode import AppMode
 from .calc_mode import CalcMode
 from .base_mode import LauncherMode
+from .poweroff_mode import PowerOffMode
 
 
 class Launcher(Widget.RevealerWindow):
@@ -94,7 +95,7 @@ class Launcher(Widget.RevealerWindow):
             revealer=revealer,
         )
 
-        self.modes: list[LauncherMode] = [AppMode(), CalcMode()]
+        self.modes: list[LauncherMode] = [AppMode(), CalcMode(), PowerOffMode()]
 
         self.entry.on_change = lambda *_: self.update_mode_and_list()
         self.entry.on_accept = lambda *_: self.trigger_result(0)
