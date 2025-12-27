@@ -128,6 +128,13 @@ class StyleSettings(BindableSettings):
             current_list.append(abs_path)
             self.addedwallpapers = self._added_wallpapers_list_to_str(current_list)
 
+    def remove_wallpaper(self, path: str):
+        abs_path = os.path.realpath(os.path.expanduser(path))
+        current_list = self._added_wallpapers_str_to_list(self.addedwallpapers)
+        if abs_path in current_list:
+            current_list.remove(abs_path)
+            self.addedwallpapers = self._added_wallpapers_list_to_str(current_list)
+
     def get_wallpapers(self):
         wallpapers: list[str] = []
 

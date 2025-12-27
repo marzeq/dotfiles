@@ -73,20 +73,38 @@ class AccentColourButton(Widget.Button):
         )
 
 
-class WallpaperButton(Widget.Button):
-    def __init__(self, path: str, on_wallpaper_picked):
+class WallpaperButton(Widget.Overlay):
+    def __init__(self, path: str, on_wallpaper_picked, on_wallpaper_removed, iscurrent: bool):
         wallpaper_size = 196
         super().__init__(
-            child=Widget.Picture(
-                image=path,
-                content_fit="scale_down",
-                height=wallpaper_size,
-                width=wallpaper_size * 16 // 9,
-                css_classes=["settings-wallpaper-image"],
+            child=Widget.Button(
+                child=Widget.Picture(
+                    image=path,
+                    content_fit="scale_down",
+                    height=wallpaper_size,
+                    width=wallpaper_size * 16 // 9,
+                    css_classes=["settings-wallpaper-image"],
+                ),
+                on_click=lambda _: asyncio.create_task(on_wallpaper_picked(path)),
+                css_classes=["settings-wallpaper"],
             ),
-            css_classes=["settings-wallpaper"],
-            on_click=lambda _: asyncio.create_task(on_wallpaper_picked(path)),
+            overlays=[
+                Widget.Button(
+                    child=Widget.Icon(
+                        icon_name="user-trash-symbolic",
+                        css_classes=["settings-wallpaper-remove-icon"],
+                    ),
+                    halign="end",
+                    valign="start",
+                    hexpand=False,
+                    vexpand=False,
+                    css_classes=["settings-wallpaper-remove-button"],
+                    on_click=lambda _: on_wallpaper_removed(path),
+                    visible=not iscurrent,
+                ),
+            ],
             halign="start",
+            css_classes=["settings-wallpaper-overlay"],
         )
 
 
@@ -229,7 +247,12 @@ class SettingsWindow(Widget.RegularWindow):
         )
         self.wallpapers_box = Widget.Box(
             child=style_settings.bind_many(["wallpaper", "addedwallpapers"], lambda *_: [
-                WallpaperButton(p, self.on_wallpaper_picked) for p in style_settings.get_wallpapers()
+                WallpaperButton(
+                    p,
+                    self.on_wallpaper_picked,
+                    self.on_wallpaper_removed,
+                    p == style_settings.wallpaper,
+                ) for p in style_settings.get_wallpapers()
             ])
         )
         self.color_chooser = Gtk.ColorDialog()
@@ -393,3 +416,6 @@ class SettingsWindow(Widget.RegularWindow):
         await style_settings.pick_wallpaper(file)
         await self.update_suggested_accent_colours(file)
         self.wallpapers_scroll.get_vadjustment().set_value(0)
+
+    def on_wallpaper_removed(self, path):
+        style_settings.remove_wallpaper(path)

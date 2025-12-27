@@ -220,7 +220,7 @@ main() {
     shift
   else
     if [[ ! -f "/etc/arch-release" ]]; then
-      echo "This script is intended for Arch Linux only!"
+      echo "This script is intended for Arch Linux only! You can use the --dry-run option to see what would be done and adapt it to your distro."
       exit 1
     fi
 

@@ -35,7 +35,7 @@ if hascmd xdg-open; then
   }
 fi
 
-if hascmd vim || hascmd nvim; then
+if hascmd vim || hascmd nvim && hascmd sudoedit; then
   function sudo() {
     if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
       shift
@@ -50,24 +50,9 @@ if hascmd lazygit; then
   alias lg="lazygit"
 fi
 
-if hascmd hyprctl; then
-  function hyprplugrl() {
-    # expect $1 as plugin path
-    if [ -z "$1" ]; then
-      echo "hyprplugrl: no plugin path specified"
-      return 1
-    fi
-
-    # ensure exists
-    if [ ! -f "$1" ]; then
-      echo "hyprplugrl: no such file: ${1}"
-      return 1
-    fi
-
-    # full path
-    local plugin_path=$(realpath "$1")
-    hyprctl plugin unload "$plugin_path"
-    hyprctl plugin load "$plugin_path"
+if [ -d ~/.local/share/ignis ] && hascmd goignis && hascmd ignis && hascmd hyprctl; then
+  function startshell() {
+    hyprctl dispatch exec 'goignis init'
   }
 fi
 
@@ -93,113 +78,25 @@ if hascmd git; then
   alias gp="git push"
   alias gpl="git pull"
   alias gf="git fetch"
+
+  function gv() {
+    local origin_url=$(git config --get remote.origin.url)
+
+    if [[ "$origin_url" == git@* ]]; then
+      local https_url=$(echo "$origin_url" | sed -e 's/:/\//' -e 's/git@/https:\/\//')
+
+      echo "Opening $https_url"
+      open "$https_url"
+    else
+      echo "Opening $origin_url"
+      open "$origin_url"
+    fi
+  }
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then
   alias neofetch="fastfetch"
 fi
-
-if hascmd wl-copy; then
-  function cpy() {
-    cat $1 | wl-copy
-  }
-fi
-
-function scratch() {
-  local dir=$(mktemp -d)
-
-  (cd $dir && $SHELL)
-  rm -rf $dir
-}
-
-function loadenv() {
-  if [ -z "$1" ]; then
-    if [ -e ".env" ]; then
-      set -a; source .env; set +a
-    else
-      echo "loadenv: no file specified and no .env file found in the current directory"
-      return 1
-    fi
-  else
-    if [ ! -e "$1" ]; then
-      echo "loadenv: no such file or directory: ${1}"
-      return 1
-    fi
-
-    if [ -d "$1" ]; then
-      set -a; source ${1}/.env; set +a
-    else
-      set -a; source ${1}; set +a
-    fi
-  fi
-}
-
-function compress() {
-  if [ "$#" -eq 0 ]; then
-    echo "compress: no arguments specified"
-    return 1
-  fi
-
-  directory=""
-  compression_flag="z"
-  extension=".tar.gz"
-
-  for arg in "$@"; do
-    if [ "$arg" = "-xz" ]; then
-      if ! hascmd tar; then
-        echo "compress: 'tar' command not found"
-        return 1
-      fi
-      compression_flag="J"
-      extension=".tar.xz"
-    elif [ "$arg" = "-gz" ]; then
-      if ! hascmd tar; then
-        echo "compress: 'tar' command not found"
-        return 1
-      fi
-      compression_flag="z"
-      extension=".tar.gz"
-    elif [ "$arg" = "-zip" ]; then
-      if ! hascmd zip; then
-        echo "compress: 'zip' command not found"
-        return 1
-      fi
-      extension=".zip"
-    elif [ "$arg" = "-7z" ]; then
-      if ! hascmd 7z; then
-        echo "compress: '7z' command not found"
-        return 1
-      fi
-      extension=".7z"
-    elif [[ "$arg" = -* ]]; then
-      echo "compress: invalid flag: ${arg}"
-      return 1
-    else
-      directory=$arg
-    fi
-  done
-
-  if [ -z "$directory" ]; then
-    echo "compress: no directory specified"
-    return 1
-  fi
-
-  if [ ! -d "$directory" ]; then
-    echo "compress: no such directory: ${directory}"
-    return 1
-  fi
-
-  if [[ "$extension" == ".zip" ]]; then
-    command="zip -qr ${directory}.zip ${directory}"
-  elif [[ "$extension" == ".7z" ]]; then
-    command="7z a ${directory}.7z ${directory}"
-  else
-    command="tar -c${compression_flag}f ${directory}${extension} ${directory}"
-  fi
-
-  echo $command
-  eval $command > /dev/null
-}
 
 function extract() {
   if [ "$#" -eq 0 ]; then
@@ -248,6 +145,6 @@ function extract() {
     fi
 
     echo $command
-    eval $command > /dev/null
+    eval $command
   done
 }

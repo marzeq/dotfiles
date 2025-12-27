@@ -272,6 +272,9 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
             return GObject.param_spec_double(
                 gname, name, name, -1e308, 1e308, 0.0, flags
             )
+        if typ is str:
+            pspec = GObject.param_spec_string(gname, name, name, "", flags)
+            print(pspec.name)
         return GObject.param_spec_string(gname, name, name, None, flags)
 
     def decorator(cls: type[T]) -> type[T]:
@@ -289,6 +292,16 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 self._data: dict[str, Any] = {}
                 self._read()
                 self._save()
+
+            def __setattr__(self, name, value):
+                if (
+                    hasattr(self, "_data")
+                    and name in self._data
+                    and self.find_property(name) is not None
+                ):
+                    self.set_property(name, value)
+                else:
+                    super().__setattr__(name, value)
 
             def _read(self) -> None:
                 try:

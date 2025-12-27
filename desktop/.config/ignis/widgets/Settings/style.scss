@@ -29,12 +29,15 @@
   min-height: 18rem;
 }
 
-.settings-wallpaper {
-  padding: 0;
+.settings-wallpaper-overlay {
   margin-left: 0.5rem;
   margin-top: 2rem;
   margin-bottom: 2.7rem;
   margin-right: 1.5rem;
+}
+
+.settings-wallpaper {
+  padding: 0;
   border-radius: 2rem;
 
   &:hover {
@@ -52,6 +55,11 @@
 
 .settings-wallpaper-button {
   margin-right: 1rem;
+}
+
+.settings-wallpaper-remove-button {
+  margin-right: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .settings-suggested-accent-colours {
