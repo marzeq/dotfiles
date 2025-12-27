@@ -244,20 +244,8 @@ class LockScreen(Widget.Window):
 
     def show_entry(self):
         if not self.entry_revealer.get_reveal_child():
-            self.swap_children()
-
-    def hide_entry(self):
-        if self.entry_revealer.get_reveal_child():
-            self.swap_children()
-
-    def swap_children(self):
-        if self.entry_revealer.get_reveal_child():
-            self.entry_revealer.set_reveal_child(False)
-            self.time_revealer.set_reveal_child(True)
-        else:
-            self.time_revealer.set_reveal_child(False)
             self.entry_revealer.set_reveal_child(True)
-
+            self.time_revealer.set_reveal_child(False)
             self.entry.grab_focus()
 
     def _handle_keypress(self, is_esc: bool, keycode: int):
@@ -265,14 +253,19 @@ class LockScreen(Widget.Window):
             return
 
         if self.entry_revealer.get_reveal_child() and is_esc:
+            self.entry_revealer.set_reveal_child(False)
+            self.time_revealer.set_reveal_child(True)
             self.entry.set_text("")
-        elif self.time_revealer.get_reveal_child() and is_keycode_valid_in_pwd(keycode):
+        elif self.time_revealer.get_reveal_child():
+            self.time_revealer.set_reveal_child(False)
+            self.entry_revealer.set_reveal_child(True)
+            self.entry.grab_focus()
+
+            if is_keycode_valid_in_pwd(keycode):
                 char = chr(Gdk.keyval_to_unicode(keycode))
                 current_text = self.entry.get_text() or ""
                 self.entry.set_text(current_text + char)
                 self.entry.set_position(-1)
-
-        self.swap_children()
 
     def _on_change(self):
         self.entry.remove_css_class("error")
