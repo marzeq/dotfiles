@@ -138,16 +138,8 @@ class StyleSettings(BindableSettings):
     def get_wallpapers(self):
         wallpapers: list[str] = []
 
-        current = (
-            os.path.realpath(self.wallpaper)
-            if self.wallpaper and os.path.isfile(self.wallpaper)
-            else None
-        )
-        if current:
-            wallpapers.append(current)
-
         for path in self._added_wallpapers_str_to_list(self.addedwallpapers):
-            if path != current and os.path.isfile(path) and path.endswith((".jpg", ".jpeg", ".png", ".webp")):
+            if os.path.isfile(path) and path.endswith((".jpg", ".jpeg", ".png", ".webp")):
                 wallpapers.append(path)
 
         return wallpapers

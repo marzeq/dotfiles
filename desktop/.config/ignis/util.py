@@ -274,7 +274,6 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
             )
         if typ is str:
             pspec = GObject.param_spec_string(gname, name, name, "", flags)
-            print(pspec.name)
         return GObject.param_spec_string(gname, name, name, None, flags)
 
     def decorator(cls: type[T]) -> type[T]:

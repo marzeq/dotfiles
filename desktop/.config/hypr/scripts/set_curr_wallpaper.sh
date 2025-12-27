@@ -17,4 +17,4 @@ fi
 swww img "$wallpaper" \
   --transition-fps=144 \
   --transition-step=128 \
-  --transition-type=center
+  --transition-type=any

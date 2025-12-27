@@ -224,7 +224,17 @@ class LockScreen(Widget.Window):
 
         content.style = "margin-bottom: 100px;"
 
-        self.set_child(Widget.Overlay(child=wallpaper, overlays=[content]))
+        self.set_child(
+            Widget.Overlay(
+                child=Widget.EventBox(
+                    child=[wallpaper],
+                    on_click=lambda *_: self.show_entry(),
+                    on_right_click=lambda *_: self.show_entry(),
+                    on_middle_click=lambda *_: self.show_entry(),
+                ),
+                overlays=[content]
+            )
+        )
 
         key_controller = Gtk.EventControllerKey()
         self.add_controller(key_controller)
@@ -232,25 +242,37 @@ class LockScreen(Widget.Window):
             "key-pressed", lambda *x: self._handle_keypress(x[1] == 65307, x[1])
         )
 
+    def show_entry(self):
+        if not self.entry_revealer.get_reveal_child():
+            self.swap_children()
+
+    def hide_entry(self):
+        if self.entry_revealer.get_reveal_child():
+            self.swap_children()
+
+    def swap_children(self):
+        if self.entry_revealer.get_reveal_child():
+            self.entry_revealer.set_reveal_child(False)
+            self.time_revealer.set_reveal_child(True)
+        else:
+            self.time_revealer.set_reveal_child(False)
+            self.entry_revealer.set_reveal_child(True)
+
+            self.entry.grab_focus()
+
     def _handle_keypress(self, is_esc: bool, keycode: int):
         if self.authenticating:
             return
 
         if self.entry_revealer.get_reveal_child() and is_esc:
-            self.entry_revealer.set_reveal_child(False)
-            self.time_revealer.set_reveal_child(True)
-
             self.entry.set_text("")
-        elif self.time_revealer.get_reveal_child():
-            self.time_revealer.set_reveal_child(False)
-            self.entry_revealer.set_reveal_child(True)
-
-            self.entry.grab_focus()
-            if is_keycode_valid_in_pwd(keycode):
+        elif self.time_revealer.get_reveal_child() and is_keycode_valid_in_pwd(keycode):
                 char = chr(Gdk.keyval_to_unicode(keycode))
                 current_text = self.entry.get_text() or ""
                 self.entry.set_text(current_text + char)
                 self.entry.set_position(-1)
+
+        self.swap_children()
 
     def _on_change(self):
         self.entry.remove_css_class("error")
