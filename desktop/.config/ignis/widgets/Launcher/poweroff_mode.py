@@ -6,6 +6,17 @@ from .base_mode import GetResultsResponse, LauncherMode, LauncherResult
 Action = Literal["shutdown", "reboot", "logout", "suspend"]
 actions: list[Action] = ["shutdown", "reboot", "logout", "suspend"]
 
+def Action_repr(action: Action) -> str:
+    match action:
+        case "shutdown":
+            return "Power Off"
+        case "reboot":
+            return "Reboot"
+        case "logout":
+            return "Log Out"
+        case "suspend":
+            return "Suspend"
+
 class PowerOffMode(LauncherMode):
     def get_results(self, launcher, query: str):
         if query.strip() == "":
@@ -18,7 +29,7 @@ class LauncherPowerOffResult(LauncherResult):
     def __init__(self, action: Action):
         self.action: Action = action
         super().__init__(
-            value=action.capitalize(),
+            value=Action_repr(action),
             icon_name=self.icon_name(),
             launch=lambda: self.launch(),
             css_classes=["launcher-result-value"],
