@@ -11,12 +11,16 @@ class SystemTrayApp(Widget.CenterBox):
         start_widget = Widget.Box(
             child=[
                 Widget.Icon(
-                    image=self.item.bind("icon", lambda *_: self._normalize_icon(item.icon)),
+                    image=self.item.bind(
+                        "icon", lambda *_: self._normalize_icon(item.icon)
+                    ),
                     pixel_size=28,
                     css_classes=["system-tray-item-icon"],
                 ),
                 Widget.Label(
-                    label=self.item.bind("title", lambda *_: self._normalize_title(item)),
+                    label=self.item.bind(
+                        "title", lambda *_: self._normalize_title(item)
+                    ),
                     css_classes=["system-tray-item-label"],
                 ),
             ]
@@ -30,7 +34,7 @@ class SystemTrayApp(Widget.CenterBox):
             )
             self.menu.connect(
                 "notify::visible",
-                lambda *_: self._set_button_active(self.menu.is_visible()), # type: ignore
+                lambda *_: self._set_button_active(self.menu.is_visible()),  # type: ignore
             )
             end_widget = Widget.Box(child=[self.menu, self.button])
         else:

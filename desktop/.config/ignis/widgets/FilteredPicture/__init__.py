@@ -73,4 +73,3 @@ class FilteredPicture(Widget.Picture):
 
         if self._blur_radius > 0:
             snapshot.pop()
-

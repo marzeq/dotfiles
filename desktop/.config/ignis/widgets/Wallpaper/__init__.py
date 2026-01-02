@@ -5,12 +5,9 @@ from ignis.widgets import Widget
 
 from widgets.Settings.style_settings import style_settings
 
+
 class Wallpaper(Widget.Window):
-    def __init__(
-        self,
-        monitor: Gdk.Monitor,
-        monitor_id: int
-    ):
+    def __init__(self, monitor: Gdk.Monitor, monitor_id: int):
         def WallpaperPic(path: str):
             return Widget.Picture(
                 image=path,
@@ -20,17 +17,10 @@ class Wallpaper(Widget.Window):
             )
 
         self.stack = Gtk.Stack(
-            transition_type=Gtk.StackTransitionType.SLIDE_LEFT,
-            transition_duration=250
+            transition_type=Gtk.StackTransitionType.SLIDE_LEFT, transition_duration=250
         )
-        self.stack.add_named(
-            WallpaperPic(style_settings.wallpaper),
-            "current"
-        )
-        self.stack.add_named(
-            WallpaperPic(style_settings.wallpaper),
-            "next"
-        )
+        self.stack.add_named(WallpaperPic(style_settings.wallpaper), "current")
+        self.stack.add_named(WallpaperPic(style_settings.wallpaper), "next")
         self.stack.set_visible_child_name("current")
 
         super().__init__(
@@ -39,11 +29,12 @@ class Wallpaper(Widget.Window):
             anchor=["left", "top", "right", "bottom"],
             layer="background",
             exclusivity="ignore",
-            child=self.stack
+            child=self.stack,
         )
 
-        style_settings.connect("notify::wallpaper", lambda *_: self.on_wallpaper_change())
-
+        style_settings.connect(
+            "notify::wallpaper", lambda *_: self.on_wallpaper_change()
+        )
 
     def on_wallpaper_change(self):
         current_child_name = self.stack.get_visible_child_name()

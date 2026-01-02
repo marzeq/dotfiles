@@ -80,7 +80,7 @@ class Clock(Widget.EventBox):
                                     + "  "
                                     + clock_settings.hour_format(
                                         show_seconds=clock_settings.show_seconds,
-                                            show_am_pm=True
+                                        show_am_pm=True,
                                     )
                                 ),
                             ).bind("output")

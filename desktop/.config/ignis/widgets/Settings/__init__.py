@@ -12,24 +12,25 @@ from widgets.Workspaces import workspace_settings
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
 
+
 @JsonSettings("hyprland")
 class HyprlandSettings(BindableSettings):
     keyboard_layout: str = "us"
     keyboard_variant: str = ""
+
     def set_keyboard_layout(self, value: str) -> None:
         self.keyboard_layout = value
+
     def set_keyboard_variant(self, value: str) -> None:
         self.keyboard_variant = value
 
     layout_type: HyprlandLayout = "master"
+
     def set_layout_type(self, value: HyprlandLayout) -> None:
         self.layout_type = value
 
-    
     def sync(self) -> None:
-        with open(
-            os.path.expanduser("~/.local/share/ignis/hyprland.conf"), "w"
-        ) as f:
+        with open(os.path.expanduser("~/.local/share/ignis/hyprland.conf"), "w") as f:
             f.write(
                 f"""
 # Ignis generated Hyprland config, do not edit
@@ -43,7 +44,9 @@ input {{
 general {{
     layout = {self.layout_type}
 }}
-""")
+"""
+            )
+
 
 hyprland_settings = HyprlandSettings()
 
@@ -66,6 +69,7 @@ def get_keyboard_layouts() -> list[str]:
                     if parts:
                         layouts.append(parts[0])
     return layouts
+
 
 def get_keyboard_variants(layout: str) -> list[str]:
     variants: list[str] = [""]
@@ -101,7 +105,9 @@ class AccentColourButton(Widget.Button):
 
 
 class WallpaperButton(Widget.Overlay):
-    def __init__(self, path: str, on_wallpaper_picked, on_wallpaper_removed, iscurrent: bool):
+    def __init__(
+        self, path: str, on_wallpaper_picked, on_wallpaper_removed, iscurrent: bool
+    ):
         wallpaper_size = 196
         super().__init__(
             child=Widget.Button(
@@ -195,9 +201,7 @@ def KeyboardLayoutDropdown() -> BaseWidget:
 
     dropdown = Gtk.DropDown(
         model=model,
-        expression=Gtk.PropertyExpression.new(
-            Gtk.StringObject, None, "string"
-        ),
+        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
     )
     dropdown.set_hexpand(False)
     dropdown.set_halign(Gtk.Align.START)
@@ -216,9 +220,7 @@ def KeyboardLayoutDropdown() -> BaseWidget:
 
     def sync_from_settings(*_):
         try:
-            dropdown.set_selected(
-                layouts.index(hyprland_settings.keyboard_layout)
-            )
+            dropdown.set_selected(layouts.index(hyprland_settings.keyboard_layout))
         except ValueError:
             pass
 
@@ -226,7 +228,8 @@ def KeyboardLayoutDropdown() -> BaseWidget:
 
     hyprland_settings.connect("notify::keyboard-layout", sync_from_settings)
 
-    return dropdown # type: ignore
+    return dropdown  # type: ignore
+
 
 def KeyboardVariantDropdown() -> BaseWidget:
     model = Gtk.StringList()
@@ -234,9 +237,7 @@ def KeyboardVariantDropdown() -> BaseWidget:
 
     dropdown = Gtk.DropDown(
         model=model,
-        expression=Gtk.PropertyExpression.new(
-            Gtk.StringObject, None, "string"
-        ),
+        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
     )
     dropdown.set_hexpand(False)
     dropdown.set_halign(Gtk.Align.START)
@@ -264,16 +265,12 @@ def KeyboardVariantDropdown() -> BaseWidget:
         nonlocal syncing
         syncing = True
 
-        variants = get_keyboard_variants(
-            hyprland_settings.keyboard_layout
-        )
+        variants = get_keyboard_variants(hyprland_settings.keyboard_layout)
 
         repopulate(variants)
 
         try:
-            dropdown.set_selected(
-                variants.index(hyprland_settings.keyboard_variant)
-            )
+            dropdown.set_selected(variants.index(hyprland_settings.keyboard_variant))
         except ValueError:
             dropdown.set_selected(0)
 
@@ -286,6 +283,7 @@ def KeyboardVariantDropdown() -> BaseWidget:
 
     return dropdown  # type: ignore
 
+
 def LayoutDropdown() -> BaseWidget:
     labels = [layout.capitalize() for layout in hyprland_layouts]
 
@@ -295,9 +293,7 @@ def LayoutDropdown() -> BaseWidget:
 
     dropdown = Gtk.DropDown(
         model=model,
-        expression=Gtk.PropertyExpression.new(
-            Gtk.StringObject, None, "string"
-        ),
+        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
     )
     dropdown.set_hexpand(False)
     dropdown.set_halign(Gtk.Align.START)
@@ -307,19 +303,13 @@ def LayoutDropdown() -> BaseWidget:
     def on_selected(dd, _):
         item = dd.get_selected_item()
         if item:
-            hyprland_settings.set_layout_type(
-                item.props.string.lower()
-            )
+            hyprland_settings.set_layout_type(item.props.string.lower())
 
     dropdown.connect("notify::selected-item", on_selected)
 
     def sync_from_settings(*_):
         try:
-            dropdown.set_selected(
-                hyprland_layouts.index(
-                    hyprland_settings.layout_type
-                )
-            )
+            dropdown.set_selected(hyprland_layouts.index(hyprland_settings.layout_type))
         except ValueError:
             pass
 
@@ -327,7 +317,8 @@ def LayoutDropdown() -> BaseWidget:
 
     hyprland_settings.bind("layout_type", sync_from_settings)
 
-    return dropdown # type: ignore
+    return dropdown  # type: ignore
+
 
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
@@ -354,10 +345,12 @@ class SettingsWindow(Widget.RegularWindow):
             child=self.wallpapers_box,
             css_classes=["settings-wallpapers-scroll"],
         )
-        
+
         self.color_chooser = Gtk.ColorDialog()
 
-        asyncio.create_task(self.update_suggested_accent_colours(style_settings.wallpaper))
+        asyncio.create_task(
+            self.update_suggested_accent_colours(style_settings.wallpaper)
+        )
 
         add_wallpaper_dialog = Widget.FileDialog(
             on_file_set=lambda _, file: style_settings.add_wallpaper(file),
@@ -506,9 +499,9 @@ class SettingsWindow(Widget.RegularWindow):
 
     async def update_suggested_accent_colours(self, path: str):
         top_colours = await style_settings.get_cached_top_colours(path)
-        self.suggested_accent_colours.set_child([
-            AccentColourButton(colour=c, wallpaper=path) for c in top_colours
-        ])
+        self.suggested_accent_colours.set_child(
+            [AccentColourButton(colour=c, wallpaper=path) for c in top_colours]
+        )
 
     async def on_wallpaper_picked(self, file):
         await style_settings.pick_wallpaper(file)

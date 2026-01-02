@@ -182,7 +182,7 @@ class LockScreen(Widget.Window):
             image=style_settings.bind("wallpaper"),
             blur_radius=16,
             darken=0.5,
-            content_fit="cover"
+            content_fit="cover",
         )
 
         if monitor_id != 0:
@@ -232,7 +232,7 @@ class LockScreen(Widget.Window):
                     on_right_click=lambda *_: self.show_entry(),
                     on_middle_click=lambda *_: self.show_entry(),
                 ),
-                overlays=[content]
+                overlays=[content],
             )
         )
 

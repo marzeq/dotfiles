@@ -18,14 +18,10 @@ class StyleSettings(BindableSettings):
     def __init__(self):
         super().__init__()
 
-        self._accent_cache_path = os.path.expanduser(
-            "~/.local/share/ignis/accent_map"
-        )
+        self._accent_cache_path = os.path.expanduser("~/.local/share/ignis/accent_map")
         os.makedirs(os.path.dirname(self._accent_cache_path), exist_ok=True)
 
-        self._wallcache_dir = os.path.expanduser(
-            "~/.local/share/ignis/wallcaches"
-        )
+        self._wallcache_dir = os.path.expanduser("~/.local/share/ignis/wallcaches")
         os.makedirs(self._wallcache_dir, exist_ok=True)
 
         self._accent_map = self._load_accent_map()
@@ -139,16 +135,16 @@ class StyleSettings(BindableSettings):
         wallpapers: list[str] = []
 
         for path in self._added_wallpapers_str_to_list(self.addedwallpapers):
-            if os.path.isfile(path) and path.endswith((".jpg", ".jpeg", ".png", ".webp")):
+            if os.path.isfile(path) and path.endswith(
+                (".jpg", ".jpeg", ".png", ".webp")
+            ):
                 wallpapers.append(path)
 
         return wallpapers
 
     async def get_cached_top_colours(self, path: str):
         file_hash = self._hash_file(path)
-        cache_path = os.path.join(
-            self._wallcache_dir, f"{file_hash}.cache"
-        )
+        cache_path = os.path.join(self._wallcache_dir, f"{file_hash}.cache")
 
         if os.path.isfile(cache_path):
             with open(cache_path, "r") as f:
@@ -159,9 +155,7 @@ class StyleSettings(BindableSettings):
             f.write("\n".join(top_colours))
         return top_colours
 
-    async def pick_wallpaper(
-        self, file: str
-    ):
+    async def pick_wallpaper(self, file: str):
         self.set_wallpaper(file)
         util.run_cmd("~/.config/hypr/scripts/set_curr_wallpaper.sh")
 

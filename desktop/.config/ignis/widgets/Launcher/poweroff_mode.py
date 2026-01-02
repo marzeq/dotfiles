@@ -6,6 +6,7 @@ from .base_mode import GetResultsResponse, LauncherMode, LauncherResult
 Action = Literal["shutdown", "reboot", "logout", "suspend"]
 actions: list[Action] = ["shutdown", "reboot", "logout", "suspend"]
 
+
 def Action_repr(action: Action) -> str:
     match action:
         case "shutdown":
@@ -17,12 +18,15 @@ def Action_repr(action: Action) -> str:
         case "suspend":
             return "Suspend"
 
+
 class PowerOffMode(LauncherMode):
     def get_results(self, launcher, query: str):
         if query.strip() == "":
             return GetResultsResponse([], True)
 
-        return GetResultsResponse([LauncherPowerOffResult(action) for action in actions], True)
+        return GetResultsResponse(
+            [LauncherPowerOffResult(action) for action in actions], True
+        )
 
 
 class LauncherPowerOffResult(LauncherResult):
@@ -45,7 +49,7 @@ class LauncherPowerOffResult(LauncherResult):
             util.run_cmd("hyprctl dispatch exit")
         elif self.action == "suspend":
             util.run_cmd("systemctl suspend")
-    
+
     def icon_name(self) -> str:
         icons = {
             "shutdown": "system-shutdown-symbolic",
