@@ -26,14 +26,13 @@
 }
 
 .settings-wallpapers-scroll {
-  min-height: 18rem;
+  min-height: 16rem;
 }
 
 .settings-wallpaper-overlay {
-  margin-left: 0.5rem;
-  margin-top: 2rem;
-  margin-bottom: 2.7rem;
-  margin-right: 1.5rem;
+  margin-top: 1rem;
+  margin-left: 0.6rem;
+  margin-right: 0.6rem;
 }
 
 .settings-wallpaper {
@@ -54,7 +53,6 @@
 }
 
 .settings-wallpaper-button {
-  margin-right: 1rem;
 }
 
 .settings-wallpaper-remove-button {
@@ -88,6 +86,9 @@
   margin-right: 1rem;
 }
 
+.settings-dropdown {
+  min-width: 6rem;
+}
 .settings-switch, .settings-dropdown {
   margin-top: 0.5rem;
 }

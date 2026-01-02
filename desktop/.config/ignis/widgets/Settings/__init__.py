@@ -15,8 +15,11 @@ hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
 @JsonSettings("hyprland")
 class HyprlandSettings(BindableSettings):
     keyboard_layout: str = "us"
+    keyboard_variant: str = ""
     def set_keyboard_layout(self, value: str) -> None:
         self.keyboard_layout = value
+    def set_keyboard_variant(self, value: str) -> None:
+        self.keyboard_variant = value
 
     layout_type: HyprlandLayout = "master"
     def set_layout_type(self, value: HyprlandLayout) -> None:
@@ -34,6 +37,7 @@ class HyprlandSettings(BindableSettings):
 
 input {{
     kb_layout = {self.keyboard_layout}
+    kb_variant = {self.keyboard_variant}
 }}
 
 general {{
@@ -62,6 +66,29 @@ def get_keyboard_layouts() -> list[str]:
                     if parts:
                         layouts.append(parts[0])
     return layouts
+
+def get_keyboard_variants(layout: str) -> list[str]:
+    variants: list[str] = [""]
+    with open("/usr/share/X11/xkb/rules/base.lst", "r") as f:
+        in_variants = False
+        for raw in f:
+            line = raw.rstrip()
+            if line.startswith("! variant"):
+                in_variants = True
+                continue
+            if in_variants:
+                if line.startswith("!"):
+                    break
+                if not line or line.lstrip().startswith("#"):
+                    continue
+
+                parts = line.split()
+                if len(parts) >= 2:
+                    variant = parts[0]
+                    layout_part = parts[1]
+                    if layout_part.endswith(":") and layout_part[:-1] == layout:
+                        variants.append(variant)
+    return variants
 
 
 class AccentColourButton(Widget.Button):
@@ -103,6 +130,9 @@ class WallpaperButton(Widget.Overlay):
                     visible=not iscurrent,
                 ),
             ],
+            hexpand=False,
+            vexpand=True,
+            valign="start",
             halign="start",
             css_classes=["settings-wallpaper-overlay"],
         )
@@ -179,6 +209,8 @@ def KeyboardLayoutDropdown() -> BaseWidget:
         item = dd.get_selected_item()
         if item:
             hyprland_settings.set_keyboard_layout(item.props.string)
+            if item.props.string != hyprland_settings.keyboard_layout:
+                hyprland_settings.set_keyboard_variant("")
 
     dropdown.connect("notify::selected-item", on_selected)
 
@@ -192,10 +224,67 @@ def KeyboardLayoutDropdown() -> BaseWidget:
 
     GLib.idle_add(lambda: (sync_from_settings(), False)[1])
 
-    hyprland_settings.bind("keyboard_layout", sync_from_settings)
+    hyprland_settings.connect("notify::keyboard-layout", sync_from_settings)
 
     return dropdown # type: ignore
 
+def KeyboardVariantDropdown() -> BaseWidget:
+    model = Gtk.StringList()
+    syncing = False
+
+    dropdown = Gtk.DropDown(
+        model=model,
+        expression=Gtk.PropertyExpression.new(
+            Gtk.StringObject, None, "string"
+        ),
+    )
+    dropdown.set_hexpand(False)
+    dropdown.set_halign(Gtk.Align.START)
+    dropdown.set_valign(Gtk.Align.CENTER)
+    dropdown.add_css_class("settings-dropdown")
+    dropdown.set_enable_search(True)
+
+    def repopulate(variants: list[str]):
+        while model.get_n_items() > 0:
+            model.remove(0)
+        for v in variants:
+            model.append(v)
+
+    def on_selected(dd, _):
+        nonlocal syncing
+        if syncing:
+            return
+        item = dd.get_selected_item()
+        if item is not None:
+            hyprland_settings.set_keyboard_variant(item.props.string)
+
+    dropdown.connect("notify::selected-item", on_selected)
+
+    def sync_from_settings(*_):
+        nonlocal syncing
+        syncing = True
+
+        variants = get_keyboard_variants(
+            hyprland_settings.keyboard_layout
+        )
+
+        repopulate(variants)
+
+        try:
+            dropdown.set_selected(
+                variants.index(hyprland_settings.keyboard_variant)
+            )
+        except ValueError:
+            dropdown.set_selected(0)
+
+        syncing = False
+
+    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
+
+    hyprland_settings.connect("notify::keyboard-layout", sync_from_settings)
+    hyprland_settings.connect("notify::keyboard-variant", sync_from_settings)
+
+    return dropdown  # type: ignore
 
 def LayoutDropdown() -> BaseWidget:
     labels = [layout.capitalize() for layout in hyprland_layouts]
@@ -246,15 +335,26 @@ class SettingsWindow(Widget.RegularWindow):
             css_classes=["settings-suggested-accent-colours"]
         )
         self.wallpapers_box = Widget.Box(
-            child=style_settings.bind_many(["wallpaper", "addedwallpapers"], lambda *_: [
-                WallpaperButton(
-                    p,
-                    self.on_wallpaper_picked,
-                    self.on_wallpaper_removed,
-                    p == style_settings.wallpaper,
-                ) for p in style_settings.get_wallpapers()
-            ])
+            vexpand=True,
+            child=style_settings.bind_many(
+                ["wallpaper", "addedwallpapers"],
+                lambda *_: [
+                    WallpaperButton(
+                        p,
+                        self.on_wallpaper_picked,
+                        self.on_wallpaper_removed,
+                        p == style_settings.wallpaper,
+                    )
+                    for p in style_settings.get_wallpapers()
+                ],
+            ),
+            css_classes=["settings-wallpapers-box"],
         )
+        self.wallpapers_scroll = Widget.Scroll(
+            child=self.wallpapers_box,
+            css_classes=["settings-wallpapers-scroll"],
+        )
+        
         self.color_chooser = Gtk.ColorDialog()
 
         asyncio.create_task(self.update_suggested_accent_colours(style_settings.wallpaper))
@@ -269,11 +369,6 @@ class SettingsWindow(Widget.RegularWindow):
                     name="Image",
                 )
             ],
-        )
-
-        self.wallpapers_scroll = Widget.Scroll(
-            child=self.wallpapers_box,
-            css_classes=["settings-wallpapers-scroll"],
         )
 
         super().__init__(
@@ -381,8 +476,11 @@ class SettingsWindow(Widget.RegularWindow):
                         ),
                         SettingsSection(
                             title="Keyboard layout",
-                            description="Change the keyboard layout used by Hyprland",
-                            child=[KeyboardLayoutDropdown()],
+                            description="Change the keyboard layout and variant used by Hyprland",
+                            child=[
+                                KeyboardLayoutDropdown(),
+                                KeyboardVariantDropdown(),
+                            ],
                         ),
                         SettingsSection(
                             title="Tiling mode",
