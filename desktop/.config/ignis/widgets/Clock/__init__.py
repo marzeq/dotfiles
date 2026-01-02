@@ -37,7 +37,7 @@ class ClockSettings(BindableSettings):
         if self.use_24h:
             return "%H:%M:%S" if show_seconds else "%H:%M"
         if show_am_pm:
-            return "%I:%M:%S %p" if show_seconds else "%I:%M %p"
+            return "%I:%M:%S" if show_seconds else "%I:%M"
         return "%I:%M:%S" if show_seconds else "%I:%M"
 
     def date_format(self, long: bool, show_dow: bool) -> str:
