@@ -75,6 +75,15 @@ def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
     Utils.Timeout(delay, lambda *_: run_cmd(cmd))
 
 
+def has_command(cmd: str) -> bool:
+    return subprocess.call(
+        f"type {cmd}",
+        shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ) == 0
+
+
 async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50):
     def rgb_distance(c1, c2):
         return np.linalg.norm(np.array(c1) - np.array(c2))

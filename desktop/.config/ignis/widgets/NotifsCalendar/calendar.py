@@ -169,7 +169,7 @@ class Calendar(Widget.Box):
         )
 
         Utils.Poll(
-            60_000, lambda *_: self.update_calendar()
+            1_000, lambda *_: self.update_calendar()
         )  # to update the calendar if the month changes
 
     def set_month(self, month: int, year: int):

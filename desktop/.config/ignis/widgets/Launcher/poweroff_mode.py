@@ -51,7 +51,7 @@ class LauncherPowerOffResult(LauncherResult):
             util.run_cmd("systemctl suspend")
 
     def icon_name(self) -> str:
-        icons = {
+        icons: dict[Action, str] = {
             "shutdown": "system-shutdown-symbolic",
             "reboot": "system-reboot-symbolic",
             "logout": "system-log-out-symbolic",

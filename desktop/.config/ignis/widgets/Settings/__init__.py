@@ -5,6 +5,7 @@ from gi.repository import GLib, Gtk
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
 from util import BindableSettings, JsonSettings
+import util
 from widgets.Settings.style_settings import style_settings
 from widgets.Clock import clock_settings
 from widgets.Workspaces import workspace_settings
@@ -29,6 +30,15 @@ class HyprlandSettings(BindableSettings):
     def set_layout_type(self, value: HyprlandLayout) -> None:
         self.layout_type = value
 
+    pointer_sensitivity: float = 0.0
+    acceleration_enabled: bool = False
+
+    def set_pointer_sensitivity(self, value: float) -> None:
+        self.pointer_sensitivity = value
+
+    def set_acceleration_enabled(self, value: bool) -> None:
+        self.acceleration_enabled = value
+
     def sync(self) -> None:
         with open(os.path.expanduser("~/.local/share/ignis/hyprland.conf"), "w") as f:
             f.write(
@@ -39,6 +49,9 @@ class HyprlandSettings(BindableSettings):
 input {{
     kb_layout = {self.keyboard_layout}
     kb_variant = {self.keyboard_variant}
+
+    sensitivity = {self.pointer_sensitivity}
+    accel_profile = {'flat' if not self.acceleration_enabled else 'adaptive'}
 }}
 
 general {{
@@ -144,35 +157,62 @@ class WallpaperButton(Widget.Overlay):
         )
 
 
-class SwitchWithLabel(Widget.Box):
+class Setting(Widget.Box):
+    def __init__(
+        self,
+        widget: BaseWidget,
+        label: str = "",
+        label_where: Literal["top", "bottom", "left", "right"] = "right",
+    ):
+        super().__init__(
+            child=[
+                widget,
+                Widget.Label(
+                    label=label,
+                    css_classes=["settings-widget-label-right"] if label_where == "right" else ["settings-widget-label-bottom"],
+                    halign="start",
+                    valign="center",
+                ),
+            ] if label_where in ("right", "bottom") else [
+                Widget.Label(
+                    label=label,
+                    css_classes=["settings-widget-label-left"] if label_where == "left" else ["settings-widget-label-top"],
+                    halign="start",
+                    valign="center",
+                ),
+                widget,
+            ],
+            halign="start",
+            css_classes=["settings-widget-with-label"],
+            vertical=label_where in ("top", "bottom"),
+        )
+        
+
+class SwitchWithLabel(Setting):
     def __init__(
         self,
         label: str,
         active: bool = True,
         on_change: Callable[[Widget.Switch, bool], Any] = lambda *_: None,
-        css_classes: list[str] = [],
     ):
+        switch = Widget.Switch(
+            active=active,
+            on_change=on_change,
+            valign="center",
+        )
         super().__init__(
-            child=[
-                Widget.Switch(
-                    active=active,
-                    on_change=on_change,
-                    valign="center",
-                ),
-                Widget.Label(
-                    label=label,
-                    css_classes=["settings-switch-label"],
-                    halign="start",
-                    valign="center",
-                ),
-            ],
-            halign="start",
-            css_classes=css_classes,
+            label=label,
+            widget=switch,
         )
 
 
 class SettingsSection(Widget.Box):
     def __init__(self, title: str, description: str, child: list[BaseWidget]):
+        desc = Widget.Label(
+            css_classes=["settings-description"],
+            halign="start",
+        )
+        desc.set_markup(description)
         super().__init__(
             vertical=True,
             child=[
@@ -181,11 +221,7 @@ class SettingsSection(Widget.Box):
                     css_classes=["settings-subtitle"],
                     halign="start",
                 ),
-                Widget.Label(
-                    label=description,
-                    css_classes=["settings-description"],
-                    halign="start",
-                ),
+                desc,
                 *child,
             ],
             css_classes=["settings-section"],
@@ -430,14 +466,12 @@ class SettingsWindow(Widget.RegularWindow):
                                             active=clock_settings.use_24h,
                                             on_change=lambda _,
                                             active: clock_settings.set_use_24h(active),
-                                            css_classes=["settings-switch"],
                                         ),
                                         SwitchWithLabel(
                                             label="Show day of week",
                                             active=clock_settings.show_dow,
                                             on_change=lambda _,
                                             active: clock_settings.set_show_dow(active),
-                                            css_classes=["settings-switch"],
                                         ),
                                         SwitchWithLabel(
                                             label="Show seconds",
@@ -446,7 +480,6 @@ class SettingsWindow(Widget.RegularWindow):
                                             active: clock_settings.set_show_seconds(
                                                 active
                                             ),
-                                            css_classes=["settings-switch"],
                                         ),
                                     ],
                                 )
@@ -463,22 +496,61 @@ class SettingsWindow(Widget.RegularWindow):
                                     active: workspace_settings.set_show_all_ws_on_monitor(
                                         active
                                     ),
-                                    css_classes=["settings-switch"],
                                 )
                             ],
                         ),
                         SettingsSection(
-                            title="Keyboard layout",
-                            description="Change the keyboard layout and variant used by Hyprland",
+                            title="Display settings",
+                            description="Configure display-related settings for Hyprland",
                             child=[
-                                KeyboardLayoutDropdown(),
-                                KeyboardVariantDropdown(),
+                                Setting(
+                                    Widget.Button(
+                                        child=Widget.Label(label="Launch nwg-displays"),
+                                        on_click=lambda _: util.run_cmd("nwg-displays")
+                                    )
+                                ),
+                            ],
+                        ) if util.has_command("nwg-displays") else None,
+                        SettingsSection(
+                            title="Keyboard layout",
+                            description="Change the keyboard layout and variant used by Hyprland\nLeave variant empty to use the default for the selected layout",
+                            child=[
+                                Setting(
+                                    label="Layout",
+                                    widget=KeyboardLayoutDropdown(),
+                                ),
+                                Setting(
+                                    label="Variant",
+                                    widget=KeyboardVariantDropdown(),
+                                ),
                             ],
                         ),
                         SettingsSection(
-                            title="Tiling mode",
-                            description="Tiling mode/layout used by Hyprland\nDwindle - windows get smaller as more are added\nMaster - one large window with others tiled alongside",
-                            child=[LayoutDropdown()],
+                            title="Mouse sensitivity",
+                            description="Adjust mouse sensitivity and acceleration in Hyprland",
+                            child=[
+                                Setting(Widget.Scale(
+                                    min=-1.0,
+                                    max=1.0,
+                                    step=0.1,
+                                    value=hyprland_settings.bind("pointer_sensitivity"),
+                                    on_change=lambda s: hyprland_settings.set_pointer_sensitivity(s.get_value()),
+                                    css_classes=["settings-pointer-speed-scale"],
+                                )),
+                                SwitchWithLabel(
+                                    label="Pointer acceleration",
+                                    active=hyprland_settings.bind("acceleration_enabled"), # type: ignore
+                                    on_change=lambda _, active: hyprland_settings.set_acceleration_enabled(active),
+                                )
+                            ], # type: ignore
+                        ),
+                        SettingsSection(
+                            title="Tiling layout",
+                            description="""Tiling layout used by Hyprland
+Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindle-Layout/\">here</a> and <a href=\"https://wiki.hypr.land/Configuring/Master-Layout/\">here</a>""",
+                            child=[
+                                Setting(LayoutDropdown())
+                            ],
                         ),
                     ],
                     css_classes=["settings"],
