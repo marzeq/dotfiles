@@ -76,12 +76,15 @@ def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
 
 
 def has_command(cmd: str) -> bool:
-    return subprocess.call(
-        f"type {cmd}",
-        shell=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    ) == 0
+    return (
+        subprocess.call(
+            f"type {cmd}",
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        == 0
+    )
 
 
 async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50):
