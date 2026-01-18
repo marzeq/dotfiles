@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, cast
 from gi.repository import GLib, Gtk
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
@@ -280,9 +280,26 @@ def KeyboardLayoutDropdown() -> BaseWidget:
     return dropdown  # type: ignore
 
 
-def KeyboardVariantDropdown() -> BaseWidget:
+def StringDropdown(
+    *,
+    labels: list[str],
+    on_change: Callable,
+    get_current: Callable | None = None,
+    settings_obj=None,
+    notify_props: list[str] | None = None,
+    enable_search: bool = False,
+    repopulate: Callable | None = None,
+):
     model = Gtk.StringList()
     syncing = False
+
+    def fill(items: list[str]):
+        while model.get_n_items():
+            model.remove(0)
+        for i in items:
+            model.append(i)
+
+    fill(labels)
 
     dropdown = Gtk.DropDown(
         model=model,
@@ -292,34 +309,31 @@ def KeyboardVariantDropdown() -> BaseWidget:
     dropdown.set_halign(Gtk.Align.START)
     dropdown.set_valign(Gtk.Align.CENTER)
     dropdown.add_css_class("settings-dropdown")
-    dropdown.set_enable_search(True)
-
-    def repopulate(variants: list[str]):
-        while model.get_n_items() > 0:
-            model.remove(0)
-        for v in variants:
-            model.append(v)
+    dropdown.set_enable_search(enable_search)
 
     def on_selected(dd, _):
         nonlocal syncing
         if syncing:
             return
         item = dd.get_selected_item()
-        if item is not None:
-            hyprland_settings.set_keyboard_variant(item.props.string)
+        if item:
+            on_change(item.props.string)
 
     dropdown.connect("notify::selected-item", on_selected)
 
     def sync_from_settings(*_):
         nonlocal syncing
+        if not get_current:
+            return
         syncing = True
 
-        variants = get_keyboard_variants(hyprland_settings.keyboard_layout)
-
-        repopulate(variants)
+        current_labels = labels
+        if repopulate:
+            current_labels = repopulate()
+            fill(current_labels)
 
         try:
-            dropdown.set_selected(variants.index(hyprland_settings.keyboard_variant))
+            dropdown.set_selected(current_labels.index(get_current()))
         except ValueError:
             dropdown.set_selected(0)
 
@@ -327,120 +341,11 @@ def KeyboardVariantDropdown() -> BaseWidget:
 
     GLib.idle_add(lambda: (sync_from_settings(), False)[1])
 
-    hyprland_settings.connect("notify::keyboard-layout", sync_from_settings)
-    hyprland_settings.connect("notify::keyboard-variant", sync_from_settings)
+    if settings_obj and notify_props:
+        for prop in notify_props:
+            settings_obj.connect(f"notify::{prop}", sync_from_settings)
 
-    return dropdown  # type: ignore
-
-
-def LayoutDropdown() -> BaseWidget:
-    labels = [layout.capitalize() for layout in hyprland_layouts]
-
-    model = Gtk.StringList()
-    for label in labels:
-        model.append(label)
-
-    dropdown = Gtk.DropDown(
-        model=model,
-        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
-    )
-    dropdown.set_hexpand(False)
-    dropdown.set_halign(Gtk.Align.START)
-    dropdown.set_valign(Gtk.Align.CENTER)
-    dropdown.add_css_class("settings-dropdown")
-
-    def on_selected(dd, _):
-        item = dd.get_selected_item()
-        if item:
-            hyprland_settings.set_layout_type(item.props.string.lower())
-
-    dropdown.connect("notify::selected-item", on_selected)
-
-    def sync_from_settings(*_):
-        try:
-            dropdown.set_selected(hyprland_layouts.index(hyprland_settings.layout_type))
-        except ValueError:
-            pass
-
-    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
-
-    hyprland_settings.connect("notify::layout-type", sync_from_settings)
-
-    return dropdown  # type: ignore
-
-
-def PrimaryMonitorDropdown() -> BaseWidget:
-    labels = [m.name for m in util.hyprland.monitors]
-
-    model = Gtk.StringList()
-    for label in labels:
-        model.append(label)
-
-    dropdown = Gtk.DropDown(
-        model=model,
-        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
-    )
-
-    dropdown.set_hexpand(False)
-    dropdown.set_halign(Gtk.Align.START)
-    dropdown.set_valign(Gtk.Align.CENTER)
-    dropdown.add_css_class("settings-dropdown")
-
-    def on_selected(dd, _):
-        item = dd.get_selected_item()
-        if item:
-            hyprland_settings.set_primary_monitor(item.props.string)
-
-    dropdown.connect("notify::selected-item", on_selected)
-
-    def sync_from_settings(*_):
-        try:
-            dropdown.set_selected(labels.index(hyprland_settings.primary_monitor))
-        except ValueError:
-            pass
-
-    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
-
-    hyprland_settings.connect("notify::primary-monitor", sync_from_settings)
-
-    return dropdown  # type: ignore
-
-
-def PreferredCurrencyDropdown() -> BaseWidget:
-    labels = CURRENCY_CODES
-
-    model = Gtk.StringList()
-    for label in labels:
-        model.append(label)
-
-    dropdown = Gtk.DropDown(
-        model=model,
-        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
-    )
-
-    dropdown.set_hexpand(False)
-    dropdown.set_halign(Gtk.Align.START)
-    dropdown.set_valign(Gtk.Align.CENTER)
-    dropdown.add_css_class("settings-dropdown")
-    dropdown.set_enable_search(True)
-
-    def on_selected(dd, _):
-        item = dd.get_selected_item()
-        if item:
-            launcher_settings.set_preferred_currency(item.props.string)
-
-    dropdown.connect("notify::selected-item", on_selected)
-
-    def sync_from_settings(*_):
-        try:
-            dropdown.set_selected(labels.index(launcher_settings.preferred_currency))
-        except ValueError:
-            pass
-
-    launcher_settings.connect("notify::preferred-currency", sync_from_settings)
-    sync_from_settings()
-
-    return dropdown  # type: ignore
+    return cast(BaseWidget, dropdown)
 
 
 class SettingsWindow(Widget.RegularWindow):
@@ -596,7 +501,14 @@ class SettingsWindow(Widget.RegularWindow):
                     description="Adjust how the launcher behaves and configure its built-in features.",
                     child=[
                         Setting(
-                            widget=PreferredCurrencyDropdown(),
+                            widget=StringDropdown(
+                                labels=CURRENCY_CODES,
+                                enable_search=True,
+                                on_change=launcher_settings.set_preferred_currency,
+                                get_current=lambda: launcher_settings.preferred_currency,
+                                settings_obj=launcher_settings,
+                                notify_props=["preferred-currency"],
+                            ),
                             label="Preferred target currency for conversion",
                         ),
                     ],
@@ -614,7 +526,13 @@ class SettingsWindow(Widget.RegularWindow):
                         if util.has_command("nwg-displays")
                         else None,
                         Setting(
-                            widget=PrimaryMonitorDropdown(),
+                            widget=StringDropdown(
+                                labels=[m.name for m in util.hyprland.monitors],
+                                on_change=hyprland_settings.set_primary_monitor,
+                                get_current=lambda: hyprland_settings.primary_monitor,
+                                settings_obj=hyprland_settings,
+                                notify_props=["primary-monitor"],
+                            ),
                             label="Primary monitor (does not affect Hyprland, only the shell)",
                         ),
                     ],
@@ -626,8 +544,28 @@ class SettingsWindow(Widget.RegularWindow):
                         Setting(
                             widget=Widget.Box(
                                 child=[
-                                    KeyboardLayoutDropdown(),
-                                    KeyboardVariantDropdown(),
+                                    StringDropdown(
+                                        labels=get_keyboard_layouts(),
+                                        enable_search=True,
+                                        on_change=lambda v: (
+                                            hyprland_settings.set_keyboard_layout(v),
+                                            hyprland_settings.set_keyboard_variant(""),
+                                        ),
+                                        get_current=lambda: hyprland_settings.keyboard_layout,
+                                        settings_obj=hyprland_settings,
+                                        notify_props=["keyboard-layout"],
+                                    ),
+                                    StringDropdown(
+                                        labels=[],
+                                        enable_search=True,
+                                        on_change=hyprland_settings.set_keyboard_variant,
+                                        get_current=lambda: hyprland_settings.keyboard_variant,
+                                        settings_obj=hyprland_settings,
+                                        notify_props=["keyboard-layout", "keyboard-variant"],
+                                        repopulate=lambda: get_keyboard_variants(
+                                            hyprland_settings.keyboard_layout
+                                        ),
+                                    ),
                                 ],
                                 spacing=8,
                             ),
@@ -654,7 +592,7 @@ class SettingsWindow(Widget.RegularWindow):
                             label="Pointer acceleration",
                             active=hyprland_settings.bind("acceleration_enabled"),  # type: ignore
                             on_change=lambda _,
-                            active: hyprland_settings.set_acceleration_enabled(active),
+                                active: hyprland_settings.set_acceleration_enabled(active),
                         ),
                     ],  # type: ignore
                 ),
@@ -662,7 +600,17 @@ class SettingsWindow(Widget.RegularWindow):
                     title="Tiling layout",
                     description="""Select the window tiling algorithm used by Hyprland and how windows are arranged.
 Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindle-Layout/\">here</a> and <a href=\"https://wiki.hypr.land/Configuring/Master-Layout/\">here</a>.""",
-                    child=[Setting(LayoutDropdown())],
+                    child=[
+                        Setting(
+                            StringDropdown(
+                                labels=[l.capitalize() for l in hyprland_layouts],
+                                on_change=lambda v: hyprland_settings.set_layout_type(v.lower()),
+                                get_current=lambda: hyprland_settings.layout_type.capitalize(),
+                                settings_obj=hyprland_settings,
+                                notify_props=["layout-type"],
+                            ),
+                        ),
+                    ],
                 ),
             ],
             css_classes=["settings"],
