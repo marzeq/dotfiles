@@ -34,9 +34,9 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.run_cmd_and_run(
+                        or util.shell(
                             "systemctl suspend",
-                            lambda: util.popup_manager.close_curr_popup(),
+                            before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
                     Widget.Button(
@@ -47,9 +47,9 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.run_cmd_and_run(
+                        or util.shell(
                             "systemctl reboot",
-                            lambda: util.popup_manager.close_curr_popup(),
+                            before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
                     Widget.Button(
@@ -60,9 +60,9 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.run_cmd_and_run(
+                        or util.shell(
                             "systemctl poweroff",
-                            lambda: util.popup_manager.close_curr_popup(),
+                            before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
                     Widget.Button(
@@ -73,9 +73,9 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.run_cmd_and_run(
+                        or util.shell(
                             "hyprctl dispatch exit",
-                            lambda: util.popup_manager.close_curr_popup(),
+                            before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
                 ],

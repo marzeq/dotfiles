@@ -24,5 +24,4 @@ unlink "$HOME/.config/gtk-4.0/assets" 2>/dev/null
 restore_backup "$gtk3_file"
 restore_backup "$gtk4_file"
 echo "" > ~/.local/share/ignis/accent.scss
-
-gsettings reset org.gnome.desktop.interface accent-color
+echo "" > ~/.local/share/ignis/accent.txt

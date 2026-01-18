@@ -1,19 +1,24 @@
 from __future__ import annotations
-from typing import Sequence
+from typing import Iterable, Sequence
 from ignis.widgets import Widget
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 from rapidfuzz import fuzz, process
 import util
+import asyncio
 from widgets.Launcher.base_mode import LauncherResult
 
 from .app_mode import AppMode
 from .calc_mode import CalcMode
 from .base_mode import LauncherMode
 from .poweroff_mode import PowerOffMode
+from .currency_mode import CurrencyMode
 
 
 class Launcher(Widget.RevealerWindow):
     def __init__(self, monitorid: int, monitor: Gdk.Monitor):
+        self._search_task: asyncio.Task | None = None
+        self._search_gen = 0
+
         self.entry = Widget.Entry(
             hexpand=True,
             placeholder_text="Search",
@@ -95,7 +100,12 @@ class Launcher(Widget.RevealerWindow):
             revealer=revealer,
         )
 
-        self.modes: list[LauncherMode] = [AppMode(), CalcMode(), PowerOffMode()]
+        self.modes: list[LauncherMode] = [
+            AppMode(),
+            CalcMode(),
+            PowerOffMode(),
+            CurrencyMode(),
+        ]
 
         self.entry.on_change = lambda *_: self.update_mode_and_list()
         self.entry.on_accept = lambda *_: self.trigger_result(0)
@@ -137,19 +147,47 @@ class Launcher(Widget.RevealerWindow):
         else:
             self.entry.css_classes = ["launcher-entry-input"]
 
-        results = []
-        results_no_fuzz = []
+        self._search_gen += 1
+        gen = self._search_gen
+
+        async def delayed():
+            await asyncio.sleep(0.05)
+            if gen == self._search_gen:
+                await self._run_search(query, gen)
+
+        asyncio.create_task(delayed())
+
+    async def _run_search(self, query: str, gen: int):
+        results: list[LauncherResult] = []
+        results_no_fuzz: list[LauncherResult] = []
+
+        def emit(chunk: Iterable[LauncherResult], include_in_fuzzing: bool):
+            if gen != self._search_gen:
+                return
+
+            def _apply():
+                if gen != self._search_gen:
+                    return False
+
+                if include_in_fuzzing:
+                    results.extend(chunk)
+                else:
+                    results_no_fuzz.extend(chunk)
+
+                searched = results_no_fuzz + fuzzy_search(results, query)
+                self.set_results(searched)
+                return False
+
+            GLib.idle_add(_apply)
+
+        async def run_mode(mode):
+            try:
+                await mode.get_results(self, query, emit)
+            except Exception:
+                pass
 
         for mode in self.modes:
-            got = mode.get_results(self, query)
-            if got.include_in_fuzzing:
-                results.extend(got.results)
-            else:
-                results_no_fuzz.extend(got.results)
-
-        searched_results = results_no_fuzz + fuzzy_search(results, query)
-
-        self.set_results(searched_results)
+            asyncio.create_task(run_mode(mode))
 
     def get_results(self) -> list[LauncherResult]:
         return self.result_list.child

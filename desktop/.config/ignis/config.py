@@ -23,10 +23,10 @@ if not os.path.exists(accent_file):
 app.apply_css(f"{dir}/style.scss")
 app.add_icons(f"{dir}/icons")
 
-util.run_cmd("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
-util.run_cmd("gsettings set org.gnome.desktop.interface font-name 'Adwaita Sans 11'")
-util.run_cmd("gsettings set org.gnome.desktop.wm.preferences button-layout :")
-util.run_cmd("hyprctl reload")
+util.shell("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
+util.shell("gsettings set org.gnome.desktop.interface font-name 'Adwaita Sans 11'")
+util.shell("gsettings set org.gnome.desktop.wm.preferences button-layout :")
+util.shell("hyprctl reload")
 
 
 for i, m in enumerate(Utils.get_monitors()):  # type: ignore

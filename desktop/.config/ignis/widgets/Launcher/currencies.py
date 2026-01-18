@@ -1,0 +1,218 @@
+CURRENCY_CODES: list[str] = [
+    "AED",
+    "AFN",
+    "ALL",
+    "AMD",
+    "ANG",
+    "AOA",
+    "ARS",
+    "AUD",
+    "AWG",
+    "AZN",
+    "BAM",
+    "BBD",
+    "BDT",
+    "BGN",
+    "BHD",
+    "BIF",
+    "BMD",
+    "BND",
+    "BOB",
+    "BRL",
+    "BSD",
+    "BTN",
+    "BWP",
+    "BYN",
+    "BZD",
+    "CAD",
+    "CDF",
+    "CHF",
+    "CKD",
+    "CLP",
+    "CNY",
+    "COP",
+    "CRC",
+    "CUC",
+    "CUP",
+    "CVE",
+    "CZK",
+    "DJF",
+    "DKK",
+    "DOP",
+    "DZD",
+    "EGP",
+    "EHP",
+    "ERN",
+    "ETB",
+    "EUR",
+    "FJD",
+    "FKP",
+    "FOK",
+    "GBP",
+    "GEL",
+    "GGP",
+    "GHS",
+    "GIP",
+    "GMD",
+    "GNF",
+    "GTQ",
+    "GYD",
+    "HKD",
+    "HNL",
+    "HRK",
+    "HTG",
+    "HUF",
+    "IDR",
+    "ILS",
+    "IMP",
+    "INR",
+    "IQD",
+    "IRR",
+    "ISK",
+    "JEP",
+    "JMD",
+    "JOD",
+    "JPY",
+    "KES",
+    "KGS",
+    "KHR",
+    "KID",
+    "KMF",
+    "KPW",
+    "KRW",
+    "KWD",
+    "KYD",
+    "KZT",
+    "LAK",
+    "LBP",
+    "LKR",
+    "LRD",
+    "LSL",
+    "LYD",
+    "MAD",
+    "MDL",
+    "MGA",
+    "MKD",
+    "MMK",
+    "MNT",
+    "MOP",
+    "MRU",
+    "MUR",
+    "MVR",
+    "MWK",
+    "MXN",
+    "MYR",
+    "MZN",
+    "NAD",
+    "NGN",
+    "NIO",
+    "NOK",
+    "NPR",
+    "NZD",
+    "OMR",
+    "PAB",
+    "PEN",
+    "PGK",
+    "PHP",
+    "PKR",
+    "PLN",
+    "PND",
+    "PRB",
+    "PYG",
+    "QAR",
+    "RON",
+    "RSD",
+    "RUB",
+    "RWF",
+    "SAR",
+    "SBD",
+    "SCR",
+    "SDG",
+    "SEK",
+    "SGD",
+    "SHP",
+    "SLL",
+    "SLS",
+    "SOS",
+    "SRD",
+    "SSP",
+    "STN",
+    "SVC",
+    "SYP",
+    "SZL",
+    "THB",
+    "TJS",
+    "TMT",
+    "TND",
+    "TOP",
+    "TRY",
+    "TTD",
+    "TVD",
+    "TWD",
+    "TZS",
+    "UAH",
+    "UGX",
+    "USD",
+    "UYU",
+    "UZS",
+    "VED",
+    "VES",
+    "VND",
+    "VUV",
+    "WST",
+    "XAF",
+    "XCD",
+    "XOF",
+    "XPF",
+    "YER",
+    "ZAR",
+    "ZMW",
+    "ZWB",
+    "ZWL",
+]
+
+COMMON_CURRENCY_SYMBOLS_ABBREVS: dict[str, str] = {
+    "$": "USD",  # United States Dollar
+    "US$": "USD",
+    "DOLLAR": "USD",
+    "DOLLARS": "USD",
+    "€": "EUR",  # Euro
+    "EURO": "EUR",
+    "EUROS": "EUR",
+    "£": "GBP",  # British Pound
+    "QUID": "GBP",
+    "¥": "JPY",  # Japanese Yen
+    "₹": "INR",  # Indian Rupee
+    "₽": "RUB",  # Russian Ruble
+    "R$": "BRL",  # Brazilian Real
+    "₩": "KRW",  # South Korean Won
+    "HK$": "HKD",  # Hong Kong Dollar
+    "S$": "SGD",  # Singapore Dollar
+    "A$": "AUD",  # Australian Dollar
+    "C$": "CAD",  # Canadian Dollar
+    "NZ$": "NZD",  # New Zealand Dollar
+    "ZŁ": "PLN",  # Polish Zloty
+    "₺": "TRY",  # Turkish Lira
+    "₱": "PHP",  # Philippine Peso
+    "₫": "VND",  # Vietnamese Dong
+    "฿": "THB",  # Thai Baht
+    "BR": "BYN",  # Belarusian Ruble
+    "KČ": "CZK",  # Czech Koruna
+    "KR": "SEK",  # Swedish Krona
+    "ЛВ": "BGN",  # Bulgarian Lev
+    "₦": "NGN",  # Nigerian Naira
+    "₪": "ILS",  # Israeli New Shekel
+    "₴": "UAH",  # Ukrainian Hryvnia
+}
+
+
+def lookup_currency(currency: str) -> str | None:
+    currency = currency.upper()
+
+    if currency in CURRENCY_CODES:
+        return currency
+
+    if currency in COMMON_CURRENCY_SYMBOLS_ABBREVS:
+        return COMMON_CURRENCY_SYMBOLS_ABBREVS[currency]
+
+    return None

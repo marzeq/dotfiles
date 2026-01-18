@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING, NamedTuple, Sequence
+from typing import Callable, TYPE_CHECKING, Iterable, NamedTuple, Sequence
 from ignis.widgets import Widget
 
 if TYPE_CHECKING:
@@ -12,8 +12,13 @@ class GetResultsResponse(NamedTuple):
 
 
 class LauncherMode:
-    def get_results(self, launcher: Launcher, query: str) -> GetResultsResponse:
-        raise NotImplementedError
+    async def get_results(
+        self,
+        launcher: Launcher,
+        query: str,
+        emit: Callable[[Iterable[LauncherResult], bool], None],
+    ) -> None:
+        raise NotImplementedError()
 
 
 class LauncherResult(Widget.Button):

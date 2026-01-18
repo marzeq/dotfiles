@@ -17,6 +17,7 @@ from gi.repository import Gtk, Gdk, Gio, Gtk4SessionLock  # type: ignore
 from widgets.Clock import clock_settings
 from widgets.FilteredPicture import FilteredPicture
 from widgets.Settings.style_settings import style_settings
+from widgets.Settings import hyprland_settings
 
 lock_windows = []
 
@@ -185,7 +186,10 @@ class LockScreen(Widget.Window):
             content_fit="cover",
         )
 
-        if monitor_id != 0:
+        if (
+            hyprland_settings.primary_monitor
+            != [m for m in util.hyprland.monitors if m.id == monitor_id][0].name
+        ):
             self.set_child(wallpaper)
             return
 

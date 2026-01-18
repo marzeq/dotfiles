@@ -18,20 +18,6 @@ $button-bg-active-more: adjust-color($button-bg, $lightness: 20%);
 
 $accent: #3584E4 !default;
 
-@function cap-hsl-lightness($color, $min: 25%, $max: 75%) {
-  $l: lightness($color);
-
-  @if $l < $min {
-    @return hsl(hue($color), saturation($color), $min);
-  } @else if $l > $max {
-    @return hsl(hue($color), saturation($color), $max);
-  }
-
-  @return $color;
-}
-
-$accent: cap-hsl-lightness($accent, 10%, 65%);
-
 $fg-on-accent: $fg;
 
 $accent-tertiary: adjust-color($accent, $lightness: 8%);

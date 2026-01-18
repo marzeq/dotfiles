@@ -36,4 +36,5 @@ EOF
 mkdir -p ~/.local/share/ignis
 echo "\$accent: $hex_colour;" > ~/.local/share/ignis/accent.scss
 
-gsettings set org.gnome.desktop.interface accent-color "$hex_colour"
+no_hash_colour="${hex_colour#\#}"
+echo "$no_hash_colour" > ~/.local/share/ignis/accent.txt

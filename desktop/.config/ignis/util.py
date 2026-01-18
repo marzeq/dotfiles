@@ -1,19 +1,22 @@
+import inspect
 import json
 import subprocess
 import asyncio
 import os
-from typing import Any, Awaitable, Callable, get_type_hints
+from typing import Any, Awaitable, Callable, Coroutine, Iterable, Literal, cast, get_type_hints, overload
 
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
 from gi.repository import GObject, Gio
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
+from ignis.widgets import Widget
 
 from PIL import Image
-from ignis.widgets import Widget
 import numpy as np
 from sklearn.cluster import KMeans
+
+# workaround for IgnisApp being initialised multiple times from different files, fixed in ignis-git, waiting for tagged release
 
 app: IgnisApp
 
@@ -29,6 +32,8 @@ def get_app():
 
 
 app = get_app()
+if app is None:
+    raise RuntimeError("IgnisApp is not initialized yet.")
 
 hyprland = HyprlandService.get_default()
 
@@ -39,43 +44,87 @@ def active_monitor() -> int:
     return hyprland.active_workspace.monitor_id
 
 
-async def run_cmd_async(cmd: str, awaitable: Awaitable | None = None) -> None:
-    await asyncio.create_subprocess_exec(
-        "/usr/bin/bash",
-        "-c",
-        cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        preexec_fn=os.setpgrp,
-    )
-    if awaitable is not None:
-        await awaitable
+Hook = Awaitable[Any] | Callable[[], Any]
 
 
-def run_cmd(cmd: str) -> None:
-    asyncio.create_task(
-        asyncio.create_subprocess_exec(
+async def await_or_call(x: Hook) -> Any:
+    """
+    Awaits the specified awaitable if it is a coroutine, otherwise calls it if it is a callable.
+    """
+    if inspect.isawaitable(x):
+        return await x
+
+    result = x()
+    if inspect.isawaitable(result):
+        return await result
+    return result
+
+
+@overload
+def shell( # type: ignore
+    cmd: str,
+    before: Hook | None = ...,
+    after: Hook | None = ...,
+    background: Literal[True] = ...,
+) -> None:
+    ...
+
+@overload
+def shell(
+    cmd: str,
+    before: Hook | None = ...,
+    after: Hook | None = ...,
+    background: Literal[False] = ...,
+) -> Coroutine[Any, Any, str | None]:
+    ...
+
+def shell(
+    cmd: str,
+    before: Hook | None = None,
+    after: Hook | None = None,
+    background: bool = True,
+) -> Coroutine[Any, Any, str | None] | None:
+    """
+    Executes a shell command.
+
+    Optionally executes `before` before running the command and `after` after the command completes successfully.
+
+    By default, runs the command in the background without blocking.
+    If `background` is set to False, returns a coroutine that can be awaited to get the command's output if successful, or None if it fails.
+    """
+
+    async def _body() -> str | None:
+        if before is not None:
+            await await_or_call(before)
+
+        process = await asyncio.create_subprocess_exec(
             "/usr/bin/bash",
             "-c",
             cmd,
-            stdout=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             preexec_fn=os.setpgrp,
         )
-    )
+        stdout, _ = await process.communicate()
 
+        if process.returncode == 0:
+            if after is not None:
+                await await_or_call(after)
+            return stdout.decode().strip()
 
-def run_cmd_and_run(cmd: str, runnable: Callable) -> None:
-    runnable()
-    run_cmd(cmd)
+        return None
 
+    if background:
+        asyncio.create_task(_body())
+        return None
 
-def run_cmd_and_run_delayed(cmd: str, runnable: Callable, delay: int) -> None:
-    runnable()
-    Utils.Timeout(delay, lambda *_: run_cmd(cmd))
+    return _body()
 
 
 def has_command(cmd: str) -> bool:
+    """
+    Returns True if the specified command exists in the system, False otherwise.
+    """
     return (
         subprocess.call(
             f"type {cmd}",
@@ -87,13 +136,35 @@ def has_command(cmd: str) -> bool:
     )
 
 
-async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50):
+def relative_luminance(rgb):
+    # convert sRGB from 0–255 to linear
+    def channel(c):
+        c = c/255
+        return c/12.92 if c <= 0.03928 else ((c+0.055)/1.055)**2.4
+
+    r, g, b = map(channel, rgb)
+    # WCAG weights
+    return 0.2126*r + 0.7152*g + 0.0722*b
+
+
+def contrast_ratio(c1, c2):
+    L1 = relative_luminance(c1)
+    L2 = relative_luminance(c2)
+    lighter, darker = max(L1, L2), min(L1, L2)
+    return (lighter + 0.05)/(darker + 0.05)
+
+
+async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50, contrast_threshold=3):
+    """
+    Extracts the top N dominant colours from an image, ensuring a minimum distance between selected colours.
+    """
+
     def rgb_distance(c1, c2):
         return np.linalg.norm(np.array(c1) - np.array(c2))
 
     img = Image.open(image_path).convert("RGB")
     img = img.resize((200, 200))
-    pixels = list(img.getdata())  # type: ignore
+    pixels = list(cast(Iterable[float | tuple[int, ...] | None], img.getdata()))
 
     kmeans = KMeans(n_clusters=num_colours, random_state=0)
     kmeans.fit(pixels)
@@ -109,6 +180,10 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50)
 
     diverse_colours = []
     for c in sorted_colours:
+        # ensure sufficient legibility for a white foreground
+        if contrast_ratio(c, (255,255,255)) < contrast_threshold:
+            continue
+        # ensure minimum distance from already selected colours
         if all(rgb_distance(c, dc) >= min_distance for dc in diverse_colours):
             diverse_colours.append(c)
         if len(diverse_colours) >= top_n:
@@ -122,6 +197,10 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50)
 
 
 class PopupManager:
+    """
+    Singleton class to manage pop-up windows across multiple monitors.
+    """
+
     _instance = None
 
     @staticmethod
@@ -241,6 +320,10 @@ def load_interface_xml(
 
 
 class BindableSettings(IgnisGObject):
+    """
+    Interface for bindable settings objects.
+    """
+
     def bind_properties(
         self,
         lambda_func: Callable[[], Any],
@@ -261,6 +344,13 @@ class BindableSettings(IgnisGObject):
 
 
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
+    """
+    Decorator to create a JSON-backed settings class.
+
+    Each property in the class will be saved to and loaded from a JSON file at the specified path.
+    It will also be made bindable depending on the type hints provided in the class definition.
+    The default values for each property will be taken from the initial values set in the class definition.
+    """
     expanded_path = os.path.expanduser(
         "~/.local/share/ignis/settings/" + path + ".json"
     )

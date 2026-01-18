@@ -1,45 +1,28 @@
-import math
 from typing import Callable
-from .base_mode import GetResultsResponse, LauncherMode, LauncherResult
+
+import util
+import shlex
+from .base_mode import LauncherMode, LauncherResult
 
 
 class CalcMode(LauncherMode):
-    def get_results(self, launcher, query: str):
+    async def get_results(self, launcher, query, emit):
         expr = query.strip()
         if not expr:
-            return GetResultsResponse([])
-        try:
-            result = eval(
-                expr,
-                {
-                    "__builtins__": {
-                        "pi": math.pi,
-                        "e": math.e,
-                        "sqrt": lambda x: x**0.5,
-                        "pow": pow,
-                        "abs": abs,
-                        "round": round,
-                        "factorial": math.factorial,
-                        "sin": math.sin,
-                        "cos": math.cos,
-                        "tan": math.tan,
-                        "cot": lambda x: 1 / math.tan(x),
-                        "log": lambda x, base=10: math.log(x, base),
-                        "ln": math.log,
-                        "log10": math.log10,
-                        "log2": math.log2,
-                        "deg": lambda x: math.radians(x),
-                        "todeg": lambda x: math.degrees(x),
-                    }
-                },
-            )
-            if not isinstance(result, (int, float)):
-                return GetResultsResponse([])
-            return GetResultsResponse(
-                [LauncherCalcResult(result, lambda: self.launch(launcher))], False
-            )
-        except Exception:
-            return GetResultsResponse([], False)
+            return
+
+        escaped_expr = shlex.quote(expr)
+        result = await util.shell(
+            f"{util.root_dir}/scripts/mexe -- {escaped_expr}",
+            background=False,
+        )
+        if result is None:
+            return
+
+        emit(
+            [LauncherCalcResult(result, lambda: self.launch(launcher))],
+            False,
+        )
 
     def launch(self, launcher):
         result = launcher.get_results()[0]
@@ -48,14 +31,9 @@ class CalcMode(LauncherMode):
 
 
 class LauncherCalcResult(LauncherResult):
-    def __init__(self, result: int | float, launch: Callable[[], None]):
-        if result == int(result):
-            result = int(result)
-        elif isinstance(result, float):
-            result = round(result, 10)
-
+    def __init__(self, result: str, launch: Callable[[], None]):
         super().__init__(
-            value=str(result),
+            value=result,
             icon_name="accessories-calculator-symbolic",
             launch=launch,
             css_classes=["launcher-result-value"],

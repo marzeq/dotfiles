@@ -1,11 +1,32 @@
 from __future__ import annotations
+from gi.repository import Gio
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
 from util import JsonSettings
-from .base_mode import GetResultsResponse, LauncherMode, LauncherResult
+from .base_mode import LauncherMode, LauncherResult
 import util
+from ignis.utils import Utils
 
 applications = ApplicationsService.get_default()
+
+
+def refresh_apps():
+    applications._apps = {}
+
+    for app in Gio.AppInfo.get_all():
+        if isinstance(app, Gio.DesktopAppInfo):
+            if app.get_nodisplay():
+                continue
+
+            obj = Application(app=app)
+
+            applications._apps[obj.id] = obj
+
+    applications.notify("apps")
+    applications.notify("pinned")
+
+
+Utils.Poll(timeout=30_000, callback=lambda _: refresh_apps())
 
 
 @JsonSettings("apps")
@@ -34,18 +55,18 @@ app_settings = AppSettings()
 
 
 class AppMode(LauncherMode):
-    def matches(self, query: str) -> bool:
-        return not query.startswith("=")
-
-    def get_results(self, launcher, query: str):
+    async def get_results(self, launcher, query, emit):
         query = query.strip().lower()
         if not query:
-            return GetResultsResponse(
-                [LauncherAppResult(app) for app in app_settings.visible_apps]
+            emit(
+                [LauncherAppResult(app) for app in app_settings.visible_apps],
+                True,
             )
+            return
 
-        return GetResultsResponse(
-            [LauncherAppResult(app) for app in app_settings.visible_apps]
+        emit(
+            [LauncherAppResult(app) for app in app_settings.visible_apps],
+            True,
         )
 
 

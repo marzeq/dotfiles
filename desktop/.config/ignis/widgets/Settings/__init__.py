@@ -9,6 +9,8 @@ import util
 from widgets.Settings.style_settings import style_settings
 from widgets.Clock import clock_settings
 from widgets.Workspaces import workspace_settings
+from widgets.Launcher.currencies import CURRENCY_CODES
+from widgets.Launcher.settings import launcher_settings
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -60,6 +62,11 @@ general {{
 """
             )
 
+    primary_monitor: str = util.hyprland.monitors[0].name
+
+    def set_primary_monitor(self, value: str) -> None:
+        self.primary_monitor = value
+
 
 hyprland_settings = HyprlandSettings()
 
@@ -79,7 +86,7 @@ def get_keyboard_layouts() -> list[str]:
                     break
                 if line and not line.startswith("#"):
                     parts = line.split()
-                    if parts:
+                    if parts and parts[0] not in layouts and parts[0] != "custom":
                         layouts.append(parts[0])
     return layouts
 
@@ -137,8 +144,9 @@ class WallpaperButton(Widget.Overlay):
             overlays=[
                 Widget.Button(
                     child=Widget.Icon(
-                        icon_name="user-trash-symbolic",
+                        icon_name="process-stop-symbolic",
                         css_classes=["settings-wallpaper-remove-icon"],
+                        pixel_size=12,
                     ),
                     halign="end",
                     valign="start",
@@ -213,7 +221,7 @@ class SwitchWithLabel(Setting):
 
 
 class SettingsSection(Widget.Box):
-    def __init__(self, title: str, description: str, child: list[BaseWidget]):
+    def __init__(self, title: str, description: str, child: list[BaseWidget | None]):
         desc = Widget.Label(
             css_classes=["settings-description"],
             halign="start",
@@ -253,10 +261,9 @@ def KeyboardLayoutDropdown() -> BaseWidget:
 
     def on_selected(dd, _):
         item = dd.get_selected_item()
-        if item:
+        if item is not None:
             hyprland_settings.set_keyboard_layout(item.props.string)
-            if item.props.string != hyprland_settings.keyboard_layout:
-                hyprland_settings.set_keyboard_variant("")
+            hyprland_settings.set_keyboard_variant("")
 
     dropdown.connect("notify::selected-item", on_selected)
 
@@ -357,7 +364,81 @@ def LayoutDropdown() -> BaseWidget:
 
     GLib.idle_add(lambda: (sync_from_settings(), False)[1])
 
-    hyprland_settings.bind("layout_type", sync_from_settings)
+    hyprland_settings.connect("notify::layout-type", sync_from_settings)
+
+    return dropdown  # type: ignore
+
+
+def PrimaryMonitorDropdown() -> BaseWidget:
+    labels = [m.name for m in util.hyprland.monitors]
+
+    model = Gtk.StringList()
+    for label in labels:
+        model.append(label)
+
+    dropdown = Gtk.DropDown(
+        model=model,
+        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+    )
+
+    dropdown.set_hexpand(False)
+    dropdown.set_halign(Gtk.Align.START)
+    dropdown.set_valign(Gtk.Align.CENTER)
+    dropdown.add_css_class("settings-dropdown")
+
+    def on_selected(dd, _):
+        item = dd.get_selected_item()
+        if item:
+            hyprland_settings.set_primary_monitor(item.props.string)
+
+    dropdown.connect("notify::selected-item", on_selected)
+
+    def sync_from_settings(*_):
+        try:
+            dropdown.set_selected(labels.index(hyprland_settings.primary_monitor))
+        except ValueError:
+            pass
+
+    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
+
+    hyprland_settings.connect("notify::primary-monitor", sync_from_settings)
+
+    return dropdown  # type: ignore
+
+
+def PreferredCurrencyDropdown() -> BaseWidget:
+    labels = CURRENCY_CODES
+
+    model = Gtk.StringList()
+    for label in labels:
+        model.append(label)
+
+    dropdown = Gtk.DropDown(
+        model=model,
+        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+    )
+
+    dropdown.set_hexpand(False)
+    dropdown.set_halign(Gtk.Align.START)
+    dropdown.set_valign(Gtk.Align.CENTER)
+    dropdown.add_css_class("settings-dropdown")
+    dropdown.set_enable_search(True)
+
+    def on_selected(dd, _):
+        item = dd.get_selected_item()
+        if item:
+            launcher_settings.set_preferred_currency(item.props.string)
+
+    dropdown.connect("notify::selected-item", on_selected)
+
+    def sync_from_settings(*_):
+        try:
+            dropdown.set_selected(labels.index(launcher_settings.preferred_currency))
+        except ValueError:
+            pass
+
+    launcher_settings.connect("notify::preferred-currency", sync_from_settings)
+    sync_from_settings()
 
     return dropdown  # type: ignore
 
@@ -406,13 +487,18 @@ class SettingsWindow(Widget.RegularWindow):
             ],
         )
 
+        self.post_accent_change_entry = Widget.Entry(
+            on_change=lambda _: style_settings.set_post_accent_change_cmd(self.post_accent_change_entry.get_text())
+        )
+        self.post_accent_change_entry.set_text(style_settings.post_accent_change_cmd)
+
         box = Widget.Box(
             vertical=True,
             vexpand=True,
             child=[
                 SettingsSection(
                     title="Wallpaper",
-                    description="Select from one of the available wallpapers or add a new one",
+                    description="Select a wallpaper for your desktop or add your own images to the library.",
                     child=[
                         self.wallpapers_scroll,
                         Widget.Box(
@@ -431,7 +517,7 @@ class SettingsWindow(Widget.RegularWindow):
                 ),
                 SettingsSection(
                     title="Accent colour",
-                    description="Pick an accent colour to match your wallpaper\nYour colour may be slightly adjusted for legibility purposes",
+                    description="Choose the system accent colour, either suggested from your wallpaper or set manually.",
                     child=[
                         self.suggested_accent_colours,
                         Widget.Box(
@@ -456,11 +542,15 @@ class SettingsWindow(Widget.RegularWindow):
                                 ),
                             ],
                         ),
+                        Setting(
+                            widget=self.post_accent_change_entry,
+                            label="Post accent colour change command",
+                        ),
                     ],
                 ),
                 SettingsSection(
                     title="Clock",
-                    description="Customise how the clock behaves in the top bar and lock screen",
+                    description="Control the clock format and which details are shown in the top bar and on the lock screen.",
                     child=[
                         Widget.Box(
                             vertical=True,
@@ -489,7 +579,7 @@ class SettingsWindow(Widget.RegularWindow):
                 ),
                 SettingsSection(
                     title="Workspaces",
-                    description="Change the behaviour of the workspaces widget in the top bar",
+                    description="Decide how workspaces are displayed across monitors in the top bar.",
                     child=[
                         SwitchWithLabel(
                             label="Show all workspaces on each monitor",
@@ -502,22 +592,36 @@ class SettingsWindow(Widget.RegularWindow):
                     ],
                 ),
                 SettingsSection(
+                    title="Launcher",
+                    description="Adjust how the launcher behaves and configure its built-in features.",
+                    child=[
+                        Setting(
+                            widget=PreferredCurrencyDropdown(),
+                            label="Preferred target currency for conversion",
+                        ),
+                    ],
+                ),
+                SettingsSection(
                     title="Display settings",
-                    description="Configure display-related settings for Hyprland",
+                    description="Manage monitor configuration, primary display selection, and related display options.",
                     child=[
                         Setting(
                             Widget.Button(
                                 child=Widget.Label(label="Launch nwg-displays"),
-                                on_click=lambda _: util.run_cmd("nwg-displays"),
+                                on_click=lambda _: util.shell("nwg-displays"),
                             )
+                        )
+                        if util.has_command("nwg-displays")
+                        else None,
+                        Setting(
+                            widget=PrimaryMonitorDropdown(),
+                            label="Primary monitor (does not affect Hyprland, only the shell)",
                         ),
                     ],
-                )
-                if util.has_command("nwg-displays")
-                else None,
+                ),
                 SettingsSection(
                     title="Keyboard layout",
-                    description="Change the keyboard layout and variant used by Hyprland\nLeave variant empty to use the default for the selected layout",
+                    description="Select the keyboard layout and optional variant used by Hyprland.\nLeave variant empty to use the default for the selected layout.",
                     child=[
                         Setting(
                             widget=Widget.Box(
@@ -532,7 +636,7 @@ class SettingsWindow(Widget.RegularWindow):
                 ),
                 SettingsSection(
                     title="Mouse sensitivity",
-                    description="Adjust mouse sensitivity and acceleration in Hyprland",
+                    description="Adjust mouse sensitivity and acceleration in Hyprland.",
                     child=[
                         Setting(
                             Widget.Scale(
@@ -556,8 +660,8 @@ class SettingsWindow(Widget.RegularWindow):
                 ),
                 SettingsSection(
                     title="Tiling layout",
-                    description="""Tiling layout used by Hyprland
-Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindle-Layout/\">here</a> and <a href=\"https://wiki.hypr.land/Configuring/Master-Layout/\">here</a>""",
+                    description="""Select the window tiling algorithm used by Hyprland and how windows are arranged.
+Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindle-Layout/\">here</a> and <a href=\"https://wiki.hypr.land/Configuring/Master-Layout/\">here</a>.""",
                     child=[Setting(LayoutDropdown())],
                 ),
             ],

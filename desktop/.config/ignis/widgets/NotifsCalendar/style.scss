@@ -74,7 +74,9 @@
 .nc-calendar-day {
   font-size: 0.95rem;
   border-radius: 100%;
-  padding: 1rem;
+  padding: 1px 1px 0 0;
+  min-width: calc(2.8rem + 1px);
+  min-height: calc(2.8rem + 1px);
   color: $fg-inactive;
 }
 

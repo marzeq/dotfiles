@@ -8,11 +8,11 @@ audio = AudioService.get_default()
 
 
 def speaker_select(sp: Stream) -> None:
-    util.run_cmd(f"pactl set-default-sink {sp.name}")
+    util.shell(f"pactl set-default-sink {sp.name}")
 
 
 def speaker_deselect(sp: Stream) -> None:
-    util.run_cmd(f"pactl set-default-sink {sp.name}")
+    util.shell(f"pactl set-default-sink {sp.name}")
 
 
 class SpeakerPopup(DeviceListPopup[Stream]):

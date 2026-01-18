@@ -20,12 +20,14 @@ def Action_repr(action: Action) -> str:
 
 
 class PowerOffMode(LauncherMode):
-    def get_results(self, launcher, query: str):
+    async def get_results(self, launcher, query, emit):
         if query.strip() == "":
-            return GetResultsResponse([], True)
+            emit([], True)
+            return
 
-        return GetResultsResponse(
-            [LauncherPowerOffResult(action) for action in actions], True
+        emit(
+            [LauncherPowerOffResult(action) for action in actions],
+            True,
         )
 
 
@@ -42,13 +44,13 @@ class LauncherPowerOffResult(LauncherResult):
     def launch(self):
         util.popup_manager.close_curr_popup()
         if self.action == "shutdown":
-            util.run_cmd("systemctl poweroff")
+            util.shell("systemctl poweroff")
         elif self.action == "reboot":
-            util.run_cmd("systemctl reboot")
+            util.shell("systemctl reboot")
         elif self.action == "logout":
-            util.run_cmd("hyprctl dispatch exit")
+            util.shell("hyprctl dispatch exit")
         elif self.action == "suspend":
-            util.run_cmd("systemctl suspend")
+            util.shell("systemctl suspend")
 
     def icon_name(self) -> str:
         icons: dict[Action, str] = {

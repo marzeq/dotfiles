@@ -54,6 +54,7 @@ class CalendarGrid(Widget.Grid):
                         label=day,
                         css_classes=["nc-calendar-dow-label"],
                         halign="center",
+                        valign="center",
                     )
                     for day in ["M", "T", "W", "T", "F", "S", "S"]
                 ]
@@ -63,6 +64,7 @@ class CalendarGrid(Widget.Grid):
                         label=str(get_month_days(month - 1, year) - x).zfill(2),
                         css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
                         halign="center",
+                        valign="center",
                     )
                     for x in range(starting_dow_for_month(month, year))
                 ]
@@ -85,6 +87,7 @@ class CalendarGrid(Widget.Grid):
                             else []
                         ),
                         halign="center",
+                        valign="center",
                     )
                     for day in range(1, get_month_days(month, year) + 1)
                 ]
@@ -94,6 +97,7 @@ class CalendarGrid(Widget.Grid):
                         label=str(day).zfill(2),
                         css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
                         halign="center",
+                        valign="center",
                     )
                     for day in range(
                         1,

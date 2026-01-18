@@ -25,6 +25,10 @@ zstyle :compinstall filename "$HOME/.config/shells/.zshrc"
 export EDITOR="nvim"
 export MANPAGER="nvim +Man!"
 export PATH="$PATH:$HOME/.bin:$HOME/.local/bin"
+# check if go installed and add its bin to path
+if command -v go >/dev/null 2>&1; then
+  export PATH="$PATH:$(go env GOPATH)/bin"
+fi
 export GPG_TTY="$(tty)"
 
 # ------------------------------

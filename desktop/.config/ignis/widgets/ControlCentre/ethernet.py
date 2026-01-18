@@ -48,7 +48,7 @@ class EthernetWidget(ControlCentreWidget):
         super().__init__(
             icon=network.ethernet.bind("icon_name"),
             labels=CCWLabels("Wired"),
-            on_click=lambda _: util.run_cmd(
+            on_click=lambda _: util.shell(
                 (
                     "iface=$(nmcli -t -f DEVICE,TYPE,STATE device | awk -F':' '$2==\"ethernet\"{print $1; exit}'); "
                     "state=$(nmcli -t -f DEVICE,STATE device | grep \"^$iface\" | cut -d':' -f2); "

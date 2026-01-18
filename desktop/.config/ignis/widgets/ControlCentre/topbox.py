@@ -1,3 +1,4 @@
+import asyncio
 import math
 
 from ignis.services.upower import UPowerService
@@ -31,14 +32,17 @@ class TopBox(Widget.CenterBox):
             or util.popup_manager.close_curr_popup(),
         )
 
+        async def close_popup_before_screenshot():
+            util.popup_manager.close_curr_popup()
+            await asyncio.sleep(util.popup_manager.popup_anim_speed / 1000)
+
         children = [
             Widget.Button(
                 child=Widget.Icon(image="screenshooter-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda _: util.run_cmd_and_run_delayed(
+                on_click=lambda _: util.shell(
                     "hyprshot -szm region -o ~/pictures/screenshots/",
-                    lambda: util.popup_manager.close_curr_popup(),
-                    100,
+                    before=close_popup_before_screenshot(),
                 ),
             )
         ]
