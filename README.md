@@ -10,7 +10,21 @@ Instructions [here](./INSTALL.md)
 
 ### Hyprland desktop
 
-https://github.com/user-attachments/assets/8c3fa6c1-fb62-4822-b7b1-b3e03b1f4b3f
+![Control centre](./screenshots/control_centre.png)
+
+![Notification centre](./screenshots/notification_centre.png)
+
+![Launcher apps](./screenshots/launcher_apps.png)
+
+![Launcher math](./screenshots/launcher_math.png)
+
+![Launcher currency](./screenshots/launcher_currency.png)
+
+![Settings](./screenshots/settings.png)
+
+![Lockscreen 1](./screenshots/lockscreen1.png)
+
+![Lockscreen 2](./screenshots/lockscreen2.png)
 
 ### Neovim
 
