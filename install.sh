@@ -52,7 +52,8 @@ DESKTOP_DEPS=(
   ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
   "python-pillow" "python-numpy" "python-rapidfuzz" # dependencies for ignis
   "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
-  "python-pam" "python-aiohttp"
+  "python-pam" "python-aiohttp" "python-scikit-learn"
+  "power-profiles-daemon"
   "cantarell-fonts"                                 # sans font for the shell
   
   "gdm"                                             # login manager of choice
@@ -191,6 +192,7 @@ install_terminal() {
 
 desktop_installed=false
 install_desktop() {
+  install_terminal
   if $desktop_installed; then return; fi
   echo -e "${BLUE}Installing desktop...${RESET}"
   desktop_installed=true
@@ -198,8 +200,12 @@ install_desktop() {
   run_or_echo "stow -t $HOME desktop"
   run_or_echo "sudo systemctl enable gdm"
   run_or_echo "systemctl --user enable gcr-ssh-agent.socket"
-  echo -e "${RED_BOLD}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
-  install_terminal
+  run_or_echo "mkdir -p ~/.local/share/ignis"
+  run_or_echo "touch ~/.local/share/ignis/hyprland.conf ~/.config/hypr/monitors.conf ~/.config/hypr/workspaces.conf ~/.config/hypr/hyprland-custom.conf"
+  if ! $DRY_RUN; then
+    echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
+    echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
+  fi
 }
 
 main() {
@@ -216,7 +222,7 @@ main() {
 
   if [[ $1 == "--dry-run" ]]; then
     DRY_RUN=true
-    echo -e "${BLUE}Dry run mode enabled. No changes will be made.${RESET}"
+    echo -e "${BLUE}Dry run mode enabled. No real changes will be made.${RESET}"
     shift
   else
     if [[ ! -f "/etc/arch-release" ]]; then
@@ -225,7 +231,12 @@ main() {
     fi
 
     if [[ -f "/run/archiso/cowspace" ]]; then
-      echo "This script is not intended to be run in a live environment!"
+      echo "This script is not intended to be run in a live environment! Install Arch Linux properly first and run it there."
+      exit 1
+    fi
+
+    if [[ "$(uname -m)" != "x86_64" ]]; then
+      echo "Do not run this script on non-x86-64 architectures, some of the dependencies are not available easily and might require manual installation."
       exit 1
     fi
 
@@ -251,6 +262,7 @@ main() {
   elif [[ $1 == "all" ]]; then
     install_shells
     install_neovim
+    install_terminal
     install_desktop
   else
     echo "Unknown package: $1"
