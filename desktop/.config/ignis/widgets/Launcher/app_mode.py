@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 from gi.repository import Gio
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
@@ -31,24 +32,34 @@ Utils.Poll(timeout=30_000, callback=lambda _: refresh_apps())
 
 @JsonSettings("apps")
 class AppSettings:
-    hidden_apps: list[str] = []
+    hidden_apps: str = ""
+
+    def read_hidden_apps(self) -> list[str]:
+        return json.loads(self.hidden_apps) if self.hidden_apps else []
+
+    def save_hidden_apps(self, apps: list[str]) -> None:
+        self.hidden_apps = json.dumps(apps)
 
     def hide_app(self, app_name: str) -> None:
         name = app_name.lower()
-        if name not in self.hidden_apps:
-            self.hidden_apps = self.hidden_apps + [name]
+        hidden = self.read_hidden_apps()
+        if name not in hidden:
+            hidden.append(name)
+            self.save_hidden_apps(hidden)
 
     def unhide_app(self, app_name: str) -> None:
         name = app_name.lower()
-        self.hidden_apps = [x for x in self.hidden_apps if x != name]
+        hidden = self.read_hidden_apps()
+        if name in hidden:
+            hidden.remove(name)
+            self.save_hidden_apps(hidden)
 
     def is_hidden(self, app_name: str) -> bool:
         return app_name.lower() in self.hidden_apps
 
     @property
     def visible_apps(self) -> list[Application]:
-        hidden = set(self.hidden_apps)
-        return [app for app in applications.apps if app.name.lower() not in hidden]
+        return [app for app in applications.apps if app.name.lower() not in self.read_hidden_apps()]
 
 
 app_settings = AppSettings()
@@ -59,19 +70,19 @@ class AppMode(LauncherMode):
         query = query.strip().lower()
         if not query:
             emit(
-                [LauncherAppResult(app) for app in app_settings.visible_apps],
+                [LauncherAppResult(app, launcher) for app in app_settings.visible_apps],
                 True,
             )
             return
 
         emit(
-            [LauncherAppResult(app) for app in app_settings.visible_apps],
+            [LauncherAppResult(app, launcher) for app in app_settings.visible_apps],
             True,
         )
 
 
 class LauncherAppResult(LauncherResult):
-    def __init__(self, app: Application):
+    def __init__(self, app: Application, launcher):
         super().__init__(
             value=app.name,
             icon_name=app.icon,
@@ -83,6 +94,7 @@ class LauncherAppResult(LauncherResult):
             ),
         )
         self.app = app
+        self.launcher = launcher
 
     def launch_app(self):
         util.popup_manager.close_curr_popup()
@@ -90,3 +102,4 @@ class LauncherAppResult(LauncherResult):
 
     def hide_app(self) -> None:
         app_settings.hide_app(self.app.name)
+        self.launcher.update_mode_and_list(no_scroll_reset=True)

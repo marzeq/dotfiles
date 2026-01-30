@@ -19,6 +19,10 @@ accent_file = os.path.expanduser("~/.local/share/ignis/accent.scss")
 if not os.path.exists(accent_file):
     with open(accent_file, "w") as f:
         f.write("")
+theme_file = os.path.expanduser("~/.local/share/ignis/theme.scss")
+if not os.path.exists(theme_file):
+    with open(theme_file, "w") as f:
+        f.write("")
 
 app.apply_css(f"{dir}/style.scss")
 app.add_icons(f"{dir}/icons")

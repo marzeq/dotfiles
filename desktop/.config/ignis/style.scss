@@ -25,6 +25,40 @@ switch:checked:not(:disabled) {
   background-color: $accent;
 }
 
+checkbutton:checked > check,
+radiobutton:checked > radio {
+  background-color: $accent;
+  border-color: $accent;
+}
+
+scale highlight {
+  background-color: $accent;
+}
+
+progressbar progress {
+  background-color: $accent;
+}
+
+levelbar block.filled {
+  background-color: $accent;
+}
+
+/* Tabs */
+tabview tab:selected,
+notebook tab:checked {
+  background-color: rgba($accent, 0.25);
+}
+
+/* Calendar */
+calendar:selected {
+  background-color: $accent;
+}
+
+/* Focus rings */
+*:focus-visible {
+  outline-color: $accent;
+}
+
 @mixin popup {
   background-color: $bg;
   padding: 1.5rem;

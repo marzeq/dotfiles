@@ -21,7 +21,7 @@ class StyleSettings(BindableSettings):
         self._accent_map = self._load_accent_map()
 
     post_accent_change_cmd: str = ""
-    
+
     def set_post_accent_change_cmd(self, cmd: str):
         self.post_accent_change_cmd = cmd
 
@@ -48,12 +48,10 @@ class StyleSettings(BindableSettings):
             for h, colour in self._accent_map.items():
                 f.write(f"{h} {colour}\n")
 
-
     async def post_accent_change(self):
         util.get_app().reload_css()
         if self.post_accent_change_cmd:
             await util.shell(self.post_accent_change_cmd, background=False)
-
 
     def set_accent_colour(self, colour: str, wallpaper: str):
         h = self._hash_file(wallpaper)

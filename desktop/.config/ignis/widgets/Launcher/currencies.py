@@ -176,22 +176,34 @@ COMMON_CURRENCY_SYMBOLS_ABBREVS: dict[str, str] = {
     "US$": "USD",
     "DOLLAR": "USD",
     "DOLLARS": "USD",
+    "BUCK": "USD",
+    "BUCKS": "USD",
     "€": "EUR",  # Euro
     "EURO": "EUR",
     "EUROS": "EUR",
     "£": "GBP",  # British Pound
     "QUID": "GBP",
     "¥": "JPY",  # Japanese Yen
+    "YEN": "JPY",
     "₹": "INR",  # Indian Rupee
     "₽": "RUB",  # Russian Ruble
+    "RUBLE": "RUB",
+    "RUBLES": "RUB",
     "R$": "BRL",  # Brazilian Real
     "₩": "KRW",  # South Korean Won
     "HK$": "HKD",  # Hong Kong Dollar
     "S$": "SGD",  # Singapore Dollar
     "A$": "AUD",  # Australian Dollar
+    "AUSTRALIAN": "AUD",
+    "AUSSIE": "AUD",
     "C$": "CAD",  # Canadian Dollar
+    "CANADIAN": "CAD",
     "NZ$": "NZD",  # New Zealand Dollar
     "ZŁ": "PLN",  # Polish Zloty
+    "ZŁOTY": "PLN",
+    "ZŁOTE": "PLN",
+    "ZŁOTYCH": "PLN",
+    "ZŁOTEGO": "PLN",
     "₺": "TRY",  # Turkish Lira
     "₱": "PHP",  # Philippine Peso
     "₫": "VND",  # Vietnamese Dong

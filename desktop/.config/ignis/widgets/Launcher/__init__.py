@@ -139,7 +139,7 @@ class Launcher(Widget.RevealerWindow):
         self.entry.grab_focus()
         self.entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
 
-    def update_mode_and_list(self):
+    def update_mode_and_list(self, no_scroll_reset: bool = False):
         query = self.entry.text.strip()
 
         if query == "":
@@ -153,11 +153,11 @@ class Launcher(Widget.RevealerWindow):
         async def delayed():
             await asyncio.sleep(0.05)
             if gen == self._search_gen:
-                await self._run_search(query, gen)
+                await self._run_search(query, gen, no_scroll_reset)
 
         asyncio.create_task(delayed())
 
-    async def _run_search(self, query: str, gen: int):
+    async def _run_search(self, query: str, gen: int, no_scroll_reset: bool = False):
         results: list[LauncherResult] = []
         results_no_fuzz: list[LauncherResult] = []
 
@@ -175,7 +175,7 @@ class Launcher(Widget.RevealerWindow):
                     results_no_fuzz.extend(chunk)
 
                 searched = results_no_fuzz + fuzzy_search(results, query)
-                self.set_results(searched)
+                self.set_results(searched, no_scroll_reset)
                 return False
 
             GLib.idle_add(_apply)
@@ -195,7 +195,9 @@ class Launcher(Widget.RevealerWindow):
     def reset_scroll_state(self):
         self.scroller.get_vadjustment().set_value(0)
 
-    def set_results(self, results: Sequence[LauncherResult]):
+    def set_results(
+        self, results: Sequence[LauncherResult], no_scroll_reset: bool = False
+    ):
         self.result_list.child = results
         if len(results) <= 4:
             self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -204,7 +206,8 @@ class Launcher(Widget.RevealerWindow):
             self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
             self.scroller.css_classes = ["launcher-scroller-scrolling"]
 
-        self.reset_scroll_state()
+        if not no_scroll_reset:
+            self.reset_scroll_state()
 
     def trigger_result(self, index: int = 0):
         if self.result_list.child and index < len(self.result_list.child):

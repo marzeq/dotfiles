@@ -393,7 +393,9 @@ class SettingsWindow(Widget.RegularWindow):
         )
 
         self.post_accent_change_entry = Widget.Entry(
-            on_change=lambda _: style_settings.set_post_accent_change_cmd(self.post_accent_change_entry.get_text())
+            on_change=lambda _: style_settings.set_post_accent_change_cmd(
+                self.post_accent_change_entry.get_text()
+            )
         )
         self.post_accent_change_entry.set_text(style_settings.post_accent_change_cmd)
 
@@ -561,7 +563,10 @@ class SettingsWindow(Widget.RegularWindow):
                                         on_change=hyprland_settings.set_keyboard_variant,
                                         get_current=lambda: hyprland_settings.keyboard_variant,
                                         settings_obj=hyprland_settings,
-                                        notify_props=["keyboard-layout", "keyboard-variant"],
+                                        notify_props=[
+                                            "keyboard-layout",
+                                            "keyboard-variant",
+                                        ],
                                         repopulate=lambda: get_keyboard_variants(
                                             hyprland_settings.keyboard_layout
                                         ),
@@ -592,7 +597,7 @@ class SettingsWindow(Widget.RegularWindow):
                             label="Pointer acceleration",
                             active=hyprland_settings.bind("acceleration_enabled"),  # type: ignore
                             on_change=lambda _,
-                                active: hyprland_settings.set_acceleration_enabled(active),
+                            active: hyprland_settings.set_acceleration_enabled(active),
                         ),
                     ],  # type: ignore
                 ),
@@ -604,7 +609,9 @@ Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindl
                         Setting(
                             StringDropdown(
                                 labels=[l.capitalize() for l in hyprland_layouts],
-                                on_change=lambda v: hyprland_settings.set_layout_type(v.lower()),
+                                on_change=lambda v: hyprland_settings.set_layout_type(
+                                    v.lower()
+                                ),
                                 get_current=lambda: hyprland_settings.layout_type.capitalize(),
                                 settings_obj=hyprland_settings,
                                 notify_props=["layout-type"],

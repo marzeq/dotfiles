@@ -67,40 +67,37 @@ ParseResult = (
 )
 
 
+_NUMBER_RE = r"\d+(?:[\, _]\d+)*(?:\.\d+(?:[\, _]\d+)*)?"
+
+
+def parse_number(s: str) -> float:
+    return float(s.replace(" ", "").replace("_", "").replace(",", ""))
+
+
 def parse_currency_query(query: str) -> ParseResult:
     q = query.strip()
 
-    # (amount) (CURRENCY)
-    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(\S+)", q)
-    if m:
-        source = lookup_currency(m.group(2))
-        if source is not None:
-            return True, float(m.group(1)), source, None
-
-    # (amount) (CURRENCY) to|in (CURRENCY)
+    # (amount) (CURRENCY) to|in (CURRENCY)?
     m = re.fullmatch(
-        r"(\d+(?:\.\d+)?)\s*(\S+)\s+(?:to|in)\s+(\S+)",
+        rf"({_NUMBER_RE})\s*(\S+)(?:\s+(?:to|in)\s+(\S+))?",
         q,
     )
     if m:
+        amount = parse_number(m.group(1))
         source = lookup_currency(m.group(2))
-        target = lookup_currency(m.group(3))
-        if source is not None and target is not None:
-            return True, float(m.group(1)), source, target
+        target = lookup_currency(m.group(3)) if m.group(3) else None
+        if source is not None and (m.group(3) is None or target is not None):
+            return True, amount, source, target
 
-    # (CURRENCY)
-    m = re.fullmatch(r"(\S+)", q)
+    # (CURRENCY) to|in (CURRENCY)?
+    m = re.fullmatch(
+        r"(\S+)(?:\s+(?:to|in)\s+(\S+))?",
+        q,
+    )
     if m:
         source = lookup_currency(m.group(1))
-        if source is not None:
-            return True, 1.0, source, None
-
-    # (CURRENCY) to|in (CURRENCY)
-    m = re.fullmatch(r"(\S+)\s+(?:to|in)\s+(\S+)", q)
-    if m:
-        source = lookup_currency(m.group(1))
-        target = lookup_currency(m.group(2))
-        if source is not None and target is not None:
+        target = lookup_currency(m.group(2)) if m.group(2) else None
+        if source is not None and (m.group(2) is None or target is not None):
             return True, 1.0, source, target
 
     return False, None, None, None

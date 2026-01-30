@@ -3,7 +3,17 @@ import json
 import subprocess
 import asyncio
 import os
-from typing import Any, Awaitable, Callable, Coroutine, Iterable, Literal, cast, get_type_hints, overload
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Iterable,
+    Literal,
+    cast,
+    get_type_hints,
+    overload,
+)
 
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
@@ -61,13 +71,13 @@ async def await_or_call(x: Hook) -> Any:
 
 
 @overload
-def shell( # type: ignore
+def shell(  # type: ignore
     cmd: str,
     before: Hook | None = ...,
     after: Hook | None = ...,
     background: Literal[True] = ...,
-) -> None:
-    ...
+) -> None: ...
+
 
 @overload
 def shell(
@@ -75,8 +85,8 @@ def shell(
     before: Hook | None = ...,
     after: Hook | None = ...,
     background: Literal[False] = ...,
-) -> Coroutine[Any, Any, str | None]:
-    ...
+) -> Coroutine[Any, Any, str | None]: ...
+
 
 def shell(
     cmd: str,
@@ -139,22 +149,24 @@ def has_command(cmd: str) -> bool:
 def relative_luminance(rgb):
     # convert sRGB from 0–255 to linear
     def channel(c):
-        c = c/255
-        return c/12.92 if c <= 0.03928 else ((c+0.055)/1.055)**2.4
+        c = c / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
 
     r, g, b = map(channel, rgb)
     # WCAG weights
-    return 0.2126*r + 0.7152*g + 0.0722*b
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
 def contrast_ratio(c1, c2):
     L1 = relative_luminance(c1)
     L2 = relative_luminance(c2)
     lighter, darker = max(L1, L2), min(L1, L2)
-    return (lighter + 0.05)/(darker + 0.05)
+    return (lighter + 0.05) / (darker + 0.05)
 
 
-async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50, contrast_threshold=3):
+async def get_top_colours(
+    image_path, num_colours=50, top_n=10, min_distance=50, contrast_threshold=3
+):
     """
     Extracts the top N dominant colours from an image, ensuring a minimum distance between selected colours.
     """
@@ -181,7 +193,7 @@ async def get_top_colours(image_path, num_colours=50, top_n=10, min_distance=50,
     diverse_colours = []
     for c in sorted_colours:
         # ensure sufficient legibility for a white foreground
-        if contrast_ratio(c, (255,255,255)) < contrast_threshold:
+        if contrast_ratio(c, (255, 255, 255)) < contrast_threshold:
             continue
         # ensure minimum distance from already selected colours
         if all(rgb_distance(c, dc) >= min_distance for dc in diverse_colours):
@@ -375,7 +387,7 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 gname, name, name, -1e308, 1e308, 0.0, flags
             )
         if typ is str:
-            pspec = GObject.param_spec_string(gname, name, name, "", flags)
+            return GObject.param_spec_string(gname, name, name, "", flags)
         return GObject.param_spec_string(gname, name, name, None, flags)
 
     def decorator(cls: type[T]) -> type[T]:
@@ -418,7 +430,8 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 self.sync()
 
             def do_get_property(self, pspec):
-                return self._data[pspec.name.replace("-", "_")]
+                name = pspec.name.replace("-", "_")
+                return self._data[name]
 
             def do_set_property(self, pspec, value):
                 name = pspec.name.replace("-", "_")
