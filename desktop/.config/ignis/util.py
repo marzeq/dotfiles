@@ -471,3 +471,21 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
         return Wrapper  # type: ignore
 
     return decorator
+
+def format_time(seconds: int) -> str:
+    """
+    Formats time in seconds to a human-readable string.
+    """
+    if seconds < 60:
+        plural = "s" if seconds != 1 else ""
+        return f"{seconds} second{plural}"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        plural = "s" if minutes != 1 else ""
+        return f"{minutes} minute{plural}"
+    else:
+        hours = seconds // 3600
+        plural = "s" if hours != 1 else ""
+        minutes = (seconds % 3600) // 60
+        plural_min = "s" if minutes != 1 else ""
+        return f"{hours} hour{plural} {minutes} minute{plural_min}"

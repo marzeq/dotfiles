@@ -50,21 +50,43 @@ class TopBox(Widget.CenterBox):
         if len(upower.batteries) == 0:
             children += [settings_button]
         else:
-            batt = upower.batteries[0]
-            children += [
-                Widget.Button(
-                    child=Widget.Box(
-                        child=[
-                            Widget.Icon(image=batt.bind("icon_name")),
-                            Widget.Label(
-                                label=batt.bind("percent", lambda *_: f"{math.floor(batt.percent)}%"),
-                                css_classes=["cc-battery-percent"],
-                            ),
-                        ]
-                    ),
-                    css_classes=["cc-top-button"],
-                )
-            ]
+            batt = upower.display_device
+            bat_percent = Widget.Button(
+                child=Widget.Box(
+                    child=[
+                        Widget.Icon(image=batt.bind("icon_name")),
+                        Widget.Label(
+                            label=batt.bind("percent", lambda *_: f"{math.floor(batt.percent)}%"),
+                            css_classes=["cc-battery-percent"],
+                        ),
+                    ]
+                ),
+                css_classes=["cc-top-button"],
+            )
+            def update_battery_tooltip() -> int:
+                if batt.time_remaining <= 0:
+                    bat_percent.set_tooltip_text("Calculating...")
+                    return 3
+                elif batt.charging:
+                    bat_percent.set_tooltip_text(f"{util.format_time(batt.time_remaining)} left")
+                else:
+                    bat_percent.set_tooltip_text(f"{util.format_time(batt.time_remaining)} remaining")
+
+                return 15
+
+            async def update_battery_tooltip_loop():
+                while True:
+                    await asyncio.sleep(update_battery_tooltip())
+            task = asyncio.create_task(update_battery_tooltip_loop())
+
+            def re_run_loop():
+                nonlocal task
+                task.cancel()
+                task = asyncio.create_task(update_battery_tooltip_loop())
+
+            batt.connect("notify::charging", lambda *_: re_run_loop())
+
+            children += [bat_percent]
         return children
 
     def _end_children(self, _):

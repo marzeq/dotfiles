@@ -108,7 +108,7 @@ class Tray(Widget.EventBox):
             self.power_icon.image = "system-shutdown-symbolic"  # type: ignore
             return
 
-        batt = upower.batteries[0]
+        batt = upower.display_device
         self.power_icon.image = batt.bind("icon_name")
         self.batt_percent_label.label = tray_settings.bind_properties(
             lambda *_: batt.bind(
