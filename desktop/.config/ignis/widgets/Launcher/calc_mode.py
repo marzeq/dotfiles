@@ -3,6 +3,7 @@ from typing import Callable
 import util
 import shlex
 from .base_mode import LauncherMode, LauncherResult
+import platform
 
 
 class CalcMode(LauncherMode):
@@ -11,9 +12,19 @@ class CalcMode(LauncherMode):
         if not expr:
             return
 
+        exname = ""
+        match platform.machine():
+            case "x86_64":
+                exname = "mexe-amd64"
+            case "aarch64":
+                exname = "mexe-aarch64"
+            case _:
+                return
+
+
         escaped_expr = shlex.quote(expr)
         result = await util.shell(
-            f"{util.root_dir}/scripts/mexe -- {escaped_expr}",
+            f"{util.root_dir}/scripts/{exname} -- {escaped_expr}",
             background=False,
         )
         if result is None:
