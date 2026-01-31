@@ -79,8 +79,8 @@ class Tray(Widget.EventBox):
                             ),
                             Widget.Box(
                                 child=[
-                                    self.batt_percent_label,
                                     self.power_icon,
+                                    self.batt_percent_label,
                                 ],
                                 css_classes=["tray-icon"], 
                             ),
@@ -113,6 +113,13 @@ class Tray(Widget.EventBox):
         self.batt_percent_label.label = tray_settings.bind_properties(
             lambda *_: batt.bind(
                 "percent",
-                lambda percent: f"{int(percent)}% " if tray_settings.show_batt_percent else "",
+                lambda percent: f"{int(percent)}%" if tray_settings.show_batt_percent else "",
+            )
+        )
+        self.batt_percent_label.css_classes = tray_settings.bind_properties(
+            lambda *_: (
+                ["tray-batt-percent"]
+                if tray_settings.show_batt_percent
+                else []
             )
         )
