@@ -87,4 +87,4 @@ class Tray(Widget.EventBox):
             return
 
         batt = upower.batteries[0]
-        self.power_icon.image = batt.icon_name
+        self.power_icon.image = batt.bind("icon_name")
