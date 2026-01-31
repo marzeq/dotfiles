@@ -11,6 +11,7 @@ from widgets.Clock import clock_settings
 from widgets.Workspaces import workspace_settings
 from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
+from widgets.Tray import tray_settings
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -495,6 +496,18 @@ class SettingsWindow(Widget.RegularWindow):
                             active: workspace_settings.set_show_all_ws_on_monitor(
                                 active
                             ),
+                        )
+                    ],
+                ),
+                SettingsSection(
+                    title="Tray area",
+                    description="Customize the tray area icons and their behavior.",
+                    child=[
+                        SwitchWithLabel(
+                            label="Show battery percentage",
+                            active=tray_settings.show_batt_percent,
+                            on_change=lambda _,
+                            active: tray_settings.set_show_batt_percent(active),
                         )
                     ],
                 ),

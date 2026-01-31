@@ -5,11 +5,24 @@ from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
 from ignis.options import options
 import util
+from util import JsonSettings, BindableSettings
 
 app = util.get_app()
 network = NetworkService.get_default()
 audio = AudioService.get_default()
 upower = UPowerService.get_default()
+
+
+@JsonSettings("tray")
+class TraySettings(BindableSettings):
+    show_batt_percent: bool = False
+
+    def set_show_batt_percent(self, value: bool) -> None:
+        self.show_batt_percent = value
+
+
+tray_settings = TraySettings()
+
 
 
 class Tray(Widget.EventBox):
@@ -32,7 +45,10 @@ class Tray(Widget.EventBox):
         self.update_network_icon()
 
         self.power_icon = Widget.Icon(
-            css_classes=["tray-icon"], image="system-shutdown-symbolic"
+            image="system-shutdown-symbolic"
+        )
+        self.batt_percent_label = Widget.Label(
+            label=""
         )
 
         upower.connect("notify::batteries", lambda *_: self.update_power_icon())
@@ -61,7 +77,13 @@ class Tray(Widget.EventBox):
                                     "dnd", lambda dnd: dnd
                                 ),  # type: ignore
                             ),
-                            self.power_icon,
+                            Widget.Box(
+                                child=[
+                                    self.batt_percent_label,
+                                    self.power_icon,
+                                ],
+                                css_classes=["tray-icon"], 
+                            ),
                         ]
                     ),
                     css_classes=["box"],
@@ -88,3 +110,9 @@ class Tray(Widget.EventBox):
 
         batt = upower.batteries[0]
         self.power_icon.image = batt.bind("icon_name")
+        self.batt_percent_label.label = tray_settings.bind_properties(
+            lambda *_: batt.bind(
+                "percent",
+                lambda percent: f"{int(percent)}% " if tray_settings.show_batt_percent else "",
+            )
+        )
