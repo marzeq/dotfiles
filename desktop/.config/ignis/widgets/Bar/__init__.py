@@ -30,6 +30,8 @@ class Bar(Widget.Window):
         if not monitor:
             raise ValueError(f"Monitor with ID {monitor_id} does not exist.")
         monitor_name = monitor.get_connector()
+        if not monitor_name:
+            raise ValueError(f"Monitor with ID {monitor_id} has no connector name.")
         m2_notch = util.has_apple_m2_notch() and monitor_name == "eDP-1"
 
         self.clock_hovered = False

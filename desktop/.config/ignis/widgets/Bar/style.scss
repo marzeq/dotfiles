@@ -28,7 +28,7 @@ $bar-bg: #000000;
     @include custom-button;
     background-color: transparent;
     padding: 0.25rem 0.8rem;
-    border-radius: 1rem;
+    border-radius: 2rem;
   }
 
   &:hover {
