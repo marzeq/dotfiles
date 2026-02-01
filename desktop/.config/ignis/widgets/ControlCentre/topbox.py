@@ -54,7 +54,13 @@ class TopBox(Widget.CenterBox):
             bat_percent = Widget.Button(
                 child=Widget.Box(
                     child=[
-                        Widget.Icon(image=batt.bind("icon_name")),
+                        Widget.Icon(
+                            image=batt.bind("icon_name"),
+                            style=batt.bind(
+                                "charging",
+                                lambda *_: "color: #2ec27e;" if batt.charging else ""
+                            )
+                        ),
                         Widget.Label(
                             label=batt.bind("percent", lambda *_: f"{math.floor(batt.percent)}%"),
                             css_classes=["cc-battery-percent"],
