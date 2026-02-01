@@ -110,9 +110,9 @@ class Tray(Widget.EventBox):
 
         batt = upower.display_device
         self.power_icon.image = batt.bind("icon_name")
-        self.power_icon.style = batt.bind(
+        self.power_icon.css_classes= batt.bind(
             "charging",
-            lambda *_: "color: #2ec27e;" if batt.charging else ""
+            lambda *_: ["battery-charging"] if batt.charging else [],
         )
         self.batt_percent_label.label = tray_settings.bind_properties(
             lambda *_: batt.bind(

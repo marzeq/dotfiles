@@ -56,10 +56,10 @@ class TopBox(Widget.CenterBox):
                     child=[
                         Widget.Icon(
                             image=batt.bind("icon_name"),
-                            style=batt.bind(
-                                "charging",
-                                lambda *_: "color: #2ec27e;" if batt.charging else ""
-                            )
+                            # css_classes=batt.bind(
+                            #     "charging",
+                            #     lambda *_: ["battery-charging"] if batt.charging else [],
+                            # ),
                         ),
                         Widget.Label(
                             label=batt.bind("percent", lambda *_: f"{math.floor(batt.percent)}%"),
@@ -74,9 +74,9 @@ class TopBox(Widget.CenterBox):
                     bat_percent.set_tooltip_text("Calculating...")
                     return 3
                 elif batt.charging:
-                    bat_percent.set_tooltip_text(f"{util.format_time(batt.time_remaining)} left")
+                    bat_percent.set_tooltip_text(f"Full in {util.format_time(batt.time_remaining)}")
                 else:
-                    bat_percent.set_tooltip_text(f"{util.format_time(batt.time_remaining)} remaining")
+                    bat_percent.set_tooltip_text(f"{util.format_time(batt.time_remaining)} left")
 
                 return 15
 

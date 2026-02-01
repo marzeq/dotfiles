@@ -3,7 +3,6 @@ import json
 import subprocess
 import asyncio
 import os
-import platform
 import subprocess
 from typing import (
     Any,
@@ -511,3 +510,15 @@ def has_apple_m2_notch():
         pass
 
     return False
+
+def get_monitor_scale_factor(name: str) -> float:
+    try:
+        out = subprocess.check_output(["hyprctl", "monitors", "-j"], text=True)
+        monitors = json.loads(out)
+        for monitor in monitors:
+            if monitor.get("name") == name:
+                return float(monitor.get("scale", 1.0))
+    except Exception:
+        pass
+
+    return 1.0
