@@ -48,7 +48,7 @@ class NotifsCalendar(Widget.RevealerWindow):
                     Widget.Box(
                         vertical=True,
                         valign="start",
-                        halign="center",
+                        halign="end" if util.has_apple_m2_notch() else "center",
                         child=[revealer],
                     ),
                 ],

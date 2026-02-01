@@ -3,6 +3,8 @@ import json
 import subprocess
 import asyncio
 import os
+import platform
+import subprocess
 from typing import (
     Any,
     Awaitable,
@@ -488,4 +490,24 @@ def format_time(seconds: int) -> str:
         plural = "s" if hours != 1 else ""
         minutes = (seconds % 3600) // 60
         plural_min = "s" if minutes != 1 else ""
+        if minutes == 0:
+            return f"{hours} hour{plural}"
         return f"{hours} hour{plural} {minutes} minute{plural_min}"
+
+def has_apple_m2_notch():
+    try:
+        out = subprocess.check_output(["lscpu"], text=True).lower()
+        if "blizzard-m2" not in out:
+            return False
+    except Exception:
+        return False
+
+    try:
+        with open("/proc/cmdline", "r") as f:
+            cmdline = f.read().strip()
+            if "apple_dcp.show_notch=1" in cmdline:
+                return True
+    except FileNotFoundError:
+        pass
+
+    return False

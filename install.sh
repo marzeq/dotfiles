@@ -53,7 +53,7 @@ DESKTOP_DEPS=(
   "python-pillow" "python-numpy" "python-rapidfuzz" # dependencies for ignis
   "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
   "python-pam" "python-aiohttp" "python-scikit-learn"
-  "power-profiles-daemon"
+  "power-profiles-daemon" "bc"
   "cantarell-fonts"                                 # sans font for the shell
   
   "gdm"                                             # login manager of choice

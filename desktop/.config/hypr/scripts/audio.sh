@@ -27,6 +27,7 @@ dec_volume() {
 
   current_volume=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print $2}' | sed 's/%//')
   current_volume=$(echo "$current_volume * 100" | bc)
+  current_volume=${current_volume%.*}
 
   if [[ "$current_volume" -le 0 ]]; then
     wpctl set-mute @DEFAULT_AUDIO_SINK@ 1

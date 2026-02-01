@@ -14,6 +14,10 @@ $bar-bg: #000000;
   color: $fg;
   font-weight: bold;
   font-size: 16px;
+
+  &.on-m2 {
+    min-height: 35px;
+  }
 }
 
 // the more transparent the bar, the lighter the hover effect must be

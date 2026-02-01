@@ -30,6 +30,14 @@ class Bar(Widget.Window):
         self.clock_hovered = False
         self.tray_hovered = False
 
+        clock = Clock(
+            monitor=monitor_id,
+            on_hover=lambda *_: self.set_clock_hovered(True),
+            on_hover_lost=lambda *_: self.set_clock_hovered(
+                False
+            ),
+        )
+
         super().__init__(
             namespace=f"ignis_bar_{monitor_id}",
             monitor=monitor_id,
@@ -40,25 +48,18 @@ class Bar(Widget.Window):
             child=Widget.EventBox(
                 child=[
                     Widget.CenterBox(
-                        css_classes=["bar"],
+                        css_classes=["bar"] + (["on-m2"] if util.has_apple_m2_notch() else []),
                         start_widget=Widget.Box(
                             child=[
                                 Workspaces(monitor_name),
                             ],
                         ),
                         center_widget=Widget.Box(
-                            child=[
-                                Clock(
-                                    monitor=monitor_id,
-                                    on_hover=lambda *_: self.set_clock_hovered(True),
-                                    on_hover_lost=lambda *_: self.set_clock_hovered(
-                                        False
-                                    ),
-                                ),
-                            ],
+                            child=[] if util.has_apple_m2_notch() else [clock],
                         ),
                         end_widget=Widget.Box(
-                            child=[
+                            child=([clock] if util.has_apple_m2_notch() else []) +
+                            [
                                 Tray(
                                     monitor=monitor_id,
                                     on_hover=lambda *_: self.set_tray_hovered(True),
