@@ -1,3 +1,4 @@
+from ignis.services.hyprland import HyprlandService
 from ignis.widgets import Widget
 from ignis.utils.monitor import get_monitor
 
@@ -31,13 +32,6 @@ class Bar(Widget.Window):
         monitor_name = monitor.get_connector()
         m2_notch = util.has_apple_m2_notch() and monitor_name == "eDP-1"
 
-        style = ""
-        if m2_notch:
-            sf = util.get_monitor_scale_factor(monitor_name)
-            mh = 56 / sf
-            style = f"min-height: {mh}px;"
-
-
         self.clock_hovered = False
         self.tray_hovered = False
 
@@ -49,6 +43,32 @@ class Bar(Widget.Window):
             ),
         )
 
+        cb = Widget.CenterBox(
+            css_classes=["bar"],
+            start_widget=Widget.Box(
+                child=[
+                    Workspaces(monitor_name),
+                ],
+            ),
+            center_widget=Widget.Box(
+                child=[] if m2_notch else [clock],
+            ),
+            end_widget=Widget.Box(
+                child=([clock] if m2_notch else []) +
+                    [
+                        Tray(
+                            monitor=monitor_id,
+                            on_hover=lambda *_: self.set_tray_hovered(True),
+                            on_hover_lost=lambda *_: self.set_tray_hovered(
+                                False
+                            ),
+                        ),
+                    ],
+            ),
+            hexpand=True,
+        )
+
+
         super().__init__(
             namespace=f"ignis_bar_{monitor_id}",
             monitor=monitor_id,
@@ -58,32 +78,20 @@ class Bar(Widget.Window):
             layer="bottom",
             child=Widget.EventBox(
                 child=[
-                    Widget.CenterBox(
-                        css_classes=["bar"],
-                        start_widget=Widget.Box(
-                            child=[
-                                Workspaces(monitor_name),
-                            ],
-                        ),
-                        center_widget=Widget.Box(
-                            child=[] if m2_notch else [clock],
-                        ),
-                        end_widget=Widget.Box(
-                            child=([clock] if m2_notch else []) +
-                            [
-                                Tray(
-                                    monitor=monitor_id,
-                                    on_hover=lambda *_: self.set_tray_hovered(True),
-                                    on_hover_lost=lambda *_: self.set_tray_hovered(
-                                        False
-                                    ),
-                                ),
-                            ],
-                        ),
-                        hexpand=True,
-                        style=style,
-                    ),
+                    cb,
                 ],
                 on_click=lambda *_: self.handle_click(),
             ),
         )
+
+        hypr_monitor = [m for m in HyprlandService.get_default().monitors if m.name == monitor_name][0] # type: ignore
+
+        def set_cb_style():
+            style = ""
+            if m2_notch:
+                mh = 56 / hypr_monitor.scale
+                style = f"min-height: {mh}px;"
+            cb.style = style
+
+
+        hypr_monitor.connect("notify::scale", lambda *_: set_cb_style())
