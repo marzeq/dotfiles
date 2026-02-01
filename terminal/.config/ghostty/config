@@ -24,6 +24,9 @@ font-size = 12
 theme = "Adwaita Dark"
 background-opacity = 0.95
 
+window-padding-x = "8,8"
+window-padding-y = "8,8"
+
 # ┌──────────┐
 # │ KEYBINDS │
 # └──────────┘
