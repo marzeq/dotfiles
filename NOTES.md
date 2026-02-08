@@ -2,22 +2,33 @@
 
 ## Hyprland customisation
 
-Edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settings you want, that way `git pull`-ing to update won't cause merge conflicts
+Edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settings you want, that way `git pull`-ing to update won't cause merge conflicts.
+
+To overwrite the programs that binds like `super` + `return` (terminal), `super` + `b` (browser) etc. depend on,
+you should look to the `programs-custom.conf` file instead. There, you can change the variables to your desired programs like this:
+
+```hyprlang
+$terminal = alacritty # instead of ghostty
+$fileManager = thunar # instead of nautilus
+$menu = rofi -show drun # instead of our custom launcher
+$browser = google-chrome-stable # instead of firefox
+env = EDITOR,nano # instead of neovim
+```
 
 ## Keybindings
 
 ### Window management
 
-| Keys                                                 | Action                 |
-|------------------------------------------------------|------------------------|
-| `super` + `q`                                        | Kill active window     |
-| `super` + `t`                                        | Toggle floating        |
-| `super` + `s`                                        | Swap slave with master |
-| `super` + `shift` + `f`                              | Fullscreen             |
-| `super` + `h` / `j` / `k` / `l`                      | Move focus             |
-| `super` + `left` / `down` / `up` / `right`           | Move focus             |
-| `super` + `shift` + `h` / `j` / `k` / `l`            | Move window            |
-| `super` + `shift` + `left` / `down` / `up` / `right` | Move window            |
+| Keys                                                 | Action                                      |
+|------------------------------------------------------|---------------------------------------------|
+| `super` + `q`                                        | Kill active window                          |
+| `super` + `t`                                        | Toggle floating                             |
+| `super` + `s`                                        | Swap slave with master/Toggle dwindle split |
+| `super` + `shift` + `f`                              | Fullscreen                                  |
+| `super` + `h` / `j` / `k` / `l`                      | Move focus                                  |
+| `super` + `left` / `down` / `up` / `right`           | Move focus                                  |
+| `super` + `shift` + `h` / `j` / `k` / `l`            | Move window                                 |
+| `super` + `shift` + `left` / `down` / `up` / `right` | Move window                                 |
 
 ### Shell
 
