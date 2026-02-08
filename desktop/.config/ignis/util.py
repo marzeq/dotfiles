@@ -19,6 +19,7 @@ from typing import (
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
 from gi.repository import GObject, Gio
+from ignis.services.audio import AudioService
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 from ignis.widgets import Widget
@@ -511,3 +512,9 @@ def has_apple_m2_notch():
 
     return False
 
+def adjust_volume(audio: AudioService, x: int):
+    if x > 0:
+        audio.speaker.is_muted = False
+        audio.speaker.set_volume(x)
+    else:
+        audio.speaker.is_muted = True

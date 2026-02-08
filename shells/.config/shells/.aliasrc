@@ -56,6 +56,10 @@ if [ -d ~/.local/share/ignis ] && hascmd goignis && hascmd ignis && hascmd hyprc
   }
 fi
 
+if hascmd background; then
+  alias b="background"
+fi
+
 if hascmd git; then
   alias gcl="git clone"
   function ghcl() {

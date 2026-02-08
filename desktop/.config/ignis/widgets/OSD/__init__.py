@@ -29,6 +29,7 @@ class OSD(Widget.RevealerWindow):
                         min=0,
                         max=100,
                         step=1,
+                        on_change=lambda scale: util.adjust_volume(audio, scale.value),
                         value=audio.speaker.bind_many(  # type: ignore
                             ["volume", "is_muted"],
                             lambda volume, is_muted: 0 if is_muted else volume,

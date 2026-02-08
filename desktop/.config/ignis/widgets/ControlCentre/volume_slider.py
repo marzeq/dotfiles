@@ -46,7 +46,7 @@ class VolumeSlider(Widget.Box):
             child=[
                 Widget.Button(
                     child=Widget.Icon(
-                        image=audio.speaker.bind(  # type: ignore
+                        image=audio.speaker.bind(
                             "icon_name",
                             lambda icon: icon
                             if icon != "image-missing"
@@ -61,7 +61,7 @@ class VolumeSlider(Widget.Box):
                     min=0,
                     max=100,
                     step=1,
-                    value=audio.speaker.bind_many(  # type: ignore
+                    value=audio.speaker.bind_many(
                         ["volume", "is_muted"],
                         lambda volume, is_muted: 0 if is_muted else volume,
                     ),
@@ -78,11 +78,7 @@ class VolumeSlider(Widget.Box):
         )
 
     def adjust_volume(self, x: int):
-        if x > 0:
-            audio.speaker.is_muted = False  # type: ignore
-            audio.speaker.set_volume(x)  # type: ignore
-        else:
-            audio.speaker.is_muted = True  # type: ignore
+        util.adjust_volume(audio, x)
 
     def toggle_mute(self):
-        audio.speaker.is_muted = not audio.speaker.is_muted  # type: ignore
+        audio.speaker.is_muted = not audio.speaker.is_muted
