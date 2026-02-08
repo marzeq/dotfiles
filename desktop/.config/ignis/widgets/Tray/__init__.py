@@ -73,9 +73,9 @@ class Tray(Widget.EventBox):
                             Widget.Icon(
                                 css_classes=["tray-icon"],
                                 image="notifications-disabled-symbolic",
-                                visible=options.notifications.bind(
+                                visible=options.notifications.bind(   # type: ignore
                                     "dnd", lambda dnd: dnd
-                                ),  # type: ignore
+                                ),
                             ),
                             Widget.Box(
                                 child=[

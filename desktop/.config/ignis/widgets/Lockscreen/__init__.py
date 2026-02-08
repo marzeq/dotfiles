@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 from typing import Any, Callable
 import gi
+from ignis.services.upower import UPowerService
 import pam
 import getpass
 import unicodedata
@@ -18,6 +19,11 @@ from widgets.Clock import clock_settings
 from widgets.FilteredPicture import FilteredPicture
 from widgets.Settings.style_settings import style_settings
 from widgets.Settings import hyprland_settings
+from widgets.Tray import tray_settings
+
+
+upower = UPowerService.get_default()
+
 
 lock_windows = []
 
@@ -228,6 +234,10 @@ class LockScreen(Widget.Window):
 
         content.style = "margin-bottom: 100px;"
 
+        self.battery_status = Widget.Box(
+            css_classes=["battery-status"],
+        ) 
+
         self.set_child(
             Widget.Overlay(
                 child=Widget.EventBox(
@@ -236,7 +246,16 @@ class LockScreen(Widget.Window):
                     on_right_click=lambda *_: self.show_entry(),
                     on_middle_click=lambda *_: self.show_entry(),
                 ),
-                overlays=[content],
+                overlays=[
+                    Widget.Box(
+                        child=[self.battery_status],
+                        vexpand=True,
+                        hexpand=True,
+                        valign="start",
+                        halign="end",
+                    ),
+                    content
+                ],
             )
         )
 
@@ -245,6 +264,9 @@ class LockScreen(Widget.Window):
         key_controller.connect(
             "key-pressed", lambda *x: self._handle_keypress(x[1] == 65307, x[1])
         )
+
+        upower.connect("notify::batteries", lambda *_: self.update_battery_status())
+        self.update_battery_status()
 
     def show_entry(self):
         if not self.entry_revealer.get_reveal_child():
@@ -291,6 +313,39 @@ class LockScreen(Widget.Window):
 
         self._lock_instance.unlock()
         destroy_windows()
+
+    def update_battery_status(self):
+        if len(upower.batteries) == 0:
+            self.battery_status.visible = False
+            return
+
+        batt = upower.display_device
+
+        self.battery_status.visible = True
+        self.battery_status.set_child([
+            Widget.Icon(
+                image=batt.bind("icon_name"),
+                css_classes=batt.bind(
+                    "charging",
+                    lambda *_: ["battery-charging"] if batt.charging else [],
+                ),
+            ),
+            Widget.Label(
+                label=tray_settings.bind_properties(
+                    lambda *_: batt.bind(
+                        "percent",
+                        lambda percent: f"{int(percent)}%" if tray_settings.show_batt_percent else "",
+                    )
+                ),
+                css_classes=tray_settings.bind_properties(
+                    lambda *_: (
+                        ["batt-percent"]
+                        if tray_settings.show_batt_percent
+                        else []
+                    )
+                ),
+            )
+        ])
 
 
 class LockProxy(Widget.Window):
