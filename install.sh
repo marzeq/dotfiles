@@ -201,7 +201,7 @@ install_desktop() {
   run_or_echo "sudo systemctl enable gdm"
   run_or_echo "systemctl --user enable gcr-ssh-agent.socket"
   run_or_echo "mkdir -p ~/.local/share/ignis"
-  run_or_echo "touch ~/.local/share/ignis/hyprland.conf ~/.config/hypr/monitors.conf ~/.config/hypr/workspaces.conf ~/.config/hypr/hyprland-custom.conf"
+  run_or_echo "touch ~/.local/share/ignis/hyprland.conf ~/.config/hypr/monitors.conf ~/.config/hypr/workspaces.conf ~/.config/hypr/hyprland-custom.conf ~/.config/hypr/programs-custom.conf"
   if ! $DRY_RUN; then
     echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
     echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
