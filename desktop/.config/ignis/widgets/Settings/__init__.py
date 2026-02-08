@@ -632,6 +632,15 @@ Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindl
                         ),
                     ],
                 ),
+                Widget.Box(
+                    child=[
+                        Widget.Button(
+                            child=Widget.Label(label="Reload shell"),
+                            on_click=lambda _: util.shell("goignis reload"),
+                            hexpand=True,
+                        ),
+                    ],
+                ),
             ],
             css_classes=["settings"],
         )

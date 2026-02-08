@@ -14,6 +14,7 @@ return {
       "clangd",
       "ts_ls",
       "ols",
+      "kotlin_lsp",
     },
     ---@param opts LspOpts
     config = function(_, opts)
