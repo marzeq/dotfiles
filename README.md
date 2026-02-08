@@ -10,11 +10,11 @@ I deem necessary without the bloat and unresponsiveness.
 
 ## Installation
 
-Instructions [here](./INSTALL.md)
+Instructions [here](./INSTALL.md).
 
 ## Notes/documentation/keybindings
 
-[Here](./NOTES.md)
+[Here](./NOTES.md).
 
 ## Gallery
 
