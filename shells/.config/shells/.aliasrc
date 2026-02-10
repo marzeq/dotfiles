@@ -4,6 +4,7 @@ function hascmd() {
   command -v $1 &> /dev/null
   return $?
 }
+
 if hascmd lsd; then
   alias ls="lsd --group-dirs=first"
 else
@@ -75,27 +76,40 @@ if hascmd git; then
   alias ga="git add"
   alias gc="git commit -m"
   alias gca="git commit -am"
+  alias gcam="git commit --amend"
+
+  alias gst="git stash"
+  alias gstp="git stash pop"
+  alias gsta="git stash apply"
+  alias gstd="git stash drop"
 
   alias gsb="git switch"
   alias gcb="git switch -c"
 
   alias gp="git push"
+  alias gpf="git push --force-with-lease"
   alias gpl="git pull"
   alias gf="git fetch"
 
   function gv() {
     local origin_url=$(git config --get remote.origin.url)
 
-    if [[ "$origin_url" == git@* ]]; then
-      local https_url=$(echo "$origin_url" | sed -e 's/:/\//' -e 's/git@/https:\/\//')
-
-      echo "Opening $https_url"
-      open "$https_url"
-    else
-      echo "Opening $origin_url"
-      open "$origin_url"
+    if [ -z "$origin_url" ]; then
+      echo "No remote origin URL found."
+      return 1
     fi
+
+    if [[ "$origin_url" == git@* ]]; then
+      origin_url=$(echo "$origin_url" | sed -e 's/:/\//' -e 's/git@/https:\/\//')
+    fi
+
+    origin_url=${origin_url%.git}
+    
+    echo "Opening $origin_url"
+    open "$origin_url"
   }
+
+  alias gitundo="git reset --soft HEAD~1"
 fi
 
 if hascmd fastfetch && ! hascmd neofetch; then
