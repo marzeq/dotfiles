@@ -37,7 +37,6 @@ export GPG_TTY="$(tty)"
 
 dim="%{$(tput dim)%}"
 bold="%{$(tput bold)%}"
-
 reset="%{$(tput sgr0)%}"
 
 red="%{$(tput setaf 1)%}"
@@ -48,82 +47,64 @@ magenta="%{$(tput setaf 5)%}"
 cyan="%{$(tput setaf 6)%}"
 white="%{$(tput setaf 7)%}"
 
-function is_in_dot_git() {
-  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    result=$(git rev-parse --is-inside-work-tree)
-    if [ "$result" = "false" ]; then
-      return 0
-    fi
+autoload -Uz vcs_info
+zstyle ':vcs_info:git:*' formats '%b'
+zstyle ':vcs_info:*' enable git
 
-    return 1
-  fi
-
-  return 1
-}
-
-function git_branch() {
-  if is_in_dot_git; then
-    return
-  fi
-
-  branch=$(git symbolic-ref HEAD 2> /dev/null | awk 'BEGIN{FS="/"} {print $NF}')
-  if [[ $branch != "" ]]; then
-    echo $branch
-  fi
+function git_status() {
+  GIT_OPTIONAL_LOCKS=0 \
+  git status --porcelain=v1 -b --ignore-submodules=dirty 2>/dev/null | awk '
+    NR==1 {
+      sub(/^## /,"")
+      sub(/\.\.\..*/,"")
+      branch=$0
+      next
+    }
+    substr($0,1,2) == "??" { untracked++; next }
+    substr($0,1,1) != " " { staged++ }
+    substr($0,2,1) != " " { unstaged++ }
+    END {
+      if (branch != "")
+        printf "%s %d %d %d", branch, staged+0, unstaged+0, untracked+0
+    }
+  '
 }
 
 setopt prompt_subst
 setopt transient_rprompt
-prompt() {
+
+function prompt() {
   local LAST_EXIT_CODE=$?
-  local EXIT_CODE_COLOR
   local USER_HOST="${USER}@${HOST%%.*}"
+
   RPROMPT="${dim}${USER_HOST}${reset}"
-  if [[ $LAST_EXIT_CODE == 0 ]]; then
-    EXIT_CODE_COLOR="${green}"
-    RPROMPT="$RPROMPT"
+  [[ $LAST_EXIT_CODE -ne 0 ]] && RPROMPT="$RPROMPT ${red}${LAST_EXIT_CODE}${reset}"
+
+  local gi gb staged unstaged untracked
+  gi=$(git_status)
+
+  if [[ -n $gi ]]; then
+    read -r gb staged unstaged untracked <<< "$gi"
+    local BRANCH_FORMAT=" ${dim}${gb}${reset}"
+
+    (( unstaged > 0 ))  && RPROMPT="${yellow}${unstaged}*${reset} $RPROMPT"
+    (( staged > 0 ))    && RPROMPT="${green}${staged}+${reset} $RPROMPT"
+    (( untracked > 0 )) && RPROMPT="${red}${untracked}?${reset} $RPROMPT"
   else
-    EXIT_CODE_COLOR="${red}"
-    RPROMPT="$RPROMPT ${red}${LAST_EXIT_CODE}${reset}"
-  fi
-
-  local BRANCH_FORMAT
-  local gb=$(git_branch)
-  if [[ $gb == "" ]];
-  then
-    BRANCH_FORMAT=""
-  else
-    BRANCH_FORMAT=" ${dim}${gb}${reset}"
-    local unstaged_changes=$(git diff --name-only | wc -l)
-    local staged_changes=$(git diff --cached --name-only | wc -l)
-    local untracked_files=$(git ls-files --others --exclude-standard | wc -l)
-
-    if [[ $unstaged_changes -gt 0 ]]; then
-      RPROMPT="${yellow}${unstaged_changes}*${reset} $RPROMPT"
-    fi
-
-    if [[ $staged_changes -gt 0 ]]; then
-      RPROMPT="${green}${staged_changes}+${reset} $RPROMPT"
-    fi
-
-    if [[ $untracked_files -gt 0 ]]; then
-      RPROMPT="${red}${untracked_files}?${reset} $RPROMPT"
-    fi
+    local BRANCH_FORMAT=""
   fi
 
   local ENV_FORMAT=""
-  if [[ -v DISTROBOX_ENTER_PATH ]]; then
-    ENV_FORMAT+="(distrobox) "
-  fi
-  if [[ -v VIRTUAL_ENV ]]; then
-    ENV_FORMAT+="(venv) "
-  fi
-  if [[ -v SSH_CONNECTION ]]; then
-    ENV_FORMAT+="(ssh) "
-  fi
+  [[ -v DISTROBOX_ENTER_PATH ]] && ENV_FORMAT+="(distrobox) "
+  [[ -v VIRTUAL_ENV ]] && ENV_FORMAT+="(venv) "
+  [[ -v SSH_CONNECTION ]] && ENV_FORMAT+="(ssh) "
+
+  local EXIT_CODE_COLOR=$green
+  [[ $LAST_EXIT_CODE -ne 0 ]] && EXIT_CODE_COLOR=$red
 
   PROMPT="${dim}${ENV_FORMAT}${reset}${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"
 }
+
 precmd_functions+=(prompt)
 
 # ------------------------------
