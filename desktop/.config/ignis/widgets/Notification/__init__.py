@@ -90,11 +90,17 @@ class NotificationWidget(Widget.EventBox):
                 Widget.Box(
                     child=(
                         [
-                            Widget.Icon(
+                            
+                            Widget.Picture(
                                 image=self.icon,
                                 css_classes=["notification-icon"],
-                                pixel_size=48,
+                                height=48,
+                                width=-1,
+                                content_fit="contain",
+                                vexpand=False,
+                                hexpand=False,
                             )
+
                         ]
                         if self.icon
                         else []

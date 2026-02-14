@@ -16,6 +16,12 @@ alias grep="grep --color=auto"
 
 alias c="clear"
 
+alias ..="cd .."
+alias ...="cd ../.."
+function -() {
+  cd -
+}
+
 if [ -f /etc/arch-release ]; then
   function remove-orphans() {
     orphans=$(pacman -Qdtq)

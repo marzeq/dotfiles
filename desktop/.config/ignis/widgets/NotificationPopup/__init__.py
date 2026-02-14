@@ -43,6 +43,7 @@ class PopupBox(Widget.Box):
         super().__init__(
             vertical=True,
             valign="start",
+            vexpand=False,
         )
 
         notifications.connect(
@@ -63,7 +64,7 @@ class PopupBox(Widget.Box):
 class NotificationPopup(Widget.Window):
     def __init__(self, monitor: int):
         super().__init__(
-            anchor=["top", "bottom"],
+            anchor=["top"],
             monitor=monitor,
             namespace=f"ignis_notification_popup_{monitor}",
             visible=False,
