@@ -56,6 +56,9 @@ function git_status() {
   git status --porcelain=v1 -b --ignore-submodules=dirty 2>/dev/null | awk '
     NR==1 {
       sub(/^## /,"")
+      if ($0 ~ /^No commits yet on /) {
+        sub(/^No commits yet on /,"")
+      }
       sub(/\.\.\..*/,"")
       branch=$0
       next

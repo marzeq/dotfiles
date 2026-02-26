@@ -46,6 +46,25 @@ def calendar_month_reset_label(month: int, year: int) -> str:
 
 class CalendarGrid(Widget.Grid):
     def __init__(self, month: int, year: int):
+        now = datetime.now()
+
+        start_dow = starting_dow_for_month(month, year)
+        month_days = get_month_days(month, year)
+
+        prev_month = month - 1 if month > 1 else 12
+        prev_year = year if month > 1 else year - 1
+        prev_month_days = get_month_days(prev_month, prev_year)
+
+        first_visible_day = prev_month_days - start_dow + 1
+
+        def day_label(day: int, extra_css: list[str]):
+            return Widget.Label(
+                label=str(day).zfill(2),
+                css_classes=["nc-calendar-day"] + extra_css,
+                halign="center",
+                valign="center",
+            )
+
         super().__init__(
             column_num=7,
             child=(
@@ -59,53 +78,33 @@ class CalendarGrid(Widget.Grid):
                     for day in ["M", "T", "W", "T", "F", "S", "S"]
                 ]
                 + [
-                    # previous month days to fill out the first week
-                    Widget.Label(
-                        label=str(get_month_days(month - 1, year) - x).zfill(2),
-                        css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
-                        halign="center",
-                        valign="center",
-                    )
-                    for x in range(starting_dow_for_month(month, year))
+                    day_label(day, ["nc-calendar-day-notcurrmo"])
+                    for day in range(first_visible_day, prev_month_days + 1)
                 ]
                 + [
-                    # current month days
-                    Widget.Label(
-                        label=str(day).zfill(2),
-                        css_classes=["nc-calendar-day", "nc-calendar-day-currmo"]
+                    day_label(
+                        day,
+                        ["nc-calendar-day-currmo"]
                         + (
                             ["nc-calendar-day-today"]
-                            if day == datetime.now().day
-                            and datetime.now().month == month
-                            and datetime.now().year == year
+                            if day == now.day
+                            and month == now.month
+                            and year == now.year
                             else []
                         )
                         + (
                             ["nc-calendar-day-workday"]
-                            if (day + starting_dow_for_month(month, year) - 1) % 7
-                            not in [5, 6]
+                            if (start_dow + day - 1) % 7 not in (5, 6)
                             else []
                         ),
-                        halign="center",
-                        valign="center",
                     )
-                    for day in range(1, get_month_days(month, year) + 1)
+                    for day in range(1, month_days + 1)
                 ]
                 + [
-                    # next month days to fill out the last week
-                    Widget.Label(
-                        label=str(day).zfill(2),
-                        css_classes=["nc-calendar-day", "nc-calendar-day-notcurrmo"],
-                        halign="center",
-                        valign="center",
-                    )
+                    day_label(day, ["nc-calendar-day-notcurrmo"])
                     for day in range(
                         1,
-                        43
-                        - (
-                            starting_dow_for_month(month, year)
-                            + get_month_days(month, year)
-                        ),
+                        max(0, 42 - (start_dow + month_days)) + 1,
                     )
                 ]
             ),

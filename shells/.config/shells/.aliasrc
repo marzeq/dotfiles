@@ -70,7 +70,27 @@ fi
 if hascmd git; then
   alias gcl="git clone"
   function ghcl() {
-    git clone git@github.com:$1.git "${@:2}"
+    local username repo
+
+    if [[ "$1" =~ ^[^/]+/[^/]+$ ]]; then
+      username=${1%%/*}
+      repo=${1##*/}
+    elif [[ "$1" =~ ^[^/]+$ ]]; then
+      username=$(ssh -T git@github.com 2>&1 | sed -n 's/.*Hi \([^!]*\)!.*/\1/p')
+
+      if [[ -z "$username" ]]; then
+        echo "Could not determine GitHub username. Ensure SSH is configured."
+        return 1
+      fi
+
+      repo="$1"
+    else
+      echo "Invalid repository format. Use 'username/repo' or 'repo'."
+      return 1
+    fi
+
+    echo "Cloning '$username/$repo'..."
+    git clone "git@github.com:$username/$repo.git" "${@:2}"
   }
 
   alias g="git"

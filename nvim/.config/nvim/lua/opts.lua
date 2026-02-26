@@ -39,8 +39,68 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "go",
   callback = function()
-    vim.bo.makeprg = "go build ."
+    vim.bo.makeprg = "go build -gcflags=all=-e $*"
     vim.bo.errorformat = "%f:%l:%c: %m"
+  end,
+})
+
+local function is_full_buffer_range(line1, line2)
+  local total = vim.api.nvim_buf_line_count(0)
+  return line1 == 1 and line2 == total
+end
+
+local function macro_backslash_and_align(opts)
+  if opts.range == 0 then
+    vim.notify("Provide an explicit range", vim.log.levels.ERROR)
+    return
+  end
+
+  if is_full_buffer_range(opts.line1, opts.line2) then
+    vim.notify("Whole-buffer (:%) not allowed", vim.log.levels.ERROR)
+    return
+  end
+
+  local start_line = opts.line1
+  local end_line   = opts.line2
+  local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
+
+  local stripped = {}
+  local max_len = 0
+
+  -- compute max width ignoring trailing "\" + whitespace
+  for i, line in ipairs(lines) do
+    local base = line:gsub("%s*\\%s*$", "")
+    stripped[i] = base
+    local len = vim.fn.strdisplaywidth(base)
+    if len > max_len then
+      max_len = len
+    end
+  end
+
+  -- add and align "\" on every line except the last
+  for i = 1, #lines do
+    local base = stripped[i]
+
+    if i ~= #lines then
+      local pad = max_len - vim.fn.strdisplaywidth(base)
+      lines[i] = base .. string.rep(" ", pad) .. " \\"
+    else
+      lines[i] = base
+    end
+  end
+
+  vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
+end
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "c", "cpp" },
+  callback = function(args)
+    vim.api.nvim_buf_create_user_command(
+      args.buf,
+      "MacroAlign",
+      macro_backslash_and_align,
+      { range = true }
+    )
   end,
 })
 
