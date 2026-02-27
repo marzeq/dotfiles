@@ -31,7 +31,7 @@ class ControlCentre(Widget.RevealerWindow):
             vertical=True,
             css_classes=["control-centre"],
             child=[
-                TopBox(self.power_menu),
+                TopBox(self.power_menu, self),
                 self.power_menu,
                 self.volume_slider,
                 self.volume_slider.popup,

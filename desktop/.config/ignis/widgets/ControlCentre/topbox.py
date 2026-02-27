@@ -14,8 +14,9 @@ upower = UPowerService.get_default()
 
 
 class TopBox(Widget.CenterBox):
-    def __init__(self, power_menu: PowerMenu):
+    def __init__(self, power_menu: PowerMenu, cc: Widget.RevealerWindow):
         self.power_menu = power_menu
+        self.cc = cc
         super().__init__(
             css_classes=["control-centre-top"],
             start_widget=Widget.Box(
@@ -33,8 +34,10 @@ class TopBox(Widget.CenterBox):
         )
 
         async def close_popup_before_screenshot():
+            self.cc.revealer.transition_duration = 0
             util.popup_manager.close_curr_popup()
-            await asyncio.sleep(util.popup_manager.popup_anim_speed / 1000)
+            self.cc.revealer.transition_duration = util.popup_manager.popup_anim_speed
+            # await asyncio.sleep(util.popup_manager.popup_anim_speed / 1000)
 
         children = [
             Widget.Button(
