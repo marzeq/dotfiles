@@ -2,13 +2,29 @@ from ignis.utils import Utils
 from ignis.widgets import Widget
 from ignis.services.audio import AudioService
 
+
 import util
+
 
 audio = AudioService.get_default()
 
 
 class OSD(Widget.RevealerWindow):
     def __init__(self):
+        scale =  Widget.Scale(
+            hexpand=True,
+            min=0,
+            max=100,
+            step=1,
+            value=audio.speaker.bind_many(  # type: ignore
+                ["volume", "is_muted"],
+                lambda volume, is_muted: 0 if is_muted else volume,
+            ),
+            css_classes=["osd-audio-slider"],
+        )
+
+        scale.connect("change-value", lambda *_: True) # prevent dragging the slider to change the valu
+
         revealer = Widget.Revealer(
             transition_type="slide_up",
             child=Widget.Box(
@@ -24,18 +40,7 @@ class OSD(Widget.RevealerWindow):
                         ),
                         css_classes=["osd-audio-icon"],
                     ),
-                    Widget.Scale(
-                        hexpand=True,
-                        min=0,
-                        max=100,
-                        step=1,
-                        on_change=lambda scale: util.adjust_volume(audio, scale.value),
-                        value=audio.speaker.bind_many(  # type: ignore
-                            ["volume", "is_muted"],
-                            lambda volume, is_muted: 0 if is_muted else volume,
-                        ),
-                        css_classes=["osd-audio-slider"],
-                    ),
+                    scale,
                 ],
             ),
             transition_duration=util.popup_manager.popup_anim_speed,

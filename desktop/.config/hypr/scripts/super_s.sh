@@ -5,6 +5,6 @@ case "$layout" in
     hyprctl dispatch layoutmsg swapwithmaster master
     ;;
   dwindle)
-    hyprctl dispatch togglesplit
+    hyprctl dispatch layoutmsg togglesplit
     ;;
 esac
