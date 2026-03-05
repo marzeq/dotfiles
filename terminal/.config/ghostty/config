@@ -33,6 +33,8 @@ custom-shader = "shaders/cursor_warp.glsl"
 # │ KEYBINDS │
 # └──────────┘
 
+config-file = "?custom"
+
 keybind = "clear"
 
 keybind = "ctrl+shift+c=copy_to_clipboard"
