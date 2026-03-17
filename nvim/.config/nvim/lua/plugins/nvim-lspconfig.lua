@@ -15,6 +15,7 @@ return {
       "ts_ls",
       "ols",
       "kotlin_lsp",
+      "astro",
     },
     ---@param opts LspOpts
     config = function(_, opts)

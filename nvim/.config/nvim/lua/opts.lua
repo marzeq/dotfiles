@@ -26,6 +26,8 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.tabstop = indent_size
     vim.opt_local.softtabstop = indent_size
     vim.opt_local.shiftwidth = indent_size
+    vim.opt_local.wrap = true
+    vim.opt_local.linebreak = true
   end,
 })
 -- make comments work in json files
@@ -33,14 +35,6 @@ vim.api.nvim_create_autocmd("FileType", {
   pattern = "json",
   callback = function()
     vim.opt_local.filetype = "jsonc"
-  end,
-})
-
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "go",
-  callback = function()
-    vim.bo.makeprg = "go build -gcflags=all=-e $*"
-    vim.bo.errorformat = "%f:%l:%c: %m"
   end,
 })
 

@@ -10,6 +10,7 @@ return {
         hyprlang = { css = true, css_fn = true, names = false },
         scss = { css = true, css_fn = true },
         html = { names = false },
+        astro = { names = false },
         javascriptreact = { names = false },
         json = { names = false },
         jsonc = { names = false },
