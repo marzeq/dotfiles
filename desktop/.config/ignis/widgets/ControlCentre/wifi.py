@@ -1,4 +1,5 @@
 import asyncio
+import weakref
 from ignis.services.network import NetworkService, WifiAccessPoint, WifiDevice
 from widgets.ControlCentre.device_list_popup import DeviceListPopup
 from widgets.ControlCentre.popup_registry import popup_registry
@@ -78,6 +79,15 @@ class WiFiWidget(ControlCentreWidget):
         )
 
         self.set_disabled(not network.wifi.enabled)
+
+        weak_self = weakref.ref(self)
+
+        def on_enabled_changed(*_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.set_disabled(not network.wifi.enabled)
+
         network.wifi.connect(
-            "notify::enabled", lambda *_: self.set_disabled(not network.wifi.enabled)
+            "notify::enabled", on_enabled_changed
         )

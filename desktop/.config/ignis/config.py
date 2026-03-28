@@ -45,3 +45,14 @@ OSD()
 LauncherProxy()
 SettingsWindow()
 LockProxy()
+
+import gc
+import asyncio
+
+async def cleanup_every(seconds: int):
+    while True:
+        gc.collect()
+        await asyncio.sleep(seconds)
+
+if getattr(app, "_ignis_cleanup_task", None) is None:
+    app._ignis_cleanup_task = asyncio.create_task(cleanup_every(60))

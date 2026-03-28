@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 from typing import Any, Callable
+import weakref
 import gi
 from ignis.services.upower import UPowerService
 import pam
@@ -57,6 +58,22 @@ async def async_auth(user: str, password: str) -> bool:
 
 class TimeDateScreen(Widget.Box):
     def __init__(self):
+        self._time_poll = Utils.Poll(
+            1000,
+            lambda *_: datetime.now().strftime(
+                clock_settings.hour_format(
+                    show_seconds=False,
+                    show_am_pm=True,
+                )
+            ),
+        )
+        self._date_poll = Utils.Poll(
+            1000,
+            lambda *_: datetime.now().strftime(
+                clock_settings.date_format(long=True, show_dow=True)
+            ),
+        )
+
         super().__init__(
             vertical=True,
             hexpand=False,
@@ -64,28 +81,11 @@ class TimeDateScreen(Widget.Box):
             valign="center",
             child=[
                 Widget.Label(
-                    label=clock_settings.bind_properties(
-                        lambda *_: Utils.Poll(
-                            1000,
-                            lambda _: datetime.now().strftime(
-                                clock_settings.hour_format(
-                                    show_seconds=False,
-                                    show_am_pm=True,
-                                )
-                            ),
-                        ).bind("output")
-                    ),
+                    label=self._time_poll.bind("output"),
                     css_classes=["lockscreen-time"],
                 ),
                 Widget.Label(
-                    label=clock_settings.bind_properties(
-                        lambda *_: Utils.Poll(
-                            1000,
-                            lambda _: datetime.now().strftime(
-                                clock_settings.date_format(long=True, show_dow=True)
-                            ),
-                        ).bind("output")
-                    ),
+                    label=self._date_poll.bind("output"),
                     css_classes=["lockscreen-date"],
                 ),
             ],
@@ -265,7 +265,15 @@ class LockScreen(Widget.Window):
             "key-pressed", lambda *x: self._handle_keypress(x[1] == 65307, x[1])
         )
 
-        upower.connect("notify::batteries", lambda *_: self.update_battery_status())
+        weak_self = weakref.ref(self)
+
+        def on_batteries_changed(*_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.update_battery_status()
+
+        upower.connect("notify::batteries", on_batteries_changed)
         self.update_battery_status()
 
     def show_entry(self):

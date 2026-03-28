@@ -1,6 +1,7 @@
 from ignis.services.hyprland import HyprlandService
 from ignis.widgets import Widget
 from ignis.utils.monitor import get_monitor
+import weakref
 
 import util
 from widgets.Clock import Clock
@@ -95,5 +96,16 @@ class Bar(Widget.Window):
                 style = f"min-height: {mh}px;"
             cb.style = style
 
+        weak_cb = weakref.ref(cb)
 
-        hypr_monitor.connect("notify::scale", lambda *_: set_cb_style())
+        def on_scale_changed(*_):
+            cb_instance = weak_cb()
+            if cb_instance is None:
+                return
+            style = ""
+            if m2_notch:
+                mh = 56 / hypr_monitor.scale
+                style = f"min-height: {mh}px;"
+            cb_instance.style = style
+
+        hypr_monitor.connect("notify::scale", on_scale_changed)

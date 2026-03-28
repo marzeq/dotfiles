@@ -4,6 +4,7 @@ from ignis.services.system_tray import SystemTrayService
 from ignis.services.upower import UPowerService
 from ignis.services.backlight import BacklightService
 from gi.repository import Gtk
+import weakref
 import util
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.brightness_slider import BrightnessSlider
@@ -27,6 +28,17 @@ class ControlCentre(Widget.RevealerWindow):
         self.power_menu = PowerMenu()
         self.volume_slider = VolumeSlider()
 
+        def setup_tray_box(box_widget: Widget.Box):
+            weak_box = weakref.ref(box_widget)
+
+            def on_tray_item_added(_, item):
+                instance = weak_box()
+                if instance is None:
+                    return
+                instance.append(SystemTrayApp(item))
+
+            system_tray.connect("added", on_tray_item_added)
+
         box = Widget.Box(
             vertical=True,
             css_classes=["control-centre"],
@@ -46,9 +58,7 @@ class ControlCentre(Widget.RevealerWindow):
                 Widget.Box(
                     vertical=True,
                     css_classes=["control-centre-tray-items"],
-                    setup=lambda self_: system_tray.connect(
-                        "added", lambda _, item: self_.append(SystemTrayApp(item))
-                    ),
+                    setup=setup_tray_box,
                 ),
             ],
         )

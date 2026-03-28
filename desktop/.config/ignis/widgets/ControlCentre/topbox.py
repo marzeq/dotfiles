@@ -1,5 +1,5 @@
-import asyncio
 import math
+import weakref
 
 from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
@@ -72,6 +72,7 @@ class TopBox(Widget.CenterBox):
                 ),
                 css_classes=["cc-top-button"],
             )
+
             def update_battery_tooltip() -> int:
                 if batt.time_remaining <= 0:
                     bat_percent.set_tooltip_text("Calculating...")
@@ -83,17 +84,16 @@ class TopBox(Widget.CenterBox):
 
                 return 15
 
-            async def update_battery_tooltip_loop():
-                while True:
-                    await asyncio.sleep(update_battery_tooltip())
-            task = asyncio.create_task(update_battery_tooltip_loop())
+            weak_button = weakref.ref(bat_percent)
 
-            def re_run_loop():
-                nonlocal task
-                task.cancel()
-                task = asyncio.create_task(update_battery_tooltip_loop())
+            def on_battery_update(*_):
+                if weak_button() is None:
+                    return
+                update_battery_tooltip()
 
-            batt.connect("notify::charging", lambda *_: re_run_loop())
+            batt.connect("notify::charging", on_battery_update)
+            batt.connect("notify::time-remaining", on_battery_update)
+            update_battery_tooltip()
 
             children += [bat_percent]
         return children

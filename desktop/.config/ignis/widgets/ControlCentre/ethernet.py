@@ -1,4 +1,5 @@
 import asyncio
+import weakref
 from ignis.services.network import Ethernet, EthernetDevice, NetworkService
 import util
 from widgets.ControlCentre.popup_registry import popup_registry
@@ -62,7 +63,15 @@ class EthernetWidget(ControlCentreWidget):
         )
 
         self.set_disabled(network.ethernet.is_connected)
+
+        weak_self = weakref.ref(self)
+
+        def on_connected_changed(*_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.set_disabled(not network.ethernet.is_connected)
+
         network.ethernet.connect(
-            "notify::is-connected",
-            lambda *_: self.set_disabled(not network.ethernet.is_connected),
+            "notify::is-connected", on_connected_changed,
         )

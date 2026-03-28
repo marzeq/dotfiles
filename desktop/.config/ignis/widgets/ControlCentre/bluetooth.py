@@ -1,4 +1,5 @@
 import asyncio
+import weakref
 from ignis.services.bluetooth import BluetoothDevice, BluetoothService
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.device_list_popup import DeviceListPopup
@@ -55,15 +56,19 @@ class BluetoothWidget(ControlCentreWidget):
             or self.popup.toggle(),
         )
 
+        self.set_disabled(bluetooth.state == "absent" or not bluetooth.powered)
+
+        weak_self = weakref.ref(self)
+
+        def on_state_changed(*_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.set_disabled(bluetooth.state == "absent" or not bluetooth.powered)
+
         bluetooth.connect(
-            "notify::state",
-            lambda *_: self.set_disabled(
-                bluetooth.state == "absent" or not bluetooth.powered
-            ),
+            "notify::state", on_state_changed,
         )
         bluetooth.connect(
-            "notify::powered",
-            lambda *_: self.set_disabled(
-                bluetooth.state == "absent" or not bluetooth.powered
-            ),
+            "notify::powered", on_state_changed,
         )

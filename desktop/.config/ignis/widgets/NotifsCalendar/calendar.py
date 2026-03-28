@@ -1,6 +1,7 @@
 from ignis.utils import Utils
 from ignis.widgets import Widget
 from datetime import datetime
+import weakref
 
 
 def get_month_days(month: int, year: int) -> int:
@@ -171,9 +172,15 @@ class Calendar(Widget.Box):
             ],
         )
 
-        Utils.Poll(
-            1_000, lambda *_: self.update_calendar()
-        )  # to update the calendar if the month changes
+        weak_self = weakref.ref(self)
+
+        def on_tick(*_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.update_calendar()
+
+        Utils.Poll(1_000, on_tick)  # update calendar date/day over time
 
     def set_month(self, month: int, year: int):
         self.calendar_month_reset_button.child.label = calendar_month_reset_label(

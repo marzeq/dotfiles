@@ -1,4 +1,5 @@
 from typing import Callable
+import weakref
 from ignis.services.notifications import NotificationService
 from ignis.services.mpris import MprisPlayer, MprisService
 from ignis.utils import Utils
@@ -91,12 +92,18 @@ class Notifications(Widget.Box):
         )
         self._update_body()
 
-        notifications.connect("notify::notifications", lambda *_: self._update_body())
-        mpris.connect("notify::players", lambda *_: self._update_body())
+        weak_self = weakref.ref(self)
 
-        Utils.Poll(
-            60_000, lambda *_: self._update_body()
-        )  # to update the "X minutes ago" etc. labels
+        def on_changed(*_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance._update_body()
+
+        notifications.connect("notify::notifications", on_changed)
+        mpris.connect("notify::players", on_changed)
+
+        Utils.Poll(60_000, on_changed)  # refresh relative timestamps periodically
 
     def _update_body(self):
         notifs = notifications.notifications

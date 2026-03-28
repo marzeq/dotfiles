@@ -1,13 +1,13 @@
 from widgets.ControlCentre.widget import ControlCentrePopup
+import weakref
 
 
 class PopupRegistry:
     def __init__(self):
-        self.popups: list[ControlCentrePopup] = []
+        self.popups: weakref.WeakSet[ControlCentrePopup] = weakref.WeakSet()
 
     def register(self, popup: ControlCentrePopup):
-        if popup not in self.popups:
-            self.popups.append(popup)
+        self.popups.add(popup)
 
     def close_all(self):
         for p in self.popups:

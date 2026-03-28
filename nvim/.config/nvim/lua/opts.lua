@@ -38,6 +38,16 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "rust",
+  callback = function()
+    vim.opt_local.expandtab = true
+    vim.opt_local.shiftwidth = indent_size
+    vim.opt_local.tabstop = indent_size
+    vim.opt_local.softtabstop = indent_size
+  end,
+})
+
 local function is_full_buffer_range(line1, line2)
   local total = vim.api.nvim_buf_line_count(0)
   return line1 == 1 and line2 == total

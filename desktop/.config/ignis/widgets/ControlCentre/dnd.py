@@ -1,4 +1,5 @@
 from ignis.options import options
+import weakref
 from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
 
 
@@ -18,9 +19,15 @@ class DNDWidget(ControlCentreWidget):
         )
 
         self.set_disabled(not options.notifications.dnd)  # type: ignore
+
+        weak_self = weakref.ref(self)
+
+        def on_options_changed(_, name: str):
+            instance = weak_self()
+            if instance is None or name != "dnd":
+                return
+            instance.set_disabled(not options.notifications.dnd)
+
         options.notifications.connect(
-            "changed",
-            lambda _, name: None
-            if name != "dnd"
-            else self.set_disabled(not options.notifications.dnd),
+            "changed", on_options_changed,
         )  # type: ignore

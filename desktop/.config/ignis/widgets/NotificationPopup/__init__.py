@@ -2,6 +2,7 @@ from ignis.utils import Utils
 from ignis.services.notifications import Notification, NotificationService
 from ignis.widgets import Widget
 from widgets.Notification import NotificationWidget
+import weakref
 
 notifications = NotificationService.get_default()
 
@@ -19,7 +20,15 @@ class Popup(Widget.Box):
 
         super().__init__(child=[self.outer], halign="center")
 
-        self.notification.connect("dismissed", lambda _: self.destroy())
+        weak_self = weakref.ref(self)
+
+        def on_dismissed(_):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.destroy()
+
+        self.notification.connect("dismissed", on_dismissed)
 
     def destroy(self):
         def box_destroy():
@@ -46,9 +55,17 @@ class PopupBox(Widget.Box):
             vexpand=False,
         )
 
+        weak_self = weakref.ref(self)
+
+        def on_new_popup(_, notification: Notification):
+            instance = weak_self()
+            if instance is None:
+                return
+            instance.on_notified(notification)
+
         notifications.connect(
             "new_popup",
-            lambda _, notification: self.on_notified(notification),
+            on_new_popup,
         )
 
     def on_notified(self, notification: Notification) -> None:
