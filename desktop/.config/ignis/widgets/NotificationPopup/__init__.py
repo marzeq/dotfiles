@@ -7,6 +7,8 @@ from ignis.widgets import Widget
 from widgets.Notification import NotificationWidget
 import weakref
 
+import util
+
 notifications = NotificationService.get_default()
 mpris = MprisService.get_default()
 hyprland = HyprlandService.get_default()
@@ -165,7 +167,7 @@ class PopupBox(Widget.Box):
         self._show_popup(notification)
 
     def _show_popup(self, notification: Notification) -> None:
-        if self._has_active_fullscreen_window():
+        if not self._is_focused_monitor() or self._has_active_fullscreen_window():
             return
 
         self.window.visible = True
@@ -193,6 +195,12 @@ class PopupBox(Widget.Box):
 
         workspace = hyprland.get_workspace_by_id(monitor.active_workspace_id)
         return bool(workspace and workspace.has_fullscreen)
+
+    def _is_focused_monitor(self) -> bool:
+        if not hyprland.is_available:
+            return True
+
+        return util.active_monitor() == self.monitor_id
 
     def _player_key(self, player: MprisPlayer) -> str:
         bus_name = getattr(player, "bus_name", None)
