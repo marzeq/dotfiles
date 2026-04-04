@@ -54,5 +54,8 @@ async def cleanup_every(seconds: int):
         gc.collect()
         await asyncio.sleep(seconds)
 
-if getattr(app, "_ignis_cleanup_task", None) is None:
-    app._ignis_cleanup_task = asyncio.create_task(cleanup_every(60))
+def cleanup():
+    util.sync_shell("gsettings reset org.gnome.desktop.wm.preferences button-layout")
+
+app.connect("shutdown", lambda *_: cleanup())
+

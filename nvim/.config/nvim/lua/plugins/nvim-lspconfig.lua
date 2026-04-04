@@ -17,6 +17,7 @@ return {
       "kotlin_lsp",
       "astro",
       "rust_analyzer",
+      "csharp_ls",
     },
     ---@param opts LspOpts
     config = function(_, opts)

@@ -22,7 +22,7 @@ class SpeakerPopup(DeviceListPopup[Stream]):
             device=audio,
             item_key="speakers",
             icon_name_fn=lambda sp: sp.bind("icon_name"),
-            label_fn=lambda sp: sp.bind("description", lambda d: d * 2),
+            label_fn=lambda sp: sp.bind("description"),
             connect_fn=speaker_select,
             disconnect_fn=speaker_deselect,
             header_icon="audio-headphones-symbolic",

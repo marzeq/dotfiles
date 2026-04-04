@@ -133,6 +133,23 @@ def shell(
     return _body()
 
 
+def sync_shell(cmd: str) -> str | None:
+    """
+    Synchronously executes a shell command and returns its output if successful, or None if it fails.
+    """
+    try:
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
+        return result.stdout.decode().strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
 def has_command(cmd: str) -> bool:
     """
     Returns True if the specified command exists in the system, False otherwise.
