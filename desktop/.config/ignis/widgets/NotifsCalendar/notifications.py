@@ -28,6 +28,10 @@ class PlayerControlButton(Widget.Button):
 
 class PlayerWidget(Widget.CenterBox):
     def __init__(self, player: MprisPlayer):
+        if not player.artist and not player.title:
+            super().__init__()
+            return
+
         super().__init__(
             css_classes=["nc-player"],
             start_widget=Widget.Box(
