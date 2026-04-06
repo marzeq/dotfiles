@@ -1,17 +1,19 @@
-from typing import Callable
+from typing import Any, Callable
 import weakref
 from ignis.services.notifications import NotificationService
 from ignis.services.mpris import MprisPlayer, MprisService
 from ignis.utils import Utils
 from ignis.widgets import Widget
 from widgets.Notification import NotificationWidget
+from ignis.gobject import Binding
+import asyncio
 
 mpris = MprisService.get_default()
 notifications = NotificationService.get_default()
 
 
 class PlayerControlButton(Widget.Button):
-    def __init__(self, icon: str, on_click: Callable[[], None], enabled: bool = True):
+    def __init__(self, icon: str | Binding, on_click: Callable[[], Any], enabled: bool | Binding = True):
         super().__init__(
             child=Widget.Icon(
                 image=icon,
@@ -67,7 +69,7 @@ class PlayerWidget(Widget.CenterBox):
                 child=[
                     PlayerControlButton(
                         icon="media-skip-backward-symbolic",
-                        on_click=lambda: player.previous(),
+                        on_click=lambda: asyncio.create_task(player.previous_async()),
                         enabled=player.bind("can_go_previous"),
                     ),
                     PlayerControlButton(
@@ -77,11 +79,11 @@ class PlayerWidget(Widget.CenterBox):
                             if s == "Playing"
                             else "media-playback-start-symbolic",
                         ),
-                        on_click=lambda: player.play_pause(),
+                        on_click=lambda: asyncio.create_task(player.play_pause_async()),
                     ),
                     PlayerControlButton(
                         icon="media-skip-forward-symbolic",
-                        on_click=lambda: player.next(),
+                        on_click=lambda: asyncio.create_task(player.next_async()),
                         enabled=player.bind("can_go_next"),
                     ),
                 ],
