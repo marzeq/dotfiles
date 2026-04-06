@@ -18,6 +18,7 @@ return {
       "astro",
       "rust_analyzer",
       "csharp_ls",
+      "zls",
     },
     ---@param opts LspOpts
     config = function(_, opts)
