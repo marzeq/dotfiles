@@ -31,6 +31,7 @@ def time_ago(timestamp: float) -> str:
 class NotificationWidget(Widget.EventBox):
     def __init__(self, notification: Notification, show_time: bool):
         self.close_hovered = False
+        self.picture: Widget.Picture | None = None
 
         self.icon = notification.icon
         if not self.icon:
@@ -40,6 +41,17 @@ class NotificationWidget(Widget.EventBox):
                 searched = applications.search(applications.apps, notification.app_name)
                 if searched:
                     self.icon = searched[0].icon if searched else None
+
+        if self.icon:
+            self.picture = Widget.Picture(
+                image=self.icon,
+                css_classes=["notification-icon"],
+                height=48,
+                width=-1,
+                content_fit="contain",
+                vexpand=False,
+                hexpand=False,
+            )
 
         super().__init__(
             vertical=True,
@@ -89,21 +101,7 @@ class NotificationWidget(Widget.EventBox):
                 ),
                 Widget.Box(
                     child=(
-                        [
-                            
-                            Widget.Picture(
-                                image=self.icon,
-                                css_classes=["notification-icon"],
-                                height=48,
-                                width=-1,
-                                content_fit="contain",
-                                vexpand=False,
-                                hexpand=False,
-                            )
-
-                        ]
-                        if self.icon
-                        else []
+                        [self.picture] if self.picture is not None else []
                     )
                     + [
                         Widget.Box(
@@ -144,3 +142,9 @@ class NotificationWidget(Widget.EventBox):
 
     def set_close_hovered(self, value):
         self.close_hovered = value
+
+    def release_media(self) -> None:
+        if self.picture is not None:
+            self.picture.image = ""  # type: ignore
+            self.picture = None
+        self.icon = None

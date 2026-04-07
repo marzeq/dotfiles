@@ -101,11 +101,13 @@ class Notifications(Widget.Box):
             self._update_body()
 
         notifications.connect("notify::notifications", on_changed)
+        notifications.connect("notify::popups", on_changed)
         mpris.connect("notify::players", on_changed)
 
         Utils.Poll(60_000, on_changed)  # refresh relative timestamps periodically
 
     def _update_body(self):
+        self._release_media(self)
         notifs = notifications.notifications
 
         self.set_child(
@@ -158,3 +160,23 @@ class Notifications(Widget.Box):
                 )
             ]
         )
+
+    def _release_media(self, widget: Any) -> None:
+        release = getattr(widget, "release_media", None)
+        if callable(release):
+            release()
+
+        get_child = getattr(widget, "get_child", None)
+        if not callable(get_child):
+            return
+
+        children = get_child()
+        if not children:
+            return
+
+        if isinstance(children, list):
+            for child in children:
+                self._release_media(child)
+            return
+
+        self._release_media(children)

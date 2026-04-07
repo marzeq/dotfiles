@@ -67,20 +67,29 @@ class TrackNotification:
         self.time = 0.0
         self.actions: list[Any] = []
         self._dismissed = False
-        self._dismissed_callbacks: list[Callable[[Any], None]] = []
+        self._dismissed_callbacks: dict[int, Callable[[Any], None]] = {}
+        self._next_callback_id = 1
 
         register_track_popup(self)
 
-    def connect(self, signal_name: str, callback: Callable[[Any], None]) -> None:
+    def connect(self, signal_name: str, callback: Callable[[Any], None]) -> int | None:
         if signal_name == "dismissed":
-            self._dismissed_callbacks.append(callback)
+            callback_id = self._next_callback_id
+            self._next_callback_id += 1
+            self._dismissed_callbacks[callback_id] = callback
+            return callback_id
+        return None
+
+    def disconnect(self, callback_id: int) -> None:
+        self._dismissed_callbacks.pop(callback_id, None)
 
     def close(self, sync_group: bool = True) -> None:
         if self._dismissed:
             return
         self._dismissed = True
-        for callback in self._dismissed_callbacks:
+        for callback in list(self._dismissed_callbacks.values()):
             callback(self)
+        self._dismissed_callbacks.clear()
         if sync_group:
             dismiss_track_group(self.sync_id, source=self)
 
@@ -92,14 +101,15 @@ class Popup(Widget.Box):
         notification: Notification,
         on_destroyed: Callable[[], None] | None = None,
     ):
+        self._destroyed = False
         self.window = window
         self.notification = notification
         self.on_destroyed = on_destroyed
 
-        widget = NotificationWidget(notification, show_time=False)
-        widget.style = "min-width: 35rem;"  # type: ignore
+        self.widget = NotificationWidget(notification, show_time=False)
+        self.widget.style = "min-width: 35rem;"  # type: ignore
 
-        self.inner = Widget.Revealer(transition_type="slide_left", child=widget)
+        self.inner = Widget.Revealer(transition_type="slide_left", child=self.widget)
         self.outer = Widget.Revealer(transition_type="slide_down", child=self.inner)
 
         super().__init__(child=[self.outer], halign="center")
@@ -107,13 +117,35 @@ class Popup(Widget.Box):
         def on_dismissed(_):
             self.destroy()
 
-        self.notification.connect("dismissed", on_dismissed)
+        self._dismissed_handler_id = self.notification.connect("dismissed", on_dismissed)
+
+    def _disconnect_dismissed_handler(self) -> None:
+        handler_id = self._dismissed_handler_id
+        if handler_id is None:
+            return
+
+        disconnect = getattr(self.notification, "disconnect", None)
+        if callable(disconnect):
+            try:
+                disconnect(handler_id)
+            except Exception:
+                pass
+
+        self._dismissed_handler_id = None
 
     def destroy(self):
+        if self._destroyed:
+            return
+        self._destroyed = True
+        self._disconnect_dismissed_handler()
+        self.widget.release_media()
+
         def box_destroy():
-            self.outer.unparent()
-            if self.on_destroyed:
-                self.on_destroyed()
+            callback = self.on_destroyed
+            self.on_destroyed = None
+            self.unparent()
+            if callback:
+                callback()
 
         def outer_close():
             self.outer.reveal_child = False
