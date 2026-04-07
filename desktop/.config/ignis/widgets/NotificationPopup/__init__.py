@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Callable, cast
 from ignis.utils import Utils
 from ignis.services.notifications import Notification, NotificationService
@@ -182,7 +183,22 @@ class PopupBox(Widget.Box):
         mpris.connect("notify::players", on_mpris_players_changed)
 
         self._sync_track_state()
-        Utils.Poll(1000, self._check_track_changes)
+        self._track_poll_task: asyncio.Task[None] = asyncio.create_task(
+            self._track_changes_loop()
+        )
+
+    async def _track_changes_loop(self):
+        try:
+            while True:
+                self._check_track_changes()
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            return
+
+    def destroy(self):
+        if self._track_poll_task and not self._track_poll_task.done():
+            self._track_poll_task.cancel()
+        super().destroy()
 
     def on_notified(self, notification: Notification) -> None:
         self._show_popup(notification)

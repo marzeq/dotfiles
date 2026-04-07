@@ -1,7 +1,6 @@
 from typing import Any, Callable
 from ignis.services.notifications import NotificationService
 from ignis.services.mpris import MprisPlayer, MprisService
-from ignis.utils import Utils
 from ignis.widgets import Widget
 from widgets.Notification import NotificationWidget
 from ignis.gobject import Binding
@@ -12,7 +11,12 @@ notifications = NotificationService.get_default()
 
 
 class PlayerControlButton(Widget.Button):
-    def __init__(self, icon: str | Binding, on_click: Callable[[], Any], enabled: bool | Binding = True):
+    def __init__(
+        self,
+        icon: str | Binding,
+        on_click: Callable[[], Any],
+        enabled: bool | Binding = True,
+    ):
         super().__init__(
             child=Widget.Icon(
                 image=icon,
@@ -92,23 +96,62 @@ class PlayerWidget(Widget.CenterBox):
 
 class Notifications(Widget.Box):
     def __init__(self):
+        self._calendar_visible = False
+        self._notif_widgets: list[NotificationWidget] = []
+
         super().__init__(
             css_classes=["nc-notifications"],
         )
-        self._update_body()
+        self.set_child([])
 
         def on_changed(*_):
-            self._update_body()
+            if self._calendar_visible:
+                self._update_body()
 
         notifications.connect("notify::notifications", on_changed)
         notifications.connect("notify::popups", on_changed)
         mpris.connect("notify::players", on_changed)
 
-        Utils.Poll(60_000, on_changed)  # refresh relative timestamps periodically
+        self._refresh_task: asyncio.Task[None] = asyncio.create_task(
+            self._refresh_loop()
+        )
+
+    async def _refresh_loop(self):
+        try:
+            while True:
+                if self._calendar_visible:
+                    self._update_body()
+                await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            return
+
+    def set_calendar_visible(self, visible: bool) -> None:
+        if self._calendar_visible == visible:
+            return
+
+        self._calendar_visible = visible
+        if visible:
+            self._update_body()
+            return
+
+        self._release_media()
+        self.set_child([])
+
+    def destroy(self):
+        if self._refresh_task and not self._refresh_task.done():
+            self._refresh_task.cancel()
+        self._release_media()
+        self.set_child([])
+
+        parent_destroy = getattr(super(), "destroy", None)
+        if callable(parent_destroy):
+            parent_destroy()
 
     def _update_body(self):
-        self._release_media(self)
+        self._release_media()
         notifs = notifications.notifications
+        notif_widgets = [NotificationWidget(n, show_time=True) for n in notifs]
+        self._notif_widgets = notif_widgets
 
         self.set_child(
             [
@@ -148,10 +191,7 @@ class Notifications(Widget.Box):
                             child=Widget.Box(
                                 vertical=True,
                                 child=[PlayerWidget(p) for p in mpris.players]
-                                + [
-                                    NotificationWidget(n, show_time=True)
-                                    for n in notifs
-                                ],
+                                + notif_widgets,
                             ),
                             css_classes=["nc-notifications-scroll"],
                         )
@@ -161,22 +201,7 @@ class Notifications(Widget.Box):
             ]
         )
 
-    def _release_media(self, widget: Any) -> None:
-        release = getattr(widget, "release_media", None)
-        if callable(release):
-            release()
-
-        get_child = getattr(widget, "get_child", None)
-        if not callable(get_child):
-            return
-
-        children = get_child()
-        if not children:
-            return
-
-        if isinstance(children, list):
-            for child in children:
-                self._release_media(child)
-            return
-
-        self._release_media(children)
+    def _release_media(self) -> None:
+        for widget in self._notif_widgets:
+            widget.release_media()
+        self._notif_widgets = []

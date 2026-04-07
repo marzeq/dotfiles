@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from typing import Any, Callable
 from ignis.utils import Utils
@@ -65,25 +66,13 @@ class Clock(Widget.EventBox):
         on_hover: Callable[..., Any],
         on_hover_lost: Callable[..., Any],
     ):
-        self._poll = Utils.Poll(
-            1000,
-            lambda *_: datetime.now().strftime(
-                clock_settings.date_format(long=False, show_dow=clock_settings.show_dow)
-                + "  "
-                + clock_settings.hour_format(
-                    show_seconds=clock_settings.show_seconds,
-                    show_am_pm=True,
-                )
-            ),
-        )
+        self.label = Widget.Label(label="")
 
         super().__init__(
             css_classes=["clock"],
             child=[
                 Widget.Button(
-                    child=Widget.Label(
-                        label=self._poll.bind("output")
-                    ),
+                    child=self.label,
                     css_classes=["box"],
                 ),
             ],
@@ -94,3 +83,19 @@ class Clock(Widget.EventBox):
         util.popup_manager.register_popup_trigger(
             "ignis_notifs_calendar", monitor, self
         )
+
+        asyncio.create_task(self.update_time())
+    
+    async def update_time(self):
+        while True:
+            self.label.set_label(
+                datetime.now().strftime(
+                    clock_settings.date_format(long=False, show_dow=clock_settings.show_dow)
+                    + "  "
+                    + clock_settings.hour_format(
+                        show_seconds=clock_settings.show_seconds,
+                        show_am_pm=True,
+                    )
+                )
+            )
+            await asyncio.sleep(1)

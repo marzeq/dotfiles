@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import json
 from gi.repository import Gio  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.applications import ApplicationsService, Application
@@ -6,7 +7,6 @@ from ignis.widgets import Widget
 from util import JsonSettings
 from .base_mode import LauncherMode, LauncherResult
 import util
-from ignis.utils import Utils
 
 applications = ApplicationsService.get_default()
 
@@ -27,7 +27,13 @@ def refresh_apps():
     applications.notify("pinned")
 
 
-Utils.Poll(timeout=30_000, callback=lambda _: refresh_apps())
+async def refresh_apps_loop():
+    while True:
+        refresh_apps()
+        await asyncio.sleep(30)
+        
+
+asyncio.create_task(refresh_apps_loop())
 
 
 @JsonSettings("apps")

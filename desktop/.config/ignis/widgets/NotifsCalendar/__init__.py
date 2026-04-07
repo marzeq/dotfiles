@@ -9,6 +9,8 @@ app = util.get_app()
 
 class NotifsCalendar(Widget.RevealerWindow):
     def __init__(self, monitor: int):
+        self.notifications = Notifications()
+
         revealer = Widget.Revealer(
             transition_type="slide_down",
             child=Widget.Box(
@@ -19,7 +21,7 @@ class NotifsCalendar(Widget.RevealerWindow):
                         column_num=2,
                         css_classes=["notifs-calendar"],
                         child=[
-                            Notifications(),
+                            self.notifications,
                             Calendar(),
                         ],
                     )
@@ -65,3 +67,8 @@ class NotifsCalendar(Widget.RevealerWindow):
             if x[1] == 65307
             else None,
         )  # 65307 = ESC
+
+        self.connect(
+            "notify::visible",
+            lambda *_: self.notifications.set_calendar_visible(self.visible),
+        )

@@ -1,3 +1,4 @@
+import asyncio
 from ignis.utils import Utils
 from ignis.widgets import Widget
 from datetime import datetime
@@ -171,10 +172,13 @@ class Calendar(Widget.Box):
             ],
         )
 
-        def on_tick(*_):
-            self.update_calendar()
+        asyncio.create_task(self.async_update_loop())
 
-        Utils.Poll(1_000, on_tick)  # update calendar date/day over time
+    async def async_update_loop(self, *_):
+        while True:
+            self.update_calendar()
+            await asyncio.sleep(15)
+
 
     def set_month(self, month: int, year: int):
         self.calendar_month_reset_button.child.label = calendar_month_reset_label(

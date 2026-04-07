@@ -57,20 +57,16 @@ async def async_auth(user: str, password: str) -> bool:
 
 class TimeDateScreen(Widget.Box):
     def __init__(self):
-        self._time_poll = Utils.Poll(
-            1000,
-            lambda *_: datetime.now().strftime(
-                clock_settings.hour_format(
-                    show_seconds=False,
-                    show_am_pm=True,
-                )
-            ),
+        self._time_label = Widget.Label(
+            label="",
+            css_classes=["lockscreen-time"],
         )
-        self._date_poll = Utils.Poll(
-            1000,
-            lambda *_: datetime.now().strftime(
-                clock_settings.date_format(long=True, show_dow=True)
-            ),
+        self._date_label = Widget.Label(
+            label="",
+            css_classes=["lockscreen-date"],
+        )
+        self._time_date_task: asyncio.Task[None] = asyncio.create_task(
+            self._update_time_date_loop()
         )
 
         super().__init__(
@@ -79,16 +75,34 @@ class TimeDateScreen(Widget.Box):
             halign="center",
             valign="center",
             child=[
-                Widget.Label(
-                    label=self._time_poll.bind("output"),
-                    css_classes=["lockscreen-time"],
-                ),
-                Widget.Label(
-                    label=self._date_poll.bind("output"),
-                    css_classes=["lockscreen-date"],
-                ),
+                self._time_label,
+                self._date_label,
             ],
         )
+
+    async def _update_time_date_loop(self):
+        try:
+            while True:
+                self._time_label.set_label(
+                    datetime.now().strftime(
+                        clock_settings.hour_format(
+                            show_seconds=False,
+                            show_am_pm=True,
+                        )
+                    )
+                )
+                self._date_label.set_label(
+                    datetime.now().strftime(
+                        clock_settings.date_format(long=True, show_dow=True)
+                    )
+                )
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            return
+
+    def destroy(self):
+        if self._time_date_task and not self._time_date_task.done():
+            self._time_date_task.cancel()
 
 
 class EntryScreen(Widget.Box):
@@ -182,10 +196,13 @@ class LockScreen(Widget.Window):
             visible=False, layer="top", namespace=f"ignis_lockscreen_{monitor_id}"
         )
 
+        self._destroyed = False
+        self._upower_batteries_handler_id: int | None = None
+
         lock_instance.assign_window_to_monitor(self, monitor)
 
-        wallpaper = FilteredPicture(
-            image=style_settings.bind("wallpaper"),
+        self._wallpaper = FilteredPicture(
+            image=style_settings.wallpaper,
             blur_radius=16,
             darken=0.5,
             content_fit="cover",
@@ -195,7 +212,7 @@ class LockScreen(Widget.Window):
             hyprland_settings.primary_monitor
             != [m for m in util.hyprland.monitors if m.id == monitor_id][0].name
         ):
-            self.set_child(wallpaper)
+            self.set_child(self._wallpaper)
             return
 
         self.authenticating = False
@@ -240,7 +257,7 @@ class LockScreen(Widget.Window):
         self.set_child(
             Widget.Overlay(
                 child=Widget.EventBox(
-                    child=[wallpaper],
+                    child=[self._wallpaper],
                     on_click=lambda *_: self.show_entry(),
                     on_right_click=lambda *_: self.show_entry(),
                     on_middle_click=lambda *_: self.show_entry(),
@@ -267,8 +284,30 @@ class LockScreen(Widget.Window):
         def on_batteries_changed(*_):
             self.update_battery_status()
 
-        upower.connect("notify::batteries", on_batteries_changed)
+        self._upower_batteries_handler_id = upower.connect(
+            "notify::batteries", on_batteries_changed
+        )
         self.update_battery_status()
+
+    def destroy(self):
+        if self._destroyed:
+            return
+
+        self._destroyed = True
+
+        handler_id = self._upower_batteries_handler_id
+        if handler_id is not None:
+            disconnect = getattr(upower, "disconnect", None)
+            if callable(disconnect):
+                try:
+                    disconnect(handler_id)
+                except Exception:
+                    pass
+            self._upower_batteries_handler_id = None
+
+        self._wallpaper.set_property("image", "")
+        self.set_child(None)
+        super().destroy()
 
     def show_entry(self):
         if not self.entry_revealer.get_reveal_child():

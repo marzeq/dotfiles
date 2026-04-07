@@ -145,6 +145,9 @@ class NotificationWidget(Widget.EventBox):
 
     def release_media(self) -> None:
         if self.picture is not None:
-            self.picture.image = ""  # type: ignore
+            try:
+                self.picture.set_property("image", "")
+            except Exception:
+                self.picture.image = ""  # type: ignore
             self.picture = None
         self.icon = None
