@@ -50,10 +50,15 @@ class PowerOffMode(LauncherMode):
     async def update(self, query: str, refresh):
         matched_results = fuzzy_search_results(self.results, query)
         matched_names = {result.value.lower() for result in matched_results}
+        ordered_results = matched_results + [
+            result for result in self.results if result.value.lower() not in matched_names
+        ]
 
         for result in self.results:
             result.visible = result.value.lower() in matched_names
 
+        self.results = ordered_results
+        self.section.set_child(self.results)
         self.section.visible = bool(matched_results)
         refresh()
 

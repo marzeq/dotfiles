@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Callable, Sequence
 from ignis.widgets import Widget
+from ignis.base_widget import BaseWidget
 from rapidfuzz import fuzz, process
 
 if TYPE_CHECKING:
@@ -50,7 +51,7 @@ class LauncherResult(Widget.Button):
             pixel_size=32,
         )
 
-        content_children = [
+        content_children: list[BaseWidget] = [
             Widget.Box(
                 child=[
                     self._icon,

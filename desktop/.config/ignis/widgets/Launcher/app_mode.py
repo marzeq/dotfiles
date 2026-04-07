@@ -74,7 +74,8 @@ app_settings = AppSettings()
 class AppMode(LauncherMode):
     def build(self, launcher):
         super().build(launcher)
-        self.set_results([LauncherAppResult(app, self) for app in app_settings.visible_apps])
+        self.all_results = [LauncherAppResult(app, self) for app in app_settings.visible_apps]
+        self.set_results(self.all_results)
         self.section.visible = bool(self.results)
         return self.section
 
@@ -87,20 +88,30 @@ class AppMode(LauncherMode):
             return
 
         if not query:
+            self.results = list(self.all_results)
+            self.section.set_child(self.results)
+
             for result in self.results:
                 result.visible = not app_settings.is_hidden(result.value)
             self.section.visible = bool(self.visible_results())
             refresh()
             return
 
-        matched_results = {result.value.lower() for result in fuzzy_search_results(self.results, query)}
+        matched_results = fuzzy_search_results(self.all_results, query)
+        matched_names = {result.value.lower() for result in matched_results}
+
+        ordered_results = matched_results + [
+            result for result in self.all_results if result.value.lower() not in matched_names
+        ]
 
         for result in self.results:
             result.visible = (
-                result.value.lower() in matched_results
+                result.value.lower() in matched_names
                 and not app_settings.is_hidden(result.value)
             )
 
+        self.results = ordered_results
+        self.section.set_child(self.results)
         self.section.visible = bool(self.visible_results())
         refresh()
 
