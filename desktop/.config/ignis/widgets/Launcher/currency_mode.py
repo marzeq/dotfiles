@@ -1,4 +1,4 @@
-from typing import Callable, Literal
+from typing import Literal
 
 import util
 import shlex
@@ -16,9 +16,20 @@ API_BASE = "https://open.er-api.com/v6/latest"
 
 
 class CurrencyMode(LauncherMode):
-    async def get_results(self, launcher, query, emit):
+    def build(self, launcher):
+        super().build(launcher)
+        self.set_results([LauncherCurrencyResult("", lambda: self.launch())])
+        self.results[0].visible = False
+        self.section.visible = False
+        return self.section
+
+    async def update(self, query: str, refresh):
+        result_widget = self.results[0]
         q = query.strip()
         if not q:
+            result_widget.visible = False
+            self.section.visible = False
+            refresh()
             return
 
         ok, amount, source, target = parse_currency_query(q)
@@ -27,31 +38,33 @@ class CurrencyMode(LauncherMode):
 
         calculated = await calculate(amount, source, target)
         if calculated is None:
+            result_widget.visible = False
+            self.section.visible = False
+            refresh()
             return
 
         calculated = round(calculated, 2)
         result_text = f"{calculated} {target or launcher_settings.preferred_currency}"
 
-        emit(
-            [
-                LauncherCurrencyResult(
-                    result_text,
-                    lambda: self.launch(launcher),
-                )
-            ],
-            False,
-        )
+        result_widget.set_value(result_text)
+        result_widget.visible = True
+        self.section.visible = True
+        refresh()
 
-    def launch(self, launcher):
-        result = launcher.get_results()[0]
+    def launch(self):
+        if not self.results:
+            return
+
+        result = self.results[0]
         if isinstance(result, LauncherCurrencyResult) and result.result is not None:
-            launcher.set_entry_text(f"{result.result}")
+            if self.launcher is not None:
+                self.launcher.set_entry_text(f"{result.result}")
             if util.has_command("wl-copy"):
                 util.shell(f"wl-copy {shlex.quote(result.result)}")
 
 
 class LauncherCurrencyResult(LauncherResult):
-    def __init__(self, result: str, launch: Callable[[], None]):
+    def __init__(self, result: str, launch):
         super().__init__(
             value=result,
             icon_name="accessories-calculator-symbolic",

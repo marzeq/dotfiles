@@ -5,7 +5,7 @@ from gi.repository import Gio  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
 from util import JsonSettings
-from .base_mode import LauncherMode, LauncherResult
+from .base_mode import LauncherMode, LauncherResult, fuzzy_search_results
 import util
 
 applications = ApplicationsService.get_default()
@@ -61,7 +61,7 @@ class AppSettings:
             self.save_hidden_apps(hidden)
 
     def is_hidden(self, app_name: str) -> bool:
-        return app_name.lower() in self.hidden_apps
+        return app_name.lower() in self.read_hidden_apps()
 
     @property
     def visible_apps(self) -> list[Application]:
@@ -72,23 +72,41 @@ app_settings = AppSettings()
 
 
 class AppMode(LauncherMode):
-    async def get_results(self, launcher, query, emit):
+    def build(self, launcher):
+        super().build(launcher)
+        self.set_results([LauncherAppResult(app, self) for app in app_settings.visible_apps])
+        self.section.visible = bool(self.results)
+        return self.section
+
+    async def update(self, query: str, refresh):
         query = query.strip().lower()
-        if not query:
-            emit(
-                [LauncherAppResult(app, launcher) for app in app_settings.visible_apps],
-                True,
-            )
+
+        if not self.results:
+            self.section.visible = False
+            refresh()
             return
 
-        emit(
-            [LauncherAppResult(app, launcher) for app in app_settings.visible_apps],
-            True,
-        )
+        if not query:
+            for result in self.results:
+                result.visible = not app_settings.is_hidden(result.value)
+            self.section.visible = bool(self.visible_results())
+            refresh()
+            return
+
+        matched_results = {result.value.lower() for result in fuzzy_search_results(self.results, query)}
+
+        for result in self.results:
+            result.visible = (
+                result.value.lower() in matched_results
+                and not app_settings.is_hidden(result.value)
+            )
+
+        self.section.visible = bool(self.visible_results())
+        refresh()
 
 
 class LauncherAppResult(LauncherResult):
-    def __init__(self, app: Application, launcher):
+    def __init__(self, app: Application, mode: AppMode):
         super().__init__(
             value=app.name,
             icon_name=app.icon,
@@ -100,7 +118,7 @@ class LauncherAppResult(LauncherResult):
             ),
         )
         self.app = app
-        self.launcher = launcher
+        self.mode = mode
 
     def launch_app(self):
         util.popup_manager.close_curr_popup()
@@ -108,4 +126,5 @@ class LauncherAppResult(LauncherResult):
 
     def hide_app(self) -> None:
         app_settings.hide_app(self.app.name)
-        self.launcher.update_mode_and_list(no_scroll_reset=True)
+        if self.mode.launcher is not None:
+            self.mode.launcher.update_mode_and_list(no_scroll_reset=True)

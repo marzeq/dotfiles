@@ -1,7 +1,7 @@
 from typing import Literal
 
 import util
-from .base_mode import LauncherMode, LauncherResult
+from .base_mode import LauncherMode, LauncherResult, fuzzy_search_results
 
 Action = Literal[
     "shutdown",
@@ -39,15 +39,23 @@ def Action_repr(action: Action) -> str:
 
 
 class PowerOffMode(LauncherMode):
-    async def get_results(self, launcher, query, emit):
-        if query.strip() == "":
-            emit([], True)
-            return
+    def build(self, launcher):
+        super().build(launcher)
+        self.set_results([LauncherPowerOffResult(action) for action in actions])
+        for result in self.results:
+            result.visible = False
+        self.section.visible = False
+        return self.section
 
-        emit(
-            [LauncherPowerOffResult(action) for action in actions],
-            True,
-        )
+    async def update(self, query: str, refresh):
+        matched_results = fuzzy_search_results(self.results, query)
+        matched_names = {result.value.lower() for result in matched_results}
+
+        for result in self.results:
+            result.visible = result.value.lower() in matched_names
+
+        self.section.visible = bool(matched_results)
+        refresh()
 
 
 class LauncherPowerOffResult(LauncherResult):

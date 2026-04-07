@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import Iterable, Sequence
 from ignis.widgets import Widget
-from gi.repository import Gtk, Gdk, GLib  # pyright: ignore[reportMissingModuleSource]
-from rapidfuzz import fuzz, process
+from gi.repository import Gtk, Gdk  # pyright: ignore[reportMissingModuleSource]
 import util
 import asyncio
 from widgets.Launcher.base_mode import LauncherResult
@@ -107,6 +105,8 @@ class Launcher(Widget.RevealerWindow):
             CurrencyMode(),
         ]
 
+        self._build_result_tree()
+
         self.entry.on_change = lambda *_: self.update_mode_and_list()
         self.entry.on_accept = lambda *_: self.trigger_result(0)
 
@@ -122,11 +122,35 @@ class Launcher(Widget.RevealerWindow):
 
         self.connect(
             "notify::visible",
-            lambda *_: self.reset_scroll_state()
-            or (self.reset_entry() if self.visible else None),
+            self._on_visible_changed,
         )
 
         self.update_mode_and_list()
+
+    def _build_result_tree(self):
+        sections = [mode.build(self) for mode in self.modes]
+        self.result_list.set_child(sections)
+        self.refresh_results_layout()
+
+    def _cancel_search_task(self):
+        if self._search_task and not self._search_task.done():
+            self._search_task.cancel()
+        self._search_task = None
+
+    def _on_visible_changed(self, *_):
+        if self.visible:
+            self.reset_entry()
+        else:
+            self._cancel_search_task()
+
+    def refresh_results_layout(self):
+        visible_results = self.get_results()
+        if len(visible_results) <= 4:
+            self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
+            self.scroller.css_classes = []
+        else:
+            self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+            self.scroller.css_classes = ["launcher-scroller-scrolling"]
 
     def set_entry_text(self, text: str):
         self.entry.text = text
@@ -138,6 +162,7 @@ class Launcher(Widget.RevealerWindow):
         self.entry.text = ""
         self.entry.grab_focus()
         self.entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
+        self.update_mode_and_list()
 
     def update_mode_and_list(self, no_scroll_reset: bool = False):
         query = self.entry.text.strip()
@@ -150,68 +175,37 @@ class Launcher(Widget.RevealerWindow):
         self._search_gen += 1
         gen = self._search_gen
 
-        async def delayed():
-            await asyncio.sleep(0.05)
-            if gen == self._search_gen:
-                await self._run_search(query, gen, no_scroll_reset)
-
-        asyncio.create_task(delayed())
-
-    async def _run_search(self, query: str, gen: int, no_scroll_reset: bool = False):
-        results: list[LauncherResult] = []
-        results_no_fuzz: list[LauncherResult] = []
-
-        def emit(chunk: Iterable[LauncherResult], include_in_fuzzing: bool):
-            if gen != self._search_gen:
-                return
-
-            def _apply():
-                if gen != self._search_gen:
-                    return False
-
-                if include_in_fuzzing:
-                    results.extend(chunk)
-                else:
-                    results_no_fuzz.extend(chunk)
-
-                searched = results_no_fuzz + fuzzy_search(results, query)
-                self.set_results(searched, no_scroll_reset)
-                return False
-
-            GLib.idle_add(_apply)
-
-        async def run_mode(mode):
-            try:
-                await mode.get_results(self, query, emit)
-            except Exception:
-                pass
-
-        for mode in self.modes:
-            asyncio.create_task(run_mode(mode))
-
-    def get_results(self) -> list[LauncherResult]:
-        return self.result_list.child
-
-    def reset_scroll_state(self):
-        self.scroller.get_vadjustment().set_value(0)
-
-    def set_results(
-        self, results: Sequence[LauncherResult], no_scroll_reset: bool = False
-    ):
-        self.result_list.child = results
-        if len(results) <= 4:
-            self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
-            self.scroller.css_classes = []
-        else:
-            self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-            self.scroller.css_classes = ["launcher-scroller-scrolling"]
+        self._cancel_search_task()
 
         if not no_scroll_reset:
             self.reset_scroll_state()
 
+        async def delayed():
+            try:
+                await asyncio.sleep(0.05)
+                if gen == self._search_gen:
+                    await self._run_search(query)
+            except asyncio.CancelledError:
+                return
+            finally:
+                if self._search_task is asyncio.current_task():
+                    self._search_task = None
+
+        self._search_task = asyncio.create_task(delayed())
+
+    async def _run_search(self, query: str):
+        await asyncio.gather(*(mode.update(query, self.refresh_results_layout) for mode in self.modes))
+
+    def get_results(self) -> list[LauncherResult]:
+        return [result for mode in self.modes for result in mode.visible_results()]
+
+    def reset_scroll_state(self):
+        self.scroller.get_vadjustment().set_value(0)
+
     def trigger_result(self, index: int = 0):
-        if self.result_list.child and index < len(self.result_list.child):
-            self.result_list.child[index].on_click()
+        results = self.get_results()
+        if results and index < len(results):
+            results[index].on_click()
 
 
 class LauncherProxy(Widget.Window):
@@ -233,20 +227,3 @@ class LauncherProxy(Widget.Window):
 
     def close(self):
         self.visible = False
-
-
-def fuzzy_search(results: list[LauncherResult], query: str) -> list[LauncherResult]:
-    query = query.lower()
-    if not query:
-        return results
-
-    apps_by_name = {result.value.lower(): result for result in results}
-    matches = process.extract(
-        query,
-        apps_by_name.keys(),
-        scorer=fuzz.WRatio,
-        limit=20,
-        score_cutoff=60,
-    )
-
-    return [apps_by_name[match[0]] for match in matches]
