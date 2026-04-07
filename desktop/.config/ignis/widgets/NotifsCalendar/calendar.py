@@ -1,5 +1,4 @@
 import asyncio
-from ignis.utils import Utils
 from ignis.widgets import Widget
 from datetime import datetime
 
@@ -47,6 +46,38 @@ def calendar_month_reset_label(month: int, year: int) -> str:
 
 class CalendarGrid(Widget.Grid):
     def __init__(self, month: int, year: int):
+        self._day_labels: list[Widget.Label] = [
+            Widget.Label(
+                label="",
+                css_classes=["nc-calendar-day"],
+                halign="center",
+                valign="center",
+            )
+            for _ in range(42)
+        ]
+
+        headers = [
+            Widget.Label(
+                label=day,
+                css_classes=["nc-calendar-dow-label"],
+                halign="center",
+                valign="center",
+            )
+            for day in ["M", "T", "W", "T", "F", "S", "S"]
+        ]
+
+        super().__init__(
+            column_num=7,
+            child=headers + self._day_labels,
+        )
+
+        self.set_month(month, year)
+
+    def _set_day_label(self, widget: Widget.Label, day: int, extra_css: list[str]):
+        widget.label = str(day).zfill(2)
+        widget.css_classes = ["nc-calendar-day"] + extra_css
+
+    def set_month(self, month: int, year: int):
         now = datetime.now()
 
         start_dow = starting_dow_for_month(month, year)
@@ -58,58 +89,45 @@ class CalendarGrid(Widget.Grid):
 
         first_visible_day = prev_month_days - start_dow + 1
 
-        def day_label(day: int, extra_css: list[str]):
-            return Widget.Label(
-                label=str(day).zfill(2),
-                css_classes=["nc-calendar-day"] + extra_css,
-                halign="center",
-                valign="center",
-            )
+        day_specs: list[tuple[int, list[str]]] = [
+            (day, ["nc-calendar-day-notcurrmo"])
+            for day in range(first_visible_day, prev_month_days + 1)
+        ]
 
-        super().__init__(
-            column_num=7,
-            child=(
-                [
-                    Widget.Label(
-                        label=day,
-                        css_classes=["nc-calendar-dow-label"],
-                        halign="center",
-                        valign="center",
+        day_specs.extend(
+            [
+                (
+                    day,
+                    ["nc-calendar-day-currmo"]
+                    + (
+                        ["nc-calendar-day-today"]
+                        if day == now.day
+                        and month == now.month
+                        and year == now.year
+                        else []
                     )
-                    for day in ["M", "T", "W", "T", "F", "S", "S"]
-                ]
-                + [
-                    day_label(day, ["nc-calendar-day-notcurrmo"])
-                    for day in range(first_visible_day, prev_month_days + 1)
-                ]
-                + [
-                    day_label(
-                        day,
-                        ["nc-calendar-day-currmo"]
-                        + (
-                            ["nc-calendar-day-today"]
-                            if day == now.day
-                            and month == now.month
-                            and year == now.year
-                            else []
-                        )
-                        + (
-                            ["nc-calendar-day-workday"]
-                            if (start_dow + day - 1) % 7 not in (5, 6)
-                            else []
-                        ),
-                    )
-                    for day in range(1, month_days + 1)
-                ]
-                + [
-                    day_label(day, ["nc-calendar-day-notcurrmo"])
-                    for day in range(
-                        1,
-                        max(0, 42 - (start_dow + month_days)) + 1,
-                    )
-                ]
-            ),
+                    + (
+                        ["nc-calendar-day-workday"]
+                        if (start_dow + day - 1) % 7 not in (5, 6)
+                        else []
+                    ),
+                )
+                for day in range(1, month_days + 1)
+            ]
         )
+
+        day_specs.extend(
+            [
+                (day, ["nc-calendar-day-notcurrmo"])
+                for day in range(
+                    1,
+                    max(0, 42 - (start_dow + month_days)) + 1,
+                )
+            ]
+        )
+
+        for widget, (day, extra_css) in zip(self._day_labels, day_specs):
+            self._set_day_label(widget, day, extra_css)
 
 
 class Calendar(Widget.Box):
@@ -184,7 +202,9 @@ class Calendar(Widget.Box):
         self.calendar_month_reset_button.child.label = calendar_month_reset_label(
             month, year
         )
-        self.calendar_grid_box.set_child([CalendarGrid(month, year)])
+        grid = self.calendar_grid_box.child[0]
+        if isinstance(grid, CalendarGrid):
+            grid.set_month(month, year)
 
     def reset_month(self, *_):
         self.selected_month = datetime.now().month
