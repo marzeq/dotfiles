@@ -5,14 +5,13 @@ from ignis.services.mpris import MprisPlayer, MprisService
 from ignis.services.hyprland import HyprlandService
 from ignis.widgets import Widget
 from widgets.Notification import NotificationWidget
-import weakref
 
 import util
 
 notifications = NotificationService.get_default()
 mpris = MprisService.get_default()
 hyprland = HyprlandService.get_default()
-track_popup_groups: dict[str, list[weakref.ReferenceType["TrackNotification"]]] = {}
+track_popup_groups: dict[str, list["TrackNotification"]] = {}
 
 
 def register_track_popup(notification: "TrackNotification") -> None:
@@ -20,8 +19,8 @@ def register_track_popup(notification: "TrackNotification") -> None:
         return
 
     refs = track_popup_groups.setdefault(notification.sync_id, [])
-    refs[:] = [ref for ref in refs if ref() is not None]
-    refs.append(weakref.ref(notification))
+    refs[:] = [notif for notif in refs if not notif._dismissed]
+    refs.append(notification)
 
 
 def dismiss_track_group(
@@ -32,15 +31,18 @@ def dismiss_track_group(
         return
 
     refs = track_popup_groups.get(sync_id, [])
-    alive: list[weakref.ReferenceType[TrackNotification]] = []
-    for ref in refs:
-        notif = ref()
-        if notif is None:
+    alive: list[TrackNotification] = []
+    for notif in refs:
+        if notif._dismissed:
             continue
-        alive.append(ref)
         if notif is source:
             continue
         notif.close(sync_group=False)
+        if not notif._dismissed:
+            alive.append(notif)
+
+    if source is not None and not source._dismissed:
+        alive.append(source)
 
     if alive:
         track_popup_groups[sync_id] = alive
@@ -102,13 +104,8 @@ class Popup(Widget.Box):
 
         super().__init__(child=[self.outer], halign="center")
 
-        weak_self = weakref.ref(self)
-
         def on_dismissed(_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.destroy()
+            self.destroy()
 
         self.notification.connect("dismissed", on_dismissed)
 
@@ -139,13 +136,8 @@ class PopupBox(Widget.Box):
             vexpand=False,
         )
 
-        weak_self = weakref.ref(self)
-
         def on_new_popup(_, notification: Notification):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.on_notified(notification)
+            self.on_notified(notification)
 
         notifications.connect(
             "new_popup",
@@ -153,10 +145,7 @@ class PopupBox(Widget.Box):
         )
 
         def on_mpris_players_changed(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance._sync_track_state()
+            self._sync_track_state()
 
         mpris.connect("notify::players", on_mpris_players_changed)
 

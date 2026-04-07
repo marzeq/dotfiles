@@ -1,7 +1,7 @@
 import asyncio
 import os
 from typing import Any, Callable, Literal, cast
-from gi.repository import GLib, Gtk
+from gi.repository import GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
 from util import BindableSettings, JsonSettings

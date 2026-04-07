@@ -1,6 +1,6 @@
 from __future__ import annotations
 import json
-from gi.repository import Gio
+from gi.repository import Gio  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
 from util import JsonSettings

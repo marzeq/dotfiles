@@ -1,7 +1,6 @@
 from datetime import datetime
 import os
 from typing import Any, Callable
-import weakref
 import gi
 from ignis.services.upower import UPowerService
 import pam
@@ -265,13 +264,8 @@ class LockScreen(Widget.Window):
             "key-pressed", lambda *x: self._handle_keypress(x[1] == 65307, x[1])
         )
 
-        weak_self = weakref.ref(self)
-
         def on_batteries_changed(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.update_battery_status()
+            self.update_battery_status()
 
         upower.connect("notify::batteries", on_batteries_changed)
         self.update_battery_status()

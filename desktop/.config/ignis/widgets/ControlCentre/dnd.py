@@ -1,32 +1,32 @@
 from ignis.options import options
-import weakref
 from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
-
 
 class DNDWidget(ControlCentreWidget):
     def __init__(self):
+        if not options or not options.notifications:
+            raise Exception("Notifications options not available")
+
         super().__init__(
             icon=options.notifications.bind(
                 "dnd",
                 lambda dnd: "notifications-disabled-symbolic"
                 if dnd
                 else "notifications-symbolic",
-            ),  # type: ignore
+            ),
             labels=CCWLabels("Do Not Disturb"),
             on_click=lambda _: options.notifications.set_dnd(
                 not options.notifications.dnd
-            ),  # type: ignore
+            ) if options and options.notifications else None,
         )
 
         self.set_disabled(not options.notifications.dnd)  # type: ignore
 
-        weak_self = weakref.ref(self)
-
         def on_options_changed(_, name: str):
-            instance = weak_self()
-            if instance is None or name != "dnd":
+            if not options or not options.notifications:
                 return
-            instance.set_disabled(not options.notifications.dnd)
+            if name != "dnd":
+                return
+            self.set_disabled(not options.notifications.dnd)
 
         options.notifications.connect(
             "changed", on_options_changed,

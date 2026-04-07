@@ -1,7 +1,6 @@
 from ignis.services.bluetooth import BluetoothService
 from ignis.services.network import NetworkService
 from ignis.widgets import Widget
-import weakref
 
 from widgets.ControlCentre.bluetooth import BluetoothWidget
 from widgets.ControlCentre.dnd import DNDWidget
@@ -23,13 +22,9 @@ class MainWidgets(Widget.Box):
         )
 
         self.ethernet_widget = EthernetWidget()
-        weak_self = weakref.ref(self)
 
         def on_devices_or_state(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.update_widgets()
+            self.update_widgets()
 
         network.ethernet.connect("notify::devices", on_devices_or_state)
 

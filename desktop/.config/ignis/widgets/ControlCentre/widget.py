@@ -1,5 +1,6 @@
 from typing import Any, Callable
 from ignis.widgets import Widget
+from ignis.gobject import Binding
 
 import util
 
@@ -21,8 +22,8 @@ def CCWLabels(
 class ControlCentreWidget(Widget.Box):
     def __init__(
         self,
-        icon: str,
-        labels: tuple[Widget.Label, Widget.Label],
+        icon: str | Binding,
+        labels: tuple[Widget.Label, Widget.Label] | Binding,
         on_click: Callable[..., Any] | None = None,
         on_click_other: Callable[..., Any] | None = None,
     ):

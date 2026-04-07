@@ -3,8 +3,7 @@ from ignis.services.audio import AudioService
 from ignis.services.system_tray import SystemTrayService
 from ignis.services.upower import UPowerService
 from ignis.services.backlight import BacklightService
-from gi.repository import Gtk
-import weakref
+from gi.repository import Gtk # pyright: ignore[reportMissingModuleSource]
 import util
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.brightness_slider import BrightnessSlider
@@ -29,13 +28,8 @@ class ControlCentre(Widget.RevealerWindow):
         self.volume_slider = VolumeSlider()
 
         def setup_tray_box(box_widget: Widget.Box):
-            weak_box = weakref.ref(box_widget)
-
             def on_tray_item_added(_, item):
-                instance = weak_box()
-                if instance is None:
-                    return
-                instance.append(SystemTrayApp(item))
+                box_widget.append(SystemTrayApp(item))
 
             system_tray.connect("added", on_tray_item_added)
 

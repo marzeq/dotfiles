@@ -1,5 +1,4 @@
 from typing import Any, Callable
-import weakref
 from ignis.services.notifications import NotificationService
 from ignis.services.mpris import MprisPlayer, MprisService
 from ignis.utils import Utils
@@ -98,13 +97,8 @@ class Notifications(Widget.Box):
         )
         self._update_body()
 
-        weak_self = weakref.ref(self)
-
         def on_changed(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance._update_body()
+            self._update_body()
 
         notifications.connect("notify::notifications", on_changed)
         mpris.connect("notify::players", on_changed)

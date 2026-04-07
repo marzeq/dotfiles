@@ -1,5 +1,4 @@
 from typing import Callable
-import weakref
 from ignis.widgets import Widget
 from services.power_profiles.service import PowerProfilesService
 from widgets.ControlCentre.popup_registry import popup_registry
@@ -120,19 +119,11 @@ class PowerProfilesWidget(ControlCentreWidget):
 
         self.set_disabled(power_profiles.active_profile == "balanced")
 
-        weak_self = weakref.ref(self)
-
         def on_profile_changed(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.set_disabled(power_profiles.active_profile == "balanced")
+            self.set_disabled(power_profiles.active_profile == "balanced")
 
         def on_available_changed(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.update_widgets()
+            self.update_widgets()
 
         power_profiles.connect(
             "notify::active-profile", on_profile_changed,

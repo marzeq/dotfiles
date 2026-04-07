@@ -1,6 +1,7 @@
 from typing import Any, Callable
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
+from ignis.gobject import Binding
 from widgets.ControlCentre.widget import ControlCentrePopup
 
 
@@ -10,13 +11,13 @@ class DeviceListPopup[T](ControlCentrePopup):
         title: str,
         device: Any,
         item_key: str,
-        icon_name_fn: Callable[[T], str],
-        label_fn: Callable[[T], str],
+        icon_name_fn: Callable[[T], str | Binding],
+        label_fn: Callable[[T], str | Binding],
         connect_fn: Callable[[T], Any],
         disconnect_fn: Callable[[T], Any],
         header_icon: str,
         connected_property: str,
-        connected_check: Callable[[T], bool],
+        connected_check: Callable[[Any], bool | Binding],
     ) -> None:
         self.device: Any = device
         self.item_key: str = item_key

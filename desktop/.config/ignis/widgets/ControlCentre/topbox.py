@@ -1,5 +1,4 @@
 import math
-import weakref
 
 from ignis.services.upower import UPowerService
 from ignis.widgets import Widget
@@ -84,11 +83,7 @@ class TopBox(Widget.CenterBox):
 
                 return 15
 
-            weak_button = weakref.ref(bat_percent)
-
             def on_battery_update(*_):
-                if weak_button() is None:
-                    return
                 update_battery_tooltip()
 
             batt.connect("notify::charging", on_battery_update)

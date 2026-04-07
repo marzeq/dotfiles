@@ -32,10 +32,9 @@ class Workspace(Widget.Box):
             and workspace.monitor == monitor_name
         ):
             self.add_css_class("active")
-        if (
-            hyprland.get_monitor_by_name(monitor_name).active_workspace_id
-            == workspace.id
-        ):  # type: ignore
+        
+        monitor = hyprland.get_monitor_by_name(monitor_name)
+        if monitor is not None and monitor.active_workspace_id == workspace.id:
             self.add_css_class("visible")
 
 

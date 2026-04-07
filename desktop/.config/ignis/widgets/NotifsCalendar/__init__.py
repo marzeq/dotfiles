@@ -2,7 +2,7 @@ from ignis.widgets import Widget
 import util
 from widgets.NotifsCalendar.calendar import Calendar
 from widgets.NotifsCalendar.notifications import Notifications
-from gi.repository import Gtk
+from gi.repository import Gtk  # pyright: ignore[reportMissingModuleSource]
 
 app = util.get_app()
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Iterable, Sequence
 from ignis.widgets import Widget
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib  # pyright: ignore[reportMissingModuleSource]
 from rapidfuzz import fuzz, process
 import util
 import asyncio

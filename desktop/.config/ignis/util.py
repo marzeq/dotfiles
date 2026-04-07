@@ -9,16 +9,14 @@ from typing import (
     Awaitable,
     Callable,
     Coroutine,
-    Iterable,
     Literal,
-    cast,
     get_type_hints,
     overload,
 )
 
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
-from gi.repository import GObject, Gio
+from gi.repository import GObject, Gio  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.audio import AudioService
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
@@ -195,7 +193,7 @@ async def get_top_colours(
 
     img = Image.open(image_path).convert("RGB")
     img = img.resize((200, 200))
-    pixels = list(cast(Iterable[float | tuple[int, ...] | None], img.getdata()))
+    pixels = np.asarray(img, dtype=np.float64).reshape(-1, 3)
 
     kmeans = KMeans(n_clusters=num_colours, random_state=0)
     kmeans.fit(pixels)

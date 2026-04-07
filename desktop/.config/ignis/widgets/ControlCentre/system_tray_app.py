@@ -1,6 +1,5 @@
 from ignis.widgets import Widget
 from ignis.services.system_tray import SystemTrayItem
-import weakref
 
 
 class SystemTrayApp(Widget.CenterBox):
@@ -28,13 +27,10 @@ class SystemTrayApp(Widget.CenterBox):
         )
 
         if self.menu:
-            weak_self = weakref.ref(self)
-
             def on_menu_visibility(*_):
-                instance = weak_self()
-                if instance is None or not instance.menu:
+                if not self.menu:
                     return
-                instance._set_button_active(instance.menu.is_visible())  # type: ignore
+                self._set_button_active(self.menu.is_visible())  # type: ignore
 
             self.button = Widget.Button(
                 child=Widget.Icon(image="view-more-symbolic"),
@@ -46,13 +42,8 @@ class SystemTrayApp(Widget.CenterBox):
         else:
             end_widget = Widget.Box(child=[])
 
-        weak_self = weakref.ref(self)
-
         def on_item_removed(_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.unparent()
+            self.unparent()
 
         super().__init__(
             start_widget=start_widget,

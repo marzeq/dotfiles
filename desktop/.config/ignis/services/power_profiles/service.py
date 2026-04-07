@@ -2,7 +2,7 @@ from __future__ import annotations
 from ignis.base_service import BaseService
 from ignis.dbus import DBusProxy
 from ignis.gobject import IgnisProperty
-from gi.repository import GLib
+from gi.repository import GLib  # pyright: ignore[reportMissingModuleSource]
 
 import util
 

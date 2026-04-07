@@ -1,6 +1,6 @@
 ### UNUSED - we use swww instead. Here for reference only and if needed in future.
 
-from gi.repository import Gdk, Gtk
+from gi.repository import Gdk, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.widgets import Widget
 
 from widgets.Settings.style_settings import style_settings

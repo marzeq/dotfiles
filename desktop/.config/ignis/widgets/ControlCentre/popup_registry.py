@@ -1,10 +1,9 @@
 from widgets.ControlCentre.widget import ControlCentrePopup
-import weakref
 
 
 class PopupRegistry:
     def __init__(self):
-        self.popups: weakref.WeakSet[ControlCentrePopup] = weakref.WeakSet()
+        self.popups: set[ControlCentrePopup] = set()
 
     def register(self, popup: ControlCentrePopup):
         self.popups.add(popup)

@@ -1,4 +1,4 @@
-from gi.repository import Gdk, Graphene
+from gi.repository import Gdk, Graphene # type: ignore[reportMissingModuleSource]
 from ignis.gobject import IgnisProperty
 from ignis.widgets import Widget
 
@@ -25,7 +25,7 @@ class FilteredPicture(Widget.Picture):
         self._darken = darken
 
     @IgnisProperty
-    def blur_radius(self) -> int:
+    def blur_radius(self) -> int: # type: ignore
         return self._blur_radius
 
     @blur_radius.setter
@@ -34,7 +34,7 @@ class FilteredPicture(Widget.Picture):
         self.queue_draw()
 
     @IgnisProperty
-    def opacity(self) -> float:
+    def opacity(self) -> float: # type: ignore
         return self._opacity
 
     @opacity.setter
@@ -43,7 +43,7 @@ class FilteredPicture(Widget.Picture):
         self.queue_draw()
 
     @IgnisProperty
-    def darken(self) -> float:
+    def darken(self) -> float: # type: ignore
         return self._darken
 
     @darken.setter

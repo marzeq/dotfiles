@@ -1,5 +1,4 @@
 from typing import Any, Callable
-import weakref
 from ignis.services.network import NetworkService
 from ignis.services.audio import AudioService
 from ignis.services.upower import UPowerService
@@ -37,19 +36,11 @@ class Tray(Widget.EventBox):
             css_classes=["tray-icon"], image="network-wired-disconnected-symbolic"
         )
 
-        weak_self = weakref.ref(self)
-
         def update_network(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.update_network_icon()
+            self.update_network_icon()
 
         def update_power(*_):
-            instance = weak_self()
-            if instance is None:
-                return
-            instance.update_power_icon()
+            self.update_power_icon()
 
         network.ethernet.connect(
             "notify::is-connected", update_network
