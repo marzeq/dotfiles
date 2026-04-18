@@ -91,6 +91,10 @@ class TrackNotification:
         for callback in list(self._dismissed_callbacks.values()):
             callback(self)
         self._dismissed_callbacks.clear()
+        self.icon = None
+        self.body = ""
+        self.summary = ""
+        self.actions.clear()
         if sync_group:
             dismiss_track_group(self.sync_id, source=self)
 
@@ -108,7 +112,7 @@ class Popup(Widget.Box):
         self.on_destroyed = on_destroyed
 
         self.widget = NotificationWidget(notification, show_time=False)
-        self.widget.style = "min-width: 35rem;"  # type: ignore
+        self.widget.style = "min-width: 35rem;"
 
         self.inner = Widget.Revealer(transition_type="slide_left", child=self.widget)
         self.outer = Widget.Revealer(transition_type="slide_down", child=self.inner)
@@ -118,28 +122,19 @@ class Popup(Widget.Box):
         def on_dismissed(_):
             self.destroy()
 
-        self._dismissed_handler_id = self.notification.connect("dismissed", on_dismissed)
-
-    def _disconnect_dismissed_handler(self) -> None:
-        handler_id = self._dismissed_handler_id
-        if handler_id is None:
-            return
-
-        disconnect = getattr(self.notification, "disconnect", None)
-        if callable(disconnect):
-            try:
-                disconnect(handler_id)
-            except Exception:
-                pass
-
-        self._dismissed_handler_id = None
+        self.notification.connect("dismissed", on_dismissed)
 
     def destroy(self):
         if self._destroyed:
             return
         self._destroyed = True
-        self._disconnect_dismissed_handler()
-        self.widget.release_media()
+
+        self.widget.cleanup_image()
+        if hasattr(self.notification, "icon"):
+            try:
+                self.notification.icon = None
+            except Exception:
+                pass
 
         def box_destroy():
             callback = self.on_destroyed
@@ -162,6 +157,7 @@ class PopupBox(Widget.Box):
         self.window = window
         self.monitor_id = monitor_id
         self._last_tracks: dict[str, tuple[str, str, str]] = {}
+        self._active_popups = 0
 
         super().__init__(
             vertical=True,
@@ -195,11 +191,6 @@ class PopupBox(Widget.Box):
         except asyncio.CancelledError:
             return
 
-    def destroy(self):
-        if self._track_poll_task and not self._track_poll_task.done():
-            self._track_poll_task.cancel()
-        super().destroy()
-
     def on_notified(self, notification: Notification) -> None:
         self._show_popup(notification)
 
@@ -208,6 +199,7 @@ class PopupBox(Widget.Box):
             return
 
         self.window.visible = True
+        self._active_popups += 1
         popup = Popup(
             window=self.window,
             notification=notification,
@@ -220,7 +212,8 @@ class PopupBox(Widget.Box):
         )
 
     def _on_popup_destroyed(self) -> None:
-        self.window.visible = bool(self.child)
+        self._active_popups = max(0, self._active_popups - 1)
+        self.window.visible = self._active_popups > 0
 
     def _has_active_fullscreen_window(self) -> bool:
         if not hyprland.is_available:

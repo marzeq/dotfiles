@@ -8,11 +8,9 @@ return {
   {
     "marzeq/tree-sitter-mconf",
     config = function()
-      local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-
-      parser_config.mconf = {
+      require("nvim-treesitter.parsers").mconf = {
         install_info = {
-          url = vim.fn.stdpath("data") .. "/lazy/tree-sitter-mconf",
+          url = "https://github.com/marzeq/tree-sitter-mconf",
           files = { "src/parser.c" },
         },
       }

@@ -97,7 +97,7 @@ class PlayerWidget(Widget.CenterBox):
 class Notifications(Widget.Box):
     def __init__(self):
         self._calendar_visible = False
-        self._notif_widgets: list[NotificationWidget] = []
+        self.notif_widgets: list[NotificationWidget] = []
 
         super().__init__(
             css_classes=["nc-notifications"],
@@ -134,24 +134,13 @@ class Notifications(Widget.Box):
             self._update_body()
             return
 
-        self._release_media()
         self.set_child([])
-
-    def destroy(self):
-        if self._refresh_task and not self._refresh_task.done():
-            self._refresh_task.cancel()
-        self._release_media()
-        self.set_child([])
-
-        parent_destroy = getattr(super(), "destroy", None)
-        if callable(parent_destroy):
-            parent_destroy()
 
     def _update_body(self):
-        self._release_media()
         notifs = notifications.notifications
-        notif_widgets = [NotificationWidget(n, show_time=True) for n in notifs]
-        self._notif_widgets = notif_widgets
+        for widget in self.notif_widgets:
+            widget.cleanup_image()
+        self.notif_widgets = [NotificationWidget(n, show_time=True) for n in notifs]
 
         self.set_child(
             [
@@ -191,7 +180,7 @@ class Notifications(Widget.Box):
                             child=Widget.Box(
                                 vertical=True,
                                 child=[PlayerWidget(p) for p in mpris.players]
-                                + notif_widgets,
+                                + self.notif_widgets,
                             ),
                             css_classes=["nc-notifications-scroll"],
                         )
@@ -200,8 +189,3 @@ class Notifications(Widget.Box):
                 )
             ]
         )
-
-    def _release_media(self) -> None:
-        for widget in self._notif_widgets:
-            widget.release_media()
-        self._notif_widgets = []

@@ -143,11 +143,17 @@ class NotificationWidget(Widget.EventBox):
     def set_close_hovered(self, value):
         self.close_hovered = value
 
-    def release_media(self) -> None:
+    def cleanup_image(self) -> None:
         if self.picture is not None:
             try:
                 self.picture.set_property("image", "")
             except Exception:
-                self.picture.image = ""  # type: ignore
+                self.picture.image = ""
+            unparent = getattr(self.picture, "unparent", None)
+            if callable(unparent):
+                try:
+                    unparent()
+                except Exception:
+                    pass
             self.picture = None
         self.icon = None
