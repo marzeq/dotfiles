@@ -37,16 +37,18 @@ class PlayerWidget(Widget.CenterBox):
             super().__init__()
             return
 
+        self.picture = Widget.Icon(
+            image=player.bind("art_url"),
+            css_classes=["nc-player-icon"],
+            pixel_size=48,
+            visible=player.bind("art_url", lambda url: bool(url)),
+        ) 
+
         super().__init__(
             css_classes=["nc-player"],
             start_widget=Widget.Box(
                 child=[
-                    Widget.Icon(
-                        image=player.bind("art_url"),
-                        css_classes=["nc-player-icon"],
-                        pixel_size=48,
-                        visible=player.bind("art_url", lambda url: bool(url)),
-                    ),
+                    self.picture,
                     Widget.Box(
                         vertical=True,
                         valign="center",
@@ -93,11 +95,27 @@ class PlayerWidget(Widget.CenterBox):
             ),
         )
 
+    def cleanup_image(self):
+        if self.picture is not None:
+            try:
+                self.picture.set_property("image", "")
+            except Exception:
+                self.picture.image = ""
+            unparent = getattr(self.picture, "unparent", None)
+            if callable(unparent):
+                try:
+                    unparent()
+                except Exception:
+                    pass
+            self.picture = None
+        self.icon = None
+
 
 class Notifications(Widget.Box):
     def __init__(self):
         self._calendar_visible = False
         self.notif_widgets: list[NotificationWidget] = []
+        self.mpris_widgets: list[PlayerWidget] = []
 
         super().__init__(
             css_classes=["nc-notifications"],
@@ -140,7 +158,10 @@ class Notifications(Widget.Box):
         notifs = notifications.notifications
         for widget in self.notif_widgets:
             widget.cleanup_image()
+        for widget in self.mpris_widgets:
+            widget.cleanup_image()
         self.notif_widgets = [NotificationWidget(n, show_time=True) for n in notifs]
+        self.mpris_widgets = [PlayerWidget(p) for p in mpris.players if p.artist or p.title]
 
         self.set_child(
             [
@@ -174,13 +195,12 @@ class Notifications(Widget.Box):
                             ],
                         )
                     ]
-                    if not notifs and not mpris.players
+                    if not notifs and not self.mpris_widgets
                     else [
                         Widget.Scroll(
                             child=Widget.Box(
                                 vertical=True,
-                                child=[PlayerWidget(p) for p in mpris.players]
-                                + self.notif_widgets,
+                                child=self.mpris_widgets + self.notif_widgets,
                             ),
                             css_classes=["nc-notifications-scroll"],
                         )
