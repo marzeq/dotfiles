@@ -8,17 +8,17 @@ return {
     ---@alias LspOpts (string[] | table<string, any>)
     ---@type LspOpts
     opts = {
-      "lua_ls",
-      "gopls",
-      "pyright",
-      "clangd",
-      "ts_ls",
-      "ols",
-      "kotlin_lsp",
-      "astro",
-      "rust_analyzer",
-      "csharp_ls",
-      "zls",
+      "lua_ls", -- lua
+      "gopls", -- go
+      "pyright", -- python
+      "clangd", -- c/c++
+      "ts_ls", -- typescript/javascript
+      "ols", -- odin
+      "kotlin_lsp", -- kotlin
+      "rust_analyzer", -- rust
+      "csharp_ls", -- c#
+      "zls", -- zig
+      "tinymist", -- typst
     },
     ---@param opts LspOpts
     config = function(_, opts)
