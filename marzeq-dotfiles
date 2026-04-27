@@ -35,7 +35,7 @@ mkdir -p "$STATE_DIR"
 
 # Dependency lists (preserve original groups)
 SHELLS_DEPS=("stow" "zsh" "bash" "git")
-NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl")
+NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl" "tree-sitter-cli")
 TERMINAL_DEPS=("stow" "ghostty")
 DESKTOP_DEPS=(
   "stow" "hyprland"
