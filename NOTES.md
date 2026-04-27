@@ -2,7 +2,7 @@
 
 ## Hyprland customisation
 
-Edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settings you want, that way `git pull`-ing to update won't cause merge conflicts.
+Edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settings you want, that way updating won't cause merge issues.
 
 To overwrite the programs that binds like `super` + `return` (terminal), `super` + `b` (browser) etc. depend on,
 you should look to the `programs-custom.conf` file instead. There, you can change the variables to your desired programs like this:
