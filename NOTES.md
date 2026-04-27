@@ -68,3 +68,8 @@ Default keybindings for the desktop are as follows:
 | `super` + `shift` + `t` | OCR script         |
 | `super` + `shift` + `c` | Colour picker      |
 
+## Unbinding
+
+Use `hyprland-custom.conf` and Hyprland's `unbind` funcionality.
+
+See Hyprland docs on how to unbind keys.
