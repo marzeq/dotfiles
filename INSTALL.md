@@ -13,7 +13,7 @@ This setup is designed to be as simple as possible to get up and running. The bo
 1. Run the bootstrap script:
 
 ```bash
-wget -q -O - https://github.com/marzeq/dotfiles/raw/refs/heads/dev/install.sh | bash
+wget -q -O - https://raw.githubusercontent.com/marzeq/dotfiles/refs/heads/dev/install.sh | bash
 ```
 
 What this does:
