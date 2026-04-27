@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+if [[ ! -d ".git" ]]; then
+  echo "It seems like you have not copied the entire git repository but just the install.sh script"
+  echo "Run 'git clone https://github.com/marzeq/dotfiles' or use the download zip option on github and extract it to get the full repository with all the necessary files and directories."
+  exit 1
+fi
+
 if [[ $EUID -eq 0 ]]; then
   echo "Don't run this script as root, you will be asked for sudo permissions when necessary."
   exit 1
@@ -95,11 +101,11 @@ DESKTOP_DEPS=(
 )
 
 install_paru() {
-  run_or_echo "git clone https://aur.archlinux.org/paru-bin.git /tmp/paru-bin"
-  run_or_echo "cd /tmp/paru-bin"
+  run_or_echo "git clone https://aur.archlinux.org/paru.git /tmp/paru"
+  run_or_echo "cd /tmp/paru"
   run_or_echo "makepkg -si"
   run_or_echo "cd - > /dev/null"
-  run_or_echo "rm -rf paru-bin"
+  run_or_echo "rm -rf paru"
 }
 
 install_packages() {
@@ -160,8 +166,20 @@ install_fonts() {
   [ "$os" = "Linux" ] && run_or_echo "fc-cache -f $font_dir >/dev/null 2>&1"
 }
 
+ensure_package() {
+  local dir="$1"
+
+  if [[ -d "$dir" ]]; then
+    return 0
+  else
+    echo "${RED_BOLD}Required directory '$dir' not found. Please make sure you have the full repository and not just the install.sh script.${RESET}"
+    exit 1
+  fi
+}
+
 shells_installed=false
 install_shells() {
+  ensure_package "shells"
   if $shells_installed; then return; fi
   echo -e "${BLUE}Installing shells...${RESET}"
   shells_installed=true
@@ -173,6 +191,7 @@ install_shells() {
 
 neovim_installed=false
 install_neovim() {
+  ensure_package "nvim"
   if $neovim_installed; then return; fi
   echo -e "${BLUE}Installing neovim...${RESET}"
   neovim_installed=true
@@ -182,6 +201,8 @@ install_neovim() {
 
 terminal_installed=false
 install_terminal() {
+  ensure_package "terminal"
+  ensure_package "font"
   if $terminal_installed; then return; fi
   echo -e "${BLUE}Installing terminal...${RESET}"
   terminal_installed=true
@@ -192,6 +213,7 @@ install_terminal() {
 
 desktop_installed=false
 install_desktop() {
+  ensure_package "desktop"
   install_terminal
   if $desktop_installed; then return; fi
   echo -e "${BLUE}Installing desktop...${RESET}"
@@ -250,6 +272,8 @@ main() {
       exit
     fi
   fi
+
+  run_or_echo "sudo pacman -Syy"
 
   if [[ $1 == "shells" ]]; then
     install_shells
