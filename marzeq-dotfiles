@@ -251,10 +251,14 @@ command_install() {
   [[ ! -f "/run/archiso/cowspace" ]] || error "Do not run in live environment. Install Arch and run this script from there."
   [[ "$(uname -m)" == "x86_64" ]] || error "x86_64 only."
 
-  info "ATTENTION! This will install packages and modify your system."
-  read -p "Proceed? (y/n) " -n 1 -r
-  echo
-  [[ $REPLY =~ ^[Yy]$ ]] || error "Aborted."
+  if ! $DRY_RUN; then
+    info "ATTENTION! This will install packages and modify your system."
+    read -p "Proceed? (y/n) " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] || error "Aborted."
+  else
+    info "Dry run mode: no changes will be made."
+  fi
 
   run_or_echo sudo pacman -Syy
 
@@ -329,8 +333,8 @@ Usage: $0 [--dry-run] <command> [args]
 Commands:
   install <component...|all>   Install one or more components (shells nvim terminal desktop)
   update [--skip-packages|-s]  Update repo and reapply recorded components (optional skip packages)
-  list                        List recorded installed components
-  remove <component...|all>   Unstow and forget components
+  list                         List recorded installed components
+  remove <component...|all>    Unstow and forget components
   --help
 EOF
 }

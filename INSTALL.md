@@ -8,7 +8,7 @@ Prerequisites
 
 ## Bootstrap (one-time)
 
-This setup is designed to be as simple as possible to get up and running. The bootstrap script will handle cloning the repo, setting up the CLI tool, and ensuring you have a way to manage your dotfiles going forward.
+The bootstrap script will handle cloning the repo, setting up the CLI tool, and ensuring you have a way to manage your dotfiles going forward.
 
 1. Run the bootstrap script:
 
@@ -29,6 +29,8 @@ ls -l ~/.local/bin/marzeq-dotfiles
 marzeq-dotfiles --help
 ```
 
+At this point, the dotfiles are setup to be installed, but no components are applied yet. Use the CLI to manage installation and updates.
+
 ## Managing your install
 
 Alongside the actual dotfiles, we provide a CLI tool to manage installation and updates. The CLI is idempotent and safe to run multiple times.
@@ -36,11 +38,12 @@ Alongside the actual dotfiles, we provide a CLI tool to manage installation and 
 ### install
 
 Use `marzeq-dotfiles install` to install one or more components. 
-It's best to preview with `--dry-run` first.
+It's best to preview with `--dry-run` first to see exactly what commands will be ran that will make changes to your system.
 
 Examples:
 
 ```bash
+# preview an install
 marzeq-dotfiles --dry-run install shells
 
 # install a single component
@@ -67,6 +70,8 @@ To update without re-installing packages:
 marzeq-dotfiles update --skip-packages
 ```
 
+You can also use `--dry-run` with update.
+
 ### list
 
 Show which components are recorded as installed.
@@ -92,8 +97,4 @@ marzeq-dotfiles remove all
 ### Troubleshooting
 
 - If the CLI is not found, ensure `~/.local/bin` is on your `PATH`.
-- If the repo path is wrong, re-run the bootstrap:
-
-```bash
-bash install.sh
-```
+- If the repo path is wrong, re-run the bootstrap
