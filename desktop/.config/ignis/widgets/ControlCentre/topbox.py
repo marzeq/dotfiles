@@ -24,6 +24,12 @@ class TopBox(Widget.CenterBox):
             end_widget=Widget.Box(child=upower.bind("batteries", self._end_children)),
         )
 
+    async def close_popup_immediately(self):
+        self.cc.revealer.transition_duration = 0
+        util.popup_manager.close_curr_popup()
+        self.cc.revealer.transition_duration = util.popup_manager.popup_anim_speed
+        # await asyncio.sleep(util.popup_manager.popup_anim_speed / 1000)
+
     def _start_children(self, _):
         settings_button = Widget.Button(
             child=Widget.Icon(image="applications-system-symbolic"),
@@ -32,19 +38,13 @@ class TopBox(Widget.CenterBox):
             or util.popup_manager.close_curr_popup(),
         )
 
-        async def close_popup_before_screenshot():
-            self.cc.revealer.transition_duration = 0
-            util.popup_manager.close_curr_popup()
-            self.cc.revealer.transition_duration = util.popup_manager.popup_anim_speed
-            # await asyncio.sleep(util.popup_manager.popup_anim_speed / 1000)
-
         children = [
             Widget.Button(
                 child=Widget.Icon(image="screenshooter-symbolic"),
                 css_classes=["cc-top-button"],
                 on_click=lambda _: util.shell(
                     "hyprshot -szm region -o ~/pictures/screenshots/",
-                    before=close_popup_before_screenshot(),
+                    before=self.close_popup_immediately(),
                 ),
             )
         ]
@@ -105,7 +105,10 @@ class TopBox(Widget.CenterBox):
             Widget.Button(
                 child=Widget.Icon(image="system-lock-screen-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda _: util.popup_manager.close_curr_popup() or lock(),
+                on_click=lambda _: util.shell(
+                    "loginctl lock-session",
+                    before=self.close_popup_immediately(),
+                ),
             ),
             Widget.Button(
                 child=Widget.Icon(image="system-shutdown-symbolic"),

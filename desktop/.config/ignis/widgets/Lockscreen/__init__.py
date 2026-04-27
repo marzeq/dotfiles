@@ -33,7 +33,7 @@ def lock():
     # calling self._lock_instance.unlock() on line 361 causes a segmentation fault.
     # This is a regression in the native library, not a Python code issue.
     # As such, LockScreen functionality is currently disabled. The lockscreen will not appear and we instead will trigger a system suspend as a fallback
-    util.sync_shell("systemctl suspend")
+    util.sync_shell("loginctl lock-session")
     return
     global lock_windows
     lock_instance = Gtk4SessionLock.Instance.new()

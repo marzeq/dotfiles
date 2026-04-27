@@ -14,6 +14,8 @@ else
   fi
 fi
 
+ln -s "$wallpaper" ~/.local/state/wallpaper
+
 awww img "$wallpaper" \
   --transition-fps=144 \
   --transition-step=128 \
