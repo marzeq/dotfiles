@@ -1,0 +1,351 @@
+#!/usr/bin/env bash
+set -e
+
+RED_BOLD="\033[1;31m"
+BLUE="\033[0;34m"
+GREEN_BOLD="\033[1;32m"
+RESET="\033[0m"
+
+error() { echo -e "${RED_BOLD}$1${RESET}" >&2; exit 1; }
+info() { echo -e "${BLUE}$1${RESET}"; }
+
+if [[ $EUID -eq 0 ]]; then
+  error "Don't run this script as root."
+fi
+
+STATE_DIR="$HOME/.local/share/marzeq"
+INSTALLED_FILE="$STATE_DIR/installed_components"
+DRY_RUN=false
+SKIP_PACKAGES=false
+
+REPO_PATH="$HOME/.local/share/marzeq/dotfiles"
+
+if [[ ! -d "$REPO_PATH/.git" ]]; then
+  error "Dotfiles repository not found at: $REPO_PATH (run install.sh to bootstrap)."
+fi
+
+run_or_echo() {
+  echo -e "${GREEN_BOLD}> $*${RESET}"
+  if ! $DRY_RUN; then
+    "$@"
+  fi
+}
+
+mkdir -p "$STATE_DIR"
+
+# Dependency lists (preserve original groups)
+SHELLS_DEPS=("stow" "zsh" "bash" "git")
+NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl")
+TERMINAL_DEPS=("stow" "ghostty")
+DESKTOP_DEPS=(
+  "stow" "hyprland"
+  ".AUR:python-ignis" ".AUR:goignis"
+  "python-pillow" "python-numpy" "python-rapidfuzz"
+  "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
+  "python-pam" "python-aiohttp" "python-scikit-learn"
+  "power-profiles-daemon" "bc" "cantarell-fonts"
+  "gdm"
+  "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit-gnome"
+  "qt5-wayland" "qt6-wayland"
+  "pipewire" "pipewire-pulse" "pipewire-jack" "pipewire-alsa"
+  "gst-plugin-pipewire" "alsa-utils"
+  "swww" "hyprpicker" "hypridle"
+  "hyprshot" "grim" "slurp"
+  "imagemagick" "tesseract" "tesseract-data-eng"
+  ".PARU"
+  "wl-clipboard"
+  "pamixer" "pavucontrol"
+  "nwg-displays"
+  "adw-gtk-theme"
+  "pacman-contrib"
+  "fontconfig"
+  "nautilus" "gvfs" "gvfs-smb"
+  "firefox"
+  ".AUR:ttf-ms-win11-auto"
+  "gnome-keyring" "gcr-4"
+)
+
+install_paru() {
+  run_or_echo git clone https://aur.archlinux.org/paru.git /tmp/paru
+  run_or_echo bash -c "cd /tmp/paru && makepkg -si"
+  run_or_echo rm -rf /tmp/paru
+}
+
+install_packages() {
+  local aur_packages=()
+  local pacman_packages=()
+  local need_paru=false
+  for package in "$@"; do
+    if [[ $package == .AUR:* ]]; then
+      aur_packages+=("${package:5}")
+      need_paru=true
+    elif [[ $package == .PARU ]]; then
+      need_paru=true
+    else
+      pacman_packages+=("$package")
+    fi
+  done
+
+  if [[ $need_paru == true ]]; then
+    install_paru
+  fi
+
+  if [[ ${#aur_packages[@]} -gt 0 ]]; then
+    run_or_echo paru -S --noconfirm "${aur_packages[@]}"
+  fi
+
+  if [[ ${#pacman_packages[@]} -gt 0 ]]; then
+    run_or_echo sudo pacman -S --noconfirm "${pacman_packages[@]}"
+  fi
+}
+
+install_fonts() {
+  local os
+  os="$(uname -s)"
+  local font_dir=""
+  case "$os" in
+    Linux*) font_dir="$HOME/.local/share/fonts" ;;
+    Darwin*) font_dir="$HOME/Library/Fonts" ;;
+    *) return 0 ;;
+  esac
+  run_or_echo mkdir -p "$font_dir"
+  for font in "$@"; do
+    [[ -f "$font" ]] && run_or_echo cp -f "$font" "$font_dir/"
+  done
+  [[ "$os" == "Linux" ]] && run_or_echo fc-cache -f "$font_dir"
+}
+
+ensure_package() {
+  local dir="$1"
+  [[ -d "$REPO_PATH/$dir" ]] || error "Required directory '$dir' not found in repo."
+}
+
+record_component() {
+  local comp="$1"
+  touch "$INSTALLED_FILE"
+  if ! grep -Fxq "$comp" "$INSTALLED_FILE" 2>/dev/null; then
+    printf '%s\n' "$comp" >> "$INSTALLED_FILE"
+  fi
+}
+
+unrecord_component() {
+  local comp="$1"
+  if [[ -f "$INSTALLED_FILE" ]]; then
+    grep -Fxv "$comp" "$INSTALLED_FILE" > "$INSTALLED_FILE.tmp" || true
+    mv "$INSTALLED_FILE.tmp" "$INSTALLED_FILE"
+  fi
+}
+
+list_components() {
+  if [[ -f "$INSTALLED_FILE" ]]; then
+    cat "$INSTALLED_FILE"
+  fi
+}
+
+shells_installed=false
+install_shells() {
+  ensure_package shells
+  $shells_installed && return
+  info "Installing shells..."
+  shells_installed=true
+  if ! $SKIP_PACKAGES; then
+    install_packages "${SHELLS_DEPS[@]}"
+  else
+    info "Skipping package installs for shells (SKIP_PACKAGES enabled)."
+  fi
+  [[ -f "$HOME/.bashrc" ]] && run_or_echo mv "$HOME/.bashrc" "$HOME/.bashrc.bak"
+  [[ -f "$HOME/.zshrc" ]] && run_or_echo mv "$HOME/.zshrc" "$HOME/.zshrc.bak"
+  run_or_echo stow -d "$REPO_PATH" -t "$HOME" shells
+}
+
+neovim_installed=false
+install_neovim() {
+  ensure_package nvim
+  $neovim_installed && return
+  info "Installing neovim..."
+  neovim_installed=true
+  if ! $SKIP_PACKAGES; then
+    install_packages "${NEOVIM_DEPS[@]}"
+  else
+    info "Skipping package installs for neovim (SKIP_PACKAGES enabled)."
+  fi
+  run_or_echo stow -d "$REPO_PATH" -t "$HOME" nvim
+}
+
+terminal_installed=false
+install_terminal() {
+  ensure_package terminal
+  ensure_package font
+  $terminal_installed && return
+  info "Installing terminal..."
+  terminal_installed=true
+  if ! $SKIP_PACKAGES; then
+    install_packages "${TERMINAL_DEPS[@]}"
+    install_fonts "$REPO_PATH/font"/*.otf
+  else
+    info "Skipping package and font installs for terminal (SKIP_PACKAGES enabled)."
+  fi
+  run_or_echo stow -d "$REPO_PATH" -t "$HOME" terminal
+}
+
+desktop_installed=false
+install_desktop() {
+  ensure_package desktop
+  install_terminal
+  $desktop_installed && return
+  info "Installing desktop..."
+  desktop_installed=true
+  if ! $SKIP_PACKAGES; then
+    install_packages "${DESKTOP_DEPS[@]}"
+  else
+    info "Skipping package installs for desktop (SKIP_PACKAGES enabled)."
+  fi
+  run_or_echo stow -d "$REPO_PATH" -t "$HOME" desktop
+  run_or_echo sudo systemctl enable gdm
+  run_or_echo systemctl --user enable gcr-ssh-agent.socket
+  run_or_echo mkdir -p "$HOME/.local/share/ignis"
+  run_or_echo touch \
+    "$HOME/.local/share/ignis/hyprland.conf" \
+    "$HOME/.config/hypr/monitors.conf" \
+    "$HOME/.config/hypr/workspaces.conf" \
+    "$HOME/.config/hypr/hyprland-custom.conf" \
+    "$HOME/.config/hypr/programs-custom.conf"
+  if ! $DRY_RUN; then
+    info "Make sure you run nwg-displays to configure your displays graphically!"
+    echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
+  fi
+}
+
+do_install_component() {
+  local comp="$1"
+  case "$comp" in
+    shells) install_shells ;;
+    neovim|nvim) install_neovim ;;
+    terminal) install_terminal ;;
+    desktop) install_desktop ;;
+    *) error "Unknown component: $comp" ;;
+  esac
+  record_component "$comp"
+}
+
+do_remove_component() {
+  local comp="$1"
+  if [[ ! -d "$REPO_PATH/$comp" ]]; then
+    info "Component $comp not present in repo; skipping unstow."
+  else
+    run_or_echo stow -d "$REPO_PATH" -t "$HOME" -D "$comp"
+  fi
+  unrecord_component "$comp"
+}
+
+command_install() {
+  shift || true
+  if [[ $# -eq 0 ]]; then
+    error "install requires at least one component or 'all'"
+  fi
+  if [[ $1 == all ]]; then
+    set -- shells nvim terminal desktop
+  fi
+
+  [[ -f "/etc/arch-release" ]] || error "Arch Linux only."
+  [[ ! -f "/run/archiso/cowspace" ]] || error "Do not run in live environment. Install Arch and run this script from there."
+  [[ "$(uname -m)" == "x86_64" ]] || error "x86_64 only."
+
+  info "ATTENTION! This will install packages and modify your system."
+  read -p "Proceed? (y/n) " -n 1 -r
+  echo
+  [[ $REPLY =~ ^[Yy]$ ]] || error "Aborted."
+
+  run_or_echo sudo pacman -Syy
+
+  for comp in "$@"; do
+    do_install_component "$comp"
+  done
+}
+
+command_update() {
+  # support --skip-packages / -s to avoid package installs while reapplying stow
+  local skip=false
+  if [[ "$1" == "--skip-packages" || "$1" == "-s" ]]; then
+    skip=true
+  fi
+  if $skip; then
+    SKIP_PACKAGES=true
+    info "Updating repository (packages will be skipped)..."
+  else
+    info "Updating repository..."
+  fi
+
+  git -C "$REPO_PATH" pull --ff-only || error "Failed to update repo."
+  if [[ -f "$INSTALLED_FILE" ]]; then
+    while IFS= read -r comp; do
+      [[ -z "$comp" ]] && continue
+      info "Reapplying $comp..."
+      case "$comp" in
+        shells|neovim|nvim|terminal|desktop) do_install_component "$comp" ;;
+        *) info "Unknown recorded component: $comp; skipping." ;;
+      esac
+    done < "$INSTALLED_FILE"
+  else
+    info "No installed components recorded; nothing to update."
+  fi
+  # reset SKIP_PACKAGES to default
+  SKIP_PACKAGES=false
+}
+
+command_list() {
+  if [[ -f "$INSTALLED_FILE" ]]; then
+    echo "Installed components:"
+    nl -w2 -s'. ' "$INSTALLED_FILE"
+  else
+    echo "No components recorded as installed."
+  fi
+}
+
+command_remove() {
+  shift || true
+  if [[ $# -eq 0 ]]; then
+    error "remove requires at least one component or 'all'"
+  fi
+  if [[ $1 == all ]]; then
+    if [[ -f "$INSTALLED_FILE" ]]; then
+      mapfile -t to_remove < "$INSTALLED_FILE"
+    else
+      error "No installed components to remove."
+    fi
+  else
+    to_remove=("$@")
+  fi
+
+  for comp in "${to_remove[@]}"; do
+    do_remove_component "$comp"
+  done
+}
+
+usage() {
+  cat <<EOF
+Usage: $0 [--dry-run] <command> [args]
+
+Commands:
+  install <component...|all>   Install one or more components (shells nvim terminal desktop)
+  update [--skip-packages|-s]  Update repo and reapply recorded components (optional skip packages)
+  list                        List recorded installed components
+  remove <component...|all>   Unstow and forget components
+  --help
+EOF
+}
+
+if [[ "$1" == "--dry-run" ]]; then
+  DRY_RUN=true
+  shift
+fi
+
+case "$1" in
+  install) command_install "$@" ;;
+  update) command_update "${@:2}" ;;
+  list) command_list ;;
+  remove) command_remove "$@" ;;
+  -h|--help|help) usage ;;
+  "") usage ;;
+  *) error "Unknown command: $1" ;;
+esac

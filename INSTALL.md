@@ -1,9 +1,99 @@
-# Installation
+# Installation and management
 
-Run the `install.sh` script to stow the config files for the specified package of programs and install the necessary dependencies:
+Prerequisites
+
+- A working `git` installation.
+- You are on Arch Linux (this repo and scripts assume `pacman` + AUR tooling).
+- `~/.local/bin` is on your `PATH` (the bootstrap links the CLI there).
+
+## Bootstrap (one-time)
+
+This setup is designed to be as simple as possible to get up and running. The bootstrap script will handle cloning the repo, setting up the CLI tool, and ensuring you have a way to manage your dotfiles going forward.
+
+1. Run the bootstrap script:
 
 ```bash
-./install.sh [packages...] # or ./install.sh all
+wget -q -O - https://github.com/marzeq/dotfiles/raw/refs/heads/dev/install.sh | bash
 ```
 
-I recommend you run `./install.sh --dry-run [packages...]` option and see what it does first.
+What this does:
+- clones the repo to `~/.local/share/marzeq/dotfiles` if not present
+- pulls updates if it is present
+- creates a symlink from `~/.local/share/marzeq/dotfiles/marzeq-dotfiles` → `~/.local/bin/marzeq-dotfiles`
+
+Verify bootstrap:
+
+```bash
+ls -l ~/.local/share/marzeq/dotfiles
+ls -l ~/.local/bin/marzeq-dotfiles
+marzeq-dotfiles --help
+```
+
+## Managing your install
+
+Alongside the actual dotfiles, we provide a CLI tool to manage installation and updates. The CLI is idempotent and safe to run multiple times.
+
+### install
+
+Use `marzeq-dotfiles install` to install one or more components. 
+It's best to preview with `--dry-run` first.
+
+Examples:
+
+```bash
+marzeq-dotfiles --dry-run install shells
+
+# install a single component
+marzeq-dotfiles install shells
+
+# install multiple components
+marzeq-dotfiles install shells nvim
+
+# install everything
+marzeq-dotfiles install all
+```
+
+### update
+
+Pulls the latest repo and re-applies only the components you previously installed.
+
+```bash
+marzeq-dotfiles update
+```
+
+To update without re-installing packages:
+
+```bash
+marzeq-dotfiles update --skip-packages
+```
+
+### list
+
+Show which components are recorded as installed.
+
+```bash
+marzeq-dotfiles list
+```
+
+### remove
+
+Unstow and forget a component.
+
+```bash
+marzeq-dotfiles remove shells
+marzeq-dotfiles remove all
+```
+
+### Quick safety checklist
+
+- Preview with `--dry-run` before running installs.
+- Back up any local files you care about before applying changes.
+
+### Troubleshooting
+
+- If the CLI is not found, ensure `~/.local/bin` is on your `PATH`.
+- If the repo path is wrong, re-run the bootstrap:
+
+```bash
+bash install.sh
+```

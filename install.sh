@@ -1,300 +1,62 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ ! -d ".git" ]]; then
-  echo "It seems like you have not copied the entire git repository but just the install.sh script"
-  echo "Run 'git clone https://github.com/marzeq/dotfiles' or use the download zip option on github and extract it to get the full repository with all the necessary files and directories."
-  exit 1
-fi
-
-if [[ $EUID -eq 0 ]]; then
-  echo "Don't run this script as root, you will be asked for sudo permissions when necessary."
-  exit 1
-fi
-
 RED_BOLD="\033[1;31m"
 BLUE="\033[0;34m"
 GREEN_BOLD="\033[1;32m"
 RESET="\033[0m"
 
-DRY_RUN=false
-
-run_or_echo() {
-  echo -e "${GREEN_BOLD}> $*${RESET}"
-  if ! $DRY_RUN; then
-    eval "$*"
-  fi
+error() {
+  echo -e "${RED_BOLD}$1${RESET}" >&2
+  exit 1
 }
 
-SHELLS_DEPS=(
-  "stow"
-
-  "zsh"
-  "bash"
-  "git"                                             # i guess you wouldnt get this far without git but just in case
-)
-
-NEOVIM_DEPS=(
-  "stow"
-
-  "neovim"
-
-  "fzf"
-  "ripgrep"
-  "curl"
-)
-
-TERMINAL_DEPS=(
-  "stow"
-
-  "ghostty"                                         # really couldnt care less about my term, only picked it because ligatures work and nerd fonts arent fucked up
-)
-
-DESKTOP_DEPS=(
-  "stow"
-
-  "hyprland"                                        # duh
-
-  ".AUR:python-ignis" ".AUR:goignis"                # our shell framework
-  "python-pillow" "python-numpy" "python-rapidfuzz" # dependencies for ignis
-  "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
-  "python-pam" "python-aiohttp" "python-scikit-learn"
-  "power-profiles-daemon" "bc"
-  "cantarell-fonts"                                 # sans font for the shell
-  
-  "gdm"                                             # login manager of choice
-
-  "xdg-desktop-portal-hyprland"                     # portals for hyprland
-  "xdg-desktop-portal-gtk"                          # for gtk darkmode
-  "polkit-gnome"                                    # gtk gui for polkit
-  "qt5-wayland" "qt6-wayland"                       # qt wayland support
-
-  "pipewire"                                        # audio server
-  "pipewire-pulse" "pipewire-jack" "pipewire-alsa"  # pipewire modules
-  "gst-plugin-pipewire"                             # gstreamer pipewire plugin
-  "alsa-utils"                                      # alsa utilities
-
-  "swww"                                            # wallpaper manager
-  "hyprpicker"                                      # colour picker
-  "hypridle"                                        # idle manager (sleep after inactivity etc.)
-
-  ".AUR:hyprshot" "grim" "slurp"                    # screenshots
-  "imagemagick" "tesseract" "tesseract-data-eng"    # needed for area ocr
-  ".PARU"                                           # explicitly install aur manager
-  "wl-clipboard"                                    # clipboard
-  "pamixer" "pavucontrol"                           # audio control
-  "nwg-displays"                                    # gui monitor configuration
-  "adw-gtk-theme"                                   # gtk3 theme
-  "pacman-contrib"                                  # pacman utilities
-  "fontconfig"                                      # font configuration
-
-  # my apps
-  "nautilus"                                        # file manager
-  "gvfs" "gvfs-smb"                                 # optional dependencies for file manager
-  "firefox"                                         # web browser
-
-  # fonts
-  ".AUR:ttf-ms-win11-auto"                          # microsoft fonts, needed for many websites
-
-  # misc
-  "gnome-keyring" "gcr-4"                           # for automatic ssh key loading from systemd
-)
-
-install_paru() {
-  run_or_echo "git clone https://aur.archlinux.org/paru.git /tmp/paru"
-  run_or_echo "cd /tmp/paru"
-  run_or_echo "makepkg -si"
-  run_or_echo "cd - > /dev/null"
-  run_or_echo "rm -rf paru"
+info() {
+  echo -e "${BLUE}$1${RESET}"
 }
 
-install_packages() {
-  local aur_packages=()
-  local pacman_packages=()
-  local need_paru=false
+if [[ $EUID -eq 0 ]]; then
+  error "Don't run this script as root."
+fi
 
-  for package in "$@"; do
-    if [[ $package == ".AUR:"* ]]; then
-      aur_packages+=("${package:5}")
-      need_paru=true
-    elif [[ $package == ".PARU" ]]; then
-      need_paru=true
-    else
-      pacman_packages+=("$package")
-    fi
-  done
+local_share_path="$HOME/.local/share/marzeq/dotfiles"
+state_dir="$HOME/.local/share/marzeq"
+cli_target="$HOME/.local/bin/marzeq-dotfiles"
 
-  if command -v paru &> /dev/null; then
-    need_paru=false
+if ! command -v git &>/dev/null; then
+  error "git is required to bootstrap dotfiles."
+fi
+
+mkdir -p "$(dirname "$local_share_path")" "$state_dir" "$(dirname "$cli_target")"
+
+cwd="$(pwd)"
+if [[ -d "$cwd/.git" && ! -d "$local_share_path" ]]; then
+  origin_url="$(git -C "$cwd" config --get remote.origin.url 2>/dev/null || true)"
+  if [[ "$origin_url" == *"marzeq/dotfiles"* ]]; then
+    info "Detected local clone in current directory; linking into $local_share_path"
+    ln -sfn "$cwd" "$local_share_path"
   fi
+fi
 
-  if [[ $need_paru == true ]]; then
-    install_paru
-  fi
+if [[ -d "$local_share_path/.git" ]]; then
+  info "Updating existing dotfiles repository..."
+  git -C "$local_share_path" pull --ff-only || error "Failed to update repository."
+else
+  info "Cloning dotfiles repository to $local_share_path..."
+  git clone "https://github.com/marzeq/dotfiles.git" "$local_share_path" || error "Git clone failed."
+fi
 
-  if [[ ${#aur_packages[@]} -gt 0 ]]; then
-    run_or_echo "paru -S --noconfirm ${aur_packages[*]}"
-  fi
 
-  if [[ ${#pacman_packages[@]} -gt 0 ]]; then
-    run_or_echo "sudo pacman -S --noconfirm ${pacman_packages[*]}"
-  fi
-}
+if [[ -f "$local_share_path/marzeq-dotfiles" ]]; then
+  info "Linking CLI to $cli_target"
+  chmod +x "$local_share_path/marzeq-dotfiles" || true
+  ln -sf "$local_share_path/marzeq-dotfiles" "$cli_target"
+else
+  info "Warning: CLI script not found in repository; skipping link."
+fi
 
-install_fonts() {
-  local os="$(uname -s)"
-  local font_dir=""
 
-  case "$os" in
-    Linux*)
-      font_dir="$HOME/.local/share/fonts"
-      ;;
-    Darwin*)
-      font_dir="$HOME/Library/Fonts"
-      ;;
-    *)
-      return 0
-      ;;
-  esac
+info "Bootstrap complete. Repo path: $local_share_path"
 
-  run_or_echo "mkdir -p $font_dir"
-
-  for font in "$@"; do
-    [ -f "$font" ] && run_or_echo "cp -f $font $font_dir/"
-  done
-
-  [ "$os" = "Linux" ] && run_or_echo "fc-cache -f $font_dir >/dev/null 2>&1"
-}
-
-ensure_package() {
-  local dir="$1"
-
-  if [[ -d "$dir" ]]; then
-    return 0
-  else
-    echo "${RED_BOLD}Required directory '$dir' not found. Please make sure you have the full repository and not just the install.sh script.${RESET}"
-    exit 1
-  fi
-}
-
-shells_installed=false
-install_shells() {
-  ensure_package "shells"
-  if $shells_installed; then return; fi
-  echo -e "${BLUE}Installing shells...${RESET}"
-  shells_installed=true
-  install_packages "${SHELLS_DEPS[@]}"
-  [[ -f "$HOME/.bashrc" ]] && run_or_echo "mv $HOME/.bashrc $HOME/.bashrc.bak && echo 'Moved existing .bashrc to .bashrc.bak'"
-  [[ -f "$HOME/.zshrc" ]] && run_or_echo "mv $HOME/.zshrc $HOME/.zshrc.bak && echo 'Moved existing .zshrc to .zshrc.bak'"
-  run_or_echo "stow -t $HOME shells"
-}
-
-neovim_installed=false
-install_neovim() {
-  ensure_package "nvim"
-  if $neovim_installed; then return; fi
-  echo -e "${BLUE}Installing neovim...${RESET}"
-  neovim_installed=true
-  install_packages "${NEOVIM_DEPS[@]}"
-  run_or_echo "stow -t $HOME nvim"
-}
-
-terminal_installed=false
-install_terminal() {
-  ensure_package "terminal"
-  ensure_package "font"
-  if $terminal_installed; then return; fi
-  echo -e "${BLUE}Installing terminal...${RESET}"
-  terminal_installed=true
-  install_packages "${TERMINAL_DEPS[@]}"
-  install_fonts font/*.otf
-  run_or_echo "stow -t $HOME terminal"
-}
-
-desktop_installed=false
-install_desktop() {
-  ensure_package "desktop"
-  install_terminal
-  if $desktop_installed; then return; fi
-  echo -e "${BLUE}Installing desktop...${RESET}"
-  desktop_installed=true
-  install_packages "${DESKTOP_DEPS[@]}"
-  run_or_echo "stow -t $HOME desktop"
-  run_or_echo "sudo systemctl enable gdm"
-  run_or_echo "systemctl --user enable gcr-ssh-agent.socket"
-  run_or_echo "mkdir -p ~/.local/share/ignis"
-  run_or_echo "touch ~/.local/share/ignis/hyprland.conf ~/.config/hypr/monitors.conf ~/.config/hypr/workspaces.conf ~/.config/hypr/hyprland-custom.conf ~/.config/hypr/programs-custom.conf"
-  if ! $DRY_RUN; then
-    echo -e "${BLUE}Make sure you run nwg-displays to configure your displays graphically!${RESET}"
-    echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
-  fi
-}
-
-main() {
-  first_dir="$(pwd)"
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-  cd "$script_dir"
-
-  if [[ $# -eq 0 ]]; then
-    echo "Usage: $0 [--dry-run] <package>"
-    echo "Available packages: shells, neovim, terminal, desktop"
-    echo "Or run $0 [--dry-run] all to install all packages"
-    exit 1
-  fi
-
-  if [[ $1 == "--dry-run" ]]; then
-    DRY_RUN=true
-    echo -e "${BLUE}Dry run mode enabled. No real changes will be made.${RESET}"
-    shift
-  else
-    if [[ ! -f "/etc/arch-release" ]]; then
-      echo "This script is intended for Arch Linux only! You can use the --dry-run option to see what would be done and adapt it to your distro."
-      exit 1
-    fi
-
-    if [[ -f "/run/archiso/cowspace" ]]; then
-      echo "This script is not intended to be run in a live environment! Install Arch Linux properly first and run it there."
-      exit 1
-    fi
-
-    if [[ "$(uname -m)" != "x86_64" ]]; then
-      echo "Do not run this script on non-x86-64 architectures, some of the dependencies are not available easily and might require manual installation."
-      exit 1
-    fi
-
-    echo -e "${RED_BOLD}ATTENTION!${RESET}"
-    echo "By proceeding, you forefit the right to cry and complain to me about anything that might go wrong."
-    echo "You can always use the --dry-run option to see what would be done without actually making any changes and adjust anything you might think is wrong."
-    read -p "Proceed? (y/n) " -n 1 -r
-    echo
-
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      exit
-    fi
-  fi
-
-  run_or_echo "sudo pacman -Syy"
-
-  if [[ $1 == "shells" ]]; then
-    install_shells
-  elif [[ $1 == "neovim" ]]; then
-    install_neovim
-  elif [[ $1 == "terminal" ]]; then
-    install_terminal
-  elif [[ $1 == "desktop" ]]; then
-    install_desktop
-  elif [[ $1 == "all" ]]; then
-    install_shells
-    install_neovim
-    install_terminal
-    install_desktop
-  else
-    echo "Unknown package: $1"
-    cd "$first_dir"
-    exit 1
-  fi
-
-  cd "$first_dir"
-}
-
-main "$@"
+echo
+echo "Run '$cli_target --help' to see available commands for managing the installation."
