@@ -98,3 +98,40 @@ marzeq-dotfiles remove all
 
 - If the CLI is not found, ensure `~/.local/bin` is on your `PATH`.
 - If the repo path is wrong, re-run the bootstrap
+
+## Migration from an old dotfiles setup
+
+If you have installed these dotfiles using the old method (clone and `./install.sh [component]`), you can perform a migration with the instructions below.
+
+**IMPORTANT:**
+
+When migrating, *DO NOT* wget the bootstrap script, as it will re-clone the repo and the CLI tool will break existing stow links. 
+Instead *PLEASE DO* follow the exact steps below to avoid issues:
+
+1. Pull latest changes to the repo to obtain the new bootstrap and management script:
+
+```bash
+cd (wherever you cloned the repo)
+git pull
+```
+
+2. Run the boostrap script:
+
+```bash
+./install.sh
+```
+
+The boostrap script will detect that it lives inside the repo and will not re-clone,
+but it will link it to `~/.local/share/marzeq/dotfiles` and install the CLI tool to `~/.local/bin/marzeq-dotfiles`.
+
+This is to not break the existing stow links and allow you to immediately use the new CLI tool to manage your install going forward.
+
+3. Manually add the components you have previously installed to the CLI's tracking:
+
+```bash
+# example if you had shells and nvim previously installed
+marzeq-dotfiles install shells nvim
+```
+
+After this, the CLI will be aware of the components you have installed and you can use it to manage updates and future installs/removals as normal,
+but the actual repo location and stow links will remain intact and not break.
