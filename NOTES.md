@@ -1,3 +1,8 @@
+# Philosophy
+
+Although I have adapted this configuration to be easy to use by others, it is still primairly aimed towards my use case,
+so it is highly opinionated and not extensively customisable.
+
 # Desktop docs
 
 ## Hyprland customisation
@@ -16,6 +21,8 @@ env = EDITOR,nano # instead of neovim
 ```
 
 ## Keybindings
+
+Default keybindings for the desktop are as follows:
 
 ### Window management
 
