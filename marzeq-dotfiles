@@ -206,6 +206,7 @@ install_desktop() {
   run_or_echo mkdir -p "$HOME/.local/share/ignis"
   run_or_echo touch \
     "$HOME/.local/share/ignis/hyprland.conf" \
+    "$HOME/.local/share/ignis/hyprlock.conf" \
     "$HOME/.config/hypr/monitors.conf" \
     "$HOME/.config/hypr/workspaces.conf" \
     "$HOME/.config/hypr/hyprland-custom.conf" \
