@@ -5,7 +5,7 @@ import util
 app = util.get_app()
 
 
-class ClosePopuper(Widget.Window):
+class ClosePopupWidget(Widget.Window):
     def __init__(self, window_id: int):
         super().__init__(
             visible=False,

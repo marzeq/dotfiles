@@ -63,6 +63,14 @@ general {{
 """
             )
 
+        with open(os.path.expanduser("~/.local/share/ignis/hyprlock.conf"), "w") as f:
+            f.write(
+                f"""
+# Ignis generated Hyprlock config, do not edit
+$primary_monitor={self.primary_monitor}
+"""
+            )
+
     primary_monitor: str = util.hyprland.monitors[0].name
 
     def set_primary_monitor(self, value: str) -> None:
@@ -548,7 +556,7 @@ class SettingsWindow(Widget.RegularWindow):
                                 settings_obj=hyprland_settings,
                                 notify_props=["primary-monitor"],
                             ),
-                            label="Primary monitor (does not affect Hyprland, only the shell)",
+                            label="Primary monitor (affects lockscreen)",
                         ),
                     ],
                 ),

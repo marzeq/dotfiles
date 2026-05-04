@@ -1,8 +1,14 @@
 import os
-from ignis.utils import Utils
 import util
+import gc
+import asyncio
+
+from gi.repository import Gtk  # type: ignore[reportMissingModuleSource]
+
+from ignis.utils import Utils
+
 from widgets.Bar import Bar
-from widgets.ClosePopupers import ClosePopuper
+from widgets.ClosePopupers import ClosePopupWidget
 from widgets.ControlCentre import ControlCentre
 from widgets.Lockscreen import LockProxy
 from widgets.NotifsCalendar import NotifsCalendar
@@ -12,6 +18,11 @@ from widgets.OSD import OSD
 from widgets.Settings import SettingsWindow
 
 app = util.get_app()
+
+settings = Gtk.Settings.get_default()
+if settings is not None:
+    settings.set_property("gtk-application-prefer-dark-theme", True)
+
 dir = Utils.get_current_dir()  # type: ignore
 
 os.makedirs(os.path.expanduser("~/.local/share/ignis"), exist_ok=True)
@@ -34,7 +45,7 @@ util.shell("hyprctl reload")
 
 
 for i, m in enumerate(Utils.get_monitors()):  # type: ignore
-    ClosePopuper(i)
+    ClosePopupWidget(i)
     Bar(i)
     NotificationPopup(i)
     NotifsCalendar(i)
@@ -46,13 +57,13 @@ LauncherProxy()
 SettingsWindow()
 LockProxy()
 
-import gc
-import asyncio
 
 async def cleanup_every(seconds: int):
     while True:
         gc.collect()
         await asyncio.sleep(seconds)
+
+asyncio.create_task(cleanup_every(60))
 
 def cleanup():
     util.sync_shell("gsettings reset org.gnome.desktop.wm.preferences button-layout")
