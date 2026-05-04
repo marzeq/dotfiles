@@ -146,12 +146,10 @@ shells_installed=false
 install_shells() {
   ensure_package shells
   $shells_installed && return
-  info "Installing shells..."
   shells_installed=true
   if ! $SKIP_PACKAGES; then
+    info "Installing shells..."
     install_packages "${SHELLS_DEPS[@]}"
-  else
-    info "Skipping package installs for shells (SKIP_PACKAGES enabled)."
   fi
   [[ -f "$HOME/.bashrc" ]] && run_or_echo mv "$HOME/.bashrc" "$HOME/.bashrc.bak"
   [[ -f "$HOME/.zshrc" ]] && run_or_echo mv "$HOME/.zshrc" "$HOME/.zshrc.bak"
@@ -162,12 +160,10 @@ neovim_installed=false
 install_neovim() {
   ensure_package nvim
   $neovim_installed && return
-  info "Installing neovim..."
   neovim_installed=true
   if ! $SKIP_PACKAGES; then
+    info "Installing neovim..."
     install_packages "${NEOVIM_DEPS[@]}"
-  else
-    info "Skipping package installs for neovim (SKIP_PACKAGES enabled)."
   fi
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" nvim
 }
@@ -177,13 +173,11 @@ install_terminal() {
   ensure_package terminal
   ensure_package font
   $terminal_installed && return
-  info "Installing terminal..."
   terminal_installed=true
   if ! $SKIP_PACKAGES; then
+    info "Installing terminal..."
     install_packages "${TERMINAL_DEPS[@]}"
     install_fonts "$REPO_PATH/font"/*.otf
-  else
-    info "Skipping package and font installs for terminal (SKIP_PACKAGES enabled)."
   fi
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" terminal
 }
@@ -193,12 +187,10 @@ install_desktop() {
   ensure_package desktop
   install_terminal
   $desktop_installed && return
-  info "Installing desktop..."
   desktop_installed=true
   if ! $SKIP_PACKAGES; then
+    info "Installing desktop..."
     install_packages "${DESKTOP_DEPS[@]}"
-  else
-    info "Skipping package installs for desktop (SKIP_PACKAGES enabled)."
   fi
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" desktop
   run_or_echo sudo systemctl enable gdm
