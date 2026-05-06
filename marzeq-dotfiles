@@ -66,7 +66,7 @@ DESKTOP_DEPS=(
 
 install_paru() {
   run_or_echo git clone https://aur.archlinux.org/paru.git /tmp/paru
-  run_or_echo sudo pacmman -S --noconfirm --needed base-devel
+  run_or_echo sudo pacman -S --noconfirm --needed base-devel
   run_or_echo bash -c "cd /tmp/paru && makepkg -si"
   run_or_echo rm -rf /tmp/paru
 }
