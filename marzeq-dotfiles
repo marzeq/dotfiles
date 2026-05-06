@@ -225,6 +225,11 @@ install_desktop() {
   if ! $DRY_RUN; then
     info "Make sure you run nwg-displays to configure your displays graphically!"
     echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
+    read -p "Reboot now? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      run_or_echo systemctl reboot
+    fi
   fi
 }
 
@@ -256,7 +261,7 @@ command_install() {
     error "install requires at least one component or 'all'"
   fi
   if [[ $1 == all ]]; then
-    set -- shells nvim terminal desktop
+    set -- nvim shells terminal desktop
   fi
 
   [[ -f "/etc/arch-release" ]] || error "Arch Linux only."
@@ -280,11 +285,12 @@ command_install() {
 }
 
 command_update() {
-  # support --skip-packages / -s to avoid package installs while reapplying stow
   local skip=false
+
   if [[ "$1" == "--skip-packages" || "$1" == "-s" ]]; then
     skip=true
   fi
+
   if $skip; then
     SKIP_PACKAGES=true
     info "Updating repository (packages will be skipped)..."
@@ -293,19 +299,29 @@ command_update() {
   fi
 
   git -C "$REPO_PATH" pull --ff-only || error "Failed to update repo."
+
   if [[ -f "$INSTALLED_FILE" ]]; then
-    while IFS= read -r comp; do
+    local installed_components=()
+    mapfile -t installed_components < "$INSTALLED_FILE"
+
+    for comp in "${installed_components[@]}"; do
       [[ -z "$comp" ]] && continue
+
       info "Reapplying $comp..."
+
       case "$comp" in
-        shells|neovim|nvim|terminal|desktop) do_install_component "$comp" ;;
-        *) info "Unknown recorded component: $comp; skipping." ;;
+        shells|neovim|nvim|terminal|desktop)
+          do_install_component "$comp"
+          ;;
+        *)
+          info "Unknown recorded component: $comp; skipping."
+          ;;
       esac
-    done < "$INSTALLED_FILE"
+    done
   else
     info "No installed components recorded; nothing to update."
   fi
-  # reset SKIP_PACKAGES to default
+
   SKIP_PACKAGES=false
 }
 
