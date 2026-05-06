@@ -33,9 +33,8 @@ run_or_echo() {
 
 mkdir -p "$STATE_DIR"
 
-# Dependency lists (preserve original groups)
 SHELLS_DEPS=("stow" "zsh" "bash" "git")
-NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl" "tree-sitter-cli")
+NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl" "tree-sitter-cli" "nodejs")
 TERMINAL_DEPS=("stow" "ghostty")
 DESKTOP_DEPS=(
   "stow" "hyprland"
@@ -154,6 +153,17 @@ install_shells() {
   [[ -f "$HOME/.bashrc" ]] && run_or_echo mv "$HOME/.bashrc" "$HOME/.bashrc.bak"
   [[ -f "$HOME/.zshrc" ]] && run_or_echo mv "$HOME/.zshrc" "$HOME/.zshrc.bak"
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" shells
+
+  if ! $DRY_RUN; then
+    read -p "Set zsh as default shell? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      run_or_echo chsh -s "$(which zsh)"
+      info "Default shell set to zsh. You may need to log out and back in for this to take effect."
+    else
+      info "Default shell left unchanged."
+    fi
+  fi
 }
 
 neovim_installed=false
