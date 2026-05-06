@@ -8,7 +8,7 @@ from gi.repository import Gtk  # type: ignore[reportMissingModuleSource]
 from ignis.utils import Utils
 
 from widgets.Bar import Bar
-from widgets.ClosePopupers import ClosePopupWidget
+from widgets.ClosePopupWidget import ClosePopupWidget
 from widgets.ControlCentre import ControlCentre
 from widgets.Lockscreen import LockProxy
 from widgets.NotifsCalendar import NotifsCalendar

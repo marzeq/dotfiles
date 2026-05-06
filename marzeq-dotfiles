@@ -39,7 +39,7 @@ NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl" "tree-sitter-cli")
 TERMINAL_DEPS=("stow" "ghostty")
 DESKTOP_DEPS=(
   "stow" "hyprland"
-  ".AUR:python-ignis" ".AUR:goignis"
+  ".AUR:python-ignis"
   "python-pillow" "python-numpy" "python-rapidfuzz"
   "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
   "python-pam" "python-aiohttp" "python-scikit-learn"
@@ -61,12 +61,12 @@ DESKTOP_DEPS=(
   "fontconfig"
   "nautilus" "gvfs" "gvfs-smb"
   "firefox"
-  ".AUR:ttf-ms-win11-auto"
   "gnome-keyring" "gcr-4"
 )
 
 install_paru() {
   run_or_echo git clone https://aur.archlinux.org/paru.git /tmp/paru
+  run_or_echo sudo pacmman -S --noconfirm --needed base-devel
   run_or_echo bash -c "cd /tmp/paru && makepkg -si"
   run_or_echo rm -rf /tmp/paru
 }
@@ -182,6 +182,14 @@ install_terminal() {
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" terminal
 }
 
+
+install_goignis() {
+  run_or_echo git clone https://aur.archlinux.org/goignis.git /tmp/goignis
+  run_or_echo sudo pacman -S --noconfirm --needed base-devel
+  run_or_echo bash -c "cd /tmp/goignis && makepkg --nocheck -si"
+  run_or_echo rm -rf /tmp/goignis
+}
+
 desktop_installed=false
 install_desktop() {
   ensure_package desktop
@@ -191,6 +199,7 @@ install_desktop() {
   if ! $SKIP_PACKAGES; then
     info "Installing desktop..."
     install_packages "${DESKTOP_DEPS[@]}"
+    install_goignis
   fi
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" desktop
   run_or_echo sudo systemctl enable gdm
