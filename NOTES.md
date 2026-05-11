@@ -7,17 +7,19 @@ so it is highly opinionated and not extensively customisable.
 
 ## Hyprland customisation
 
-Edit the `hyprland-custom.conf` file to overwrite/add any custom hyprland settings you want, that way updating won't cause merge issues.
+Edit the `hyprland-custom.lua` file to overwrite/add any custom hyprland settings you want, that way updating won't cause merge issues.
 
 To overwrite the programs that binds like `super` + `return` (terminal), `super` + `b` (browser) etc. depend on,
-you should look to the `programs-custom.conf` file instead. There, you can change the variables to your desired programs like this:
+you should look to the `programs-custom.lua` file instead. There, you should return a table like this:
 
-```hyprlang
-$terminal = alacritty # instead of ghostty
-$fileManager = thunar # instead of nautilus
-$menu = rofi -show drun # instead of our custom launcher
-$browser = google-chrome-stable # instead of firefox
-env = EDITOR,nano # instead of neovim
+```lua
+return {
+  terminal = "alacritty",
+  fileManager = "thunar",
+  menu = "rofi -show drun",
+  browser = "helium-browser",
+  editor = "nano"
+}
 ```
 
 ## Keybindings

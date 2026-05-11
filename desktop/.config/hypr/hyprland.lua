@@ -228,17 +228,13 @@ hl.gesture({
 
 local mod = "SUPER"
 
-local function bind(keys, dispatcher, opts)
-  hl.bind(keys, dispatcher, opts)
-end
-
 -- apps
-bind(mod .. " + Q", hl.dsp.window.close())
-bind(mod .. " + F", hl.dsp.exec_cmd(fileManager))
-bind(mod .. " + RETURN", hl.dsp.exec_cmd(terminal))
-bind(mod .. " + B", hl.dsp.exec_cmd(browser))
-bind(mod .. " + T", hl.dsp.window.float())
-bind(mod .. " + SPACE", hl.dsp.exec_cmd(menu))
+hl.bind(mod .. " + Q", hl.dsp.window.close())
+hl.bind(mod .. " + F", hl.dsp.exec_cmd(fileManager))
+hl.bind(mod .. " + RETURN", hl.dsp.exec_cmd(terminal))
+hl.bind(mod .. " + B", hl.dsp.exec_cmd(browser))
+hl.bind(mod .. " + T", hl.dsp.window.float())
+hl.bind(mod .. " + SPACE", hl.dsp.exec_cmd(menu))
 local function toggle_layout_action()
   local layout = hl.get_config("general.layout")
 
@@ -248,54 +244,54 @@ local function toggle_layout_action()
     hl.dispatch(hl.dsp.layout("togglesplit"))
   end
 end
-bind(mod .. " + S", toggle_layout_action)
+hl.bind(mod .. " + S", toggle_layout_action)
 
 -- focus
-bind(mod .. " + H", hl.dsp.focus({ direction = "left" }))
-bind(mod .. " + J", hl.dsp.focus({ direction = "down" }))
-bind(mod .. " + K", hl.dsp.focus({ direction = "up" }))
-bind(mod .. " + L", hl.dsp.focus({ direction = "right" }))
+hl.bind(mod .. " + H", hl.dsp.focus({ direction = "left" }))
+hl.bind(mod .. " + J", hl.dsp.focus({ direction = "down" }))
+hl.bind(mod .. " + K", hl.dsp.focus({ direction = "up" }))
+hl.bind(mod .. " + L", hl.dsp.focus({ direction = "right" }))
 
-bind(mod .. " + left",  hl.dsp.focus({ direction = "left" }))
-bind(mod .. " + down",  hl.dsp.focus({ direction = "down" }))
-bind(mod .. " + up",    hl.dsp.focus({ direction = "up" }))
-bind(mod .. " + right", hl.dsp.focus({ direction = "right" }))
+hl.bind(mod .. " + left",  hl.dsp.focus({ direction = "left" }))
+hl.bind(mod .. " + down",  hl.dsp.focus({ direction = "down" }))
+hl.bind(mod .. " + up",    hl.dsp.focus({ direction = "up" }))
+hl.bind(mod .. " + right", hl.dsp.focus({ direction = "right" }))
 
 -- move windows
-bind(mod .. " + SHIFT + H", hl.dsp.window.move({ direction = "up" }))
-bind(mod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }))
-bind(mod .. " + SHIFT + K", hl.dsp.window.move({ direction = "left" }))
-bind(mod .. " + SHIFT + L", hl.dsp.window.move({ direction = "right" }))
+hl.bind(mod .. " + SHIFT + H", hl.dsp.window.move({ direction = "up" }))
+hl.bind(mod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }))
+hl.bind(mod .. " + SHIFT + K", hl.dsp.window.move({ direction = "left" }))
+hl.bind(mod .. " + SHIFT + L", hl.dsp.window.move({ direction = "right" }))
 
-bind(mod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "up" }))
-bind(mod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "down" }))
-bind(mod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "left" }))
-bind(mod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
+hl.bind(mod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "up" }))
+hl.bind(mod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "down" }))
+hl.bind(mod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "left" }))
+hl.bind(mod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
 
-bind(mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
+hl.bind(mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
 
 -- screenshots
-bind(
+hl.bind(
   mod .. " + SHIFT + S",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh area")
 )
 
-bind(
+hl.bind(
   mod .. " + SHIFT + W",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh window")
 )
 
-bind(
+hl.bind(
   mod .. " + SHIFT + M",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh monitor")
 )
 
-bind(
+hl.bind(
   mod .. " + SHIFT + T",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/hypr-ocr.sh")
 )
 
-bind(
+hl.bind(
   mod .. " + SHIFT + C",
   hl.dsp.exec_cmd("hyprpicker -a")
 )
@@ -304,78 +300,78 @@ bind(
 for i = 1, 10 do
   local key = i == 10 and "0" or tostring(i)
 
-  bind(mod .. " + " .. key, hl.dsp.focus({ workspace = tostring(i) }))
+  hl.bind(mod .. " + " .. key, hl.dsp.focus({ workspace = tostring(i) }))
 
-  bind(
+  hl.bind(
     mod .. " + SHIFT + " .. key,
     hl.dsp.window.move({ workspace = tostring(i), follow=false })
   )
 end
 
 -- mouse
-bind(
+hl.bind(
   mod .. " + mouse:272",
   hl.dsp.window.drag(),
   { mouse = true }
 )
 
-bind(
+hl.bind(
   mod .. " + mouse:273",
   hl.dsp.window.resize(),
   { mouse = true }
 )
 
 -- audio
-bind(
+hl.bind(
   "XF86AudioRaiseVolume",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh inc_volume 2"),
   { repeating = true }
 )
 
-bind(
+hl.bind(
   "XF86AudioLowerVolume",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh dec_volume 2"),
   { repeating = true }
 )
 
-bind(
+hl.bind(
   "XF86AudioMute",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh toggle_mute_volume")
 )
 
-bind(
+hl.bind(
   "XF86AudioPlay",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh play_pause")
 )
 
-bind(
+hl.bind(
   "XF86AudioPause",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh pause")
 )
 
-bind(
+hl.bind(
   "XF86MediaPlayPause",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh play_pause")
 )
 
-bind(
+hl.bind(
   "XF86AudioNext",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh next")
 )
 
-bind(
+hl.bind(
   "XF86AudioPrev",
   hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh previous")
 )
 
 -- brightness
-bind(
+hl.bind(
   "XF86MonBrightnessUp",
   hl.dsp.exec_cmd("brightnessctl set +5%"),
   { repeating = true }
 )
 
-bind(
+hl.bind(
   "XF86MonBrightnessDown",
   hl.dsp.exec_cmd("brightnessctl set 5%-"),
   { repeating = true }
