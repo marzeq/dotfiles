@@ -74,7 +74,7 @@ class PowerMenu(ControlCentrePopup):
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
                         or util.shell(
-                            "hyprctl dispatch exit",
+                            "hyprctl dispatch 'hl.dsp.exit()'",
                             before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),

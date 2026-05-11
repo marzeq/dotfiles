@@ -81,7 +81,7 @@ class LauncherPowerOffResult(LauncherResult):
         elif self.action == "reboot":
             util.shell("systemctl reboot")
         elif self.action == "logout":
-            util.shell("hyprctl dispatch exit")
+            util.shell("hyprctl dispatch 'hl.dsp.exit()'")
         elif self.action in ("suspend", "sleep"):
             util.shell("systemctl suspend")
 
