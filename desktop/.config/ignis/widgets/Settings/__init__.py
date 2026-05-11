@@ -43,25 +43,34 @@ class HyprlandSettings(BindableSettings):
         self.acceleration_enabled = value
 
     def sync(self) -> None:
-        with open(os.path.expanduser("~/.local/share/ignis/hyprland.conf"), "w") as f:
+        with open(
+            os.path.expanduser("~/.local/share/ignis/ignis-hyprland.lua"),
+            "w",
+        ) as f:
             f.write(
-                f"""
-# Ignis generated Hyprland config, do not edit
-# Please put manual changes in ~/.config/hypr/hyprland-custom.conf
+f"""-- Ignis generated Hyprland config, do not edit
+-- Please put manual changes in ~/.config/hypr/hyprland-custom.lua
 
-input {{
-    kb_layout = {self.keyboard_layout}
-    kb_variant = {self.keyboard_variant}
+hl.config({{
+    input = {{
+        kb_layout = "{self.keyboard_layout}",
+        kb_variant = "{self.keyboard_variant}",
 
-    sensitivity = {self.pointer_sensitivity}
-    accel_profile = {"flat" if not self.acceleration_enabled else "adaptive"}
-}}
+        sensitivity = {self.pointer_sensitivity},
+        accel_profile = {
+            '"flat"'
+            if not self.acceleration_enabled
+            else '"adaptive"'
+        },
+    }},
 
-general {{
-    layout = {self.layout_type}
-}}
+    general = {{
+        layout = "{self.layout_type}",
+    }},
+}})
 """
             )
+
 
         with open(os.path.expanduser("~/.local/share/ignis/hyprlock.conf"), "w") as f:
             f.write(

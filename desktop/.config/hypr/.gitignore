@@ -2,3 +2,7 @@ hyprlandd.conf
 monitors.conf
 workspaces.conf
 *-custom.conf
+
+monitors.lua
+workspaces.lua
+*-custom.lua
