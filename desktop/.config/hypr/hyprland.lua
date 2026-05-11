@@ -299,7 +299,7 @@ for i = 1, 10 do
 
   bind(
     mod .. " + SHIFT + " .. key,
-    hl.dsp.window.move({ workspace = tostring(i) })
+    hl.dsp.window.move({ workspace = tostring(i), follow=false })
   )
 end
 
