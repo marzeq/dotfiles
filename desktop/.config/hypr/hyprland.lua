@@ -239,7 +239,16 @@ bind(mod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 bind(mod .. " + B", hl.dsp.exec_cmd(browser))
 bind(mod .. " + T", hl.dsp.window.float())
 bind(mod .. " + SPACE", hl.dsp.exec_cmd(menu))
-bind(mod .. " + S", hl.dsp.exec_cmd("~/.config/hypr/scripts/super_s.sh"))
+local function toggle_layout_action()
+  local layout = hl.get_config("general.layout")
+
+  if layout == "master" then
+    hl.dispatch(hl.dsp.layout("swapwithmaster master"))
+  elseif layout == "dwindle" then
+    hl.dispatch(hl.dsp.layout("togglesplit"))
+  end
+end
+bind(mod .. " + S", toggle_layout_action)
 
 -- focus
 bind(mod .. " + H", hl.dsp.focus({ direction = "left" }))
@@ -307,13 +316,13 @@ end
 bind(
   mod .. " + mouse:272",
   hl.dsp.window.drag(),
-  { drag = true }
+  { mouse = true }
 )
 
 bind(
   mod .. " + mouse:273",
   hl.dsp.window.resize(),
-  { drag = true }
+  { mouse = true }
 )
 
 -- audio
