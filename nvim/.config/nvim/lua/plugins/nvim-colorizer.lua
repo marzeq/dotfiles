@@ -29,7 +29,6 @@ return {
             hex = {
               default = true,
               aarrggbb = true,
-              no_hash = true,
             },
           },
         },
