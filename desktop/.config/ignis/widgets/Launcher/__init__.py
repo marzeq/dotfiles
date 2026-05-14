@@ -4,6 +4,7 @@ from gi.repository import Gtk, Gdk  # pyright: ignore[reportMissingModuleSource]
 import util
 import asyncio
 from widgets.Launcher.base_mode import LauncherResult
+from rapidfuzz import fuzz
 
 from .app_mode import AppMode
 from .calc_mode import CalcMode
@@ -195,6 +196,37 @@ class Launcher(Widget.RevealerWindow):
 
     async def _run_search(self, query: str):
         await asyncio.gather(*(mode.update(query, self.refresh_results_layout) for mode in self.modes))
+        self._reorganize_results_by_quality(query)
+        self.refresh_results_layout()
+
+    def _reorganize_results_by_quality(self, query: str):
+        """Reorganize mode sections by best match quality in query"""
+        if not query.strip():
+            # If no query, keep original mode order
+            return
+
+        mode_scores = []
+        for mode in self.modes:
+            visible_results = mode.visible_results()
+            if visible_results:
+                # Get highest fuzzy match score for this mode's results
+                best_score = max(
+                    fuzz.WRatio(query.lower(), result.value.lower())
+                    for result in visible_results
+                )
+                mode_scores.append((best_score, mode))
+
+        # Sort modes by best match score (descending)
+        mode_scores.sort(key=lambda x: x[0], reverse=True)
+
+        # Reorder sections in result_list based on match quality
+        new_sections = [score_mode[1].section for score_mode in mode_scores]
+        # Add any modes without visible results at the end
+        for mode in self.modes:
+            if not any(mode == score_mode[1] for score_mode in mode_scores):
+                new_sections.append(mode.section)
+
+        self.result_list.set_child(new_sections)
 
     def get_results(self) -> list[LauncherResult]:
         return [result for mode in self.modes for result in mode.visible_results()]

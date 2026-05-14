@@ -42,6 +42,7 @@ class CalcMode(LauncherMode):
             return
 
         result_widget.set_value(result)
+        result_widget.result = result
         result_widget.visible = True
         self.section.visible = True
         refresh()
