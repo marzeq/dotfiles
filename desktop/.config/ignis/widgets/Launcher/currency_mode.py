@@ -34,6 +34,9 @@ class CurrencyMode(LauncherMode):
 
         ok, amount, source, target = parse_currency_query(q)
         if not ok or amount is None or source is None:
+            result_widget.visible = False
+            self.section.visible = False
+            refresh()
             return
 
         calculated = await calculate(amount, source, target)
@@ -47,6 +50,8 @@ class CurrencyMode(LauncherMode):
         result_text = f"{calculated} {target or launcher_settings.preferred_currency}"
 
         result_widget.set_value(result_text)
+        result_widget.amount = calculated
+        result_widget.target = target or launcher_settings.preferred_currency
         result_widget.visible = True
         self.section.visible = True
         refresh()
@@ -56,11 +61,10 @@ class CurrencyMode(LauncherMode):
             return
 
         result = self.results[0]
-        if isinstance(result, LauncherCurrencyResult) and result.result is not None:
+        if isinstance(result, LauncherCurrencyResult) and hasattr(result, 'amount') and hasattr(result, 'target'):
+            entry_text = f"{result.amount} {result.target}"
             if self.launcher is not None:
-                self.launcher.set_entry_text(f"{result.result}")
-            if util.has_command("wl-copy"):
-                util.shell(f"wl-copy {shlex.quote(result.result)}")
+                self.launcher.set_entry_text(entry_text)
 
 
 class LauncherCurrencyResult(LauncherResult):
@@ -72,6 +76,8 @@ class LauncherCurrencyResult(LauncherResult):
             css_classes=["launcher-result-value"],
         )
         self.result = result
+        self.amount: float = 0.0
+        self.target: str = ""
 
 
 ParseResult = (
