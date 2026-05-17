@@ -57,6 +57,8 @@ keybind = "alt+j=goto_split:bottom"
 keybind = "alt+k=goto_split:top"
 keybind = "alt+l=goto_split:right"
 
+keybind = "alt+space=toggle_quick_terminal"
+
 keybind = "alt+shift+q=close_surface"
 
 keybind = "ctrl+shift+v=paste_from_clipboard"

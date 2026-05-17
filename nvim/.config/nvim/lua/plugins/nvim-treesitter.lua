@@ -11,6 +11,10 @@ return {
     },
     init = function()
       vim.filetype.add({
+        pattern = { [".*/hypr/.*%.conf"] = "hyprlang" },
+      })
+
+      vim.filetype.add({
         pattern = { [".*%.mconf"] = "mconf" },
       })
 
