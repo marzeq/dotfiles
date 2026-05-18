@@ -25,10 +25,32 @@ return {
         { "J", "mzJ`z", desc = "Join line below", mode = "n" },
 
         { "<Esc>", [[<C-\><C-n>]], desc = "Exit terminal mode", mode = "t" },
-        { "<leader>s", ":%s/\\<<C-r><C-w>\\>//g<left><left>", desc = "Substitute word under cursor", mode = "n" },
+        {
+          "<leader>s",
+          function()
+            local word = vim.fn.expand("<cword>")
+
+            vim.ui.input({
+              prompt = "Rename: ",
+              default = word,
+            }, function(input)
+              if not input or input == "" or input == word then
+                return
+              end
+
+              local pattern = ([[\V\<%s\>]]):format(vim.fn.escape(word, [[\]]))
+              local replacement = vim.fn.escape(input, [[\/]])
+
+              vim.cmd(("%%s/%s/%s/g"):format(pattern, replacement))
+            end)
+          end,
+          desc = "Substitute word under cursor",
+          mode = "n",
+        },
 
         { "gy", '"+y', desc = "Yank to system clipboard", mode = { "n", "v", "x" } },
         { "gp", '"+p', desc = "Paste from system clipboard", mode = { "n", "v", "x" } },
+        { "gX", '"+d', desc = "Cut to system clipboard", mode = { "n", "v", "x" } } ,
       })
     end,
   },

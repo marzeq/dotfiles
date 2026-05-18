@@ -12,12 +12,17 @@ return {
           css = {
             parsers = {
               css = true,
+              css_fn = true,
+              css_var = { enable = true, parsers = { css = true } },
             },
           },
 
           scss = {
             parsers = {
               css = true,
+              css_fn = true,
+              sass = { enable = true },
+              css_var = { enable = true, parsers = { css = true } },
             },
           },
         },

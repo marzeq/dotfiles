@@ -30,6 +30,14 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.linebreak = true
   end,
 })
+-- typst force wrap
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "typst",
+  callback = function()
+    vim.opt_local.wrap = true
+    vim.opt_local.linebreak = true
+  end,
+})
 -- make comments work in json files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "json",
@@ -137,11 +145,3 @@ o.title = true
 -- ignore case in search patterns
 o.ignorecase = true
 o.smartcase = true
-
--- honestly i don't remember what this does
-o.foldmethod = "expr"
-o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-o.foldtext = "v:lua.vim.treesitter.foldtext()"
-vim.api.nvim_command(
-  "autocmd BufEnter * if !exists('b:entered_once') | let b:entered_once = 1 | set nofoldenable | endif"
-)

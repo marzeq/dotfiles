@@ -1,6 +1,8 @@
 from __future__ import annotations
+from ignis.services.applications.application import Application
+from ignis.services.applications.service import ApplicationsService
 from ignis.widgets import Widget
-from gi.repository import Gtk, Gdk  # pyright: ignore[reportMissingModuleSource]
+from gi.repository import Gio, Gtk, Gdk  # pyright: ignore[reportMissingModuleSource]
 import util
 import asyncio
 from widgets.Launcher.base_mode import LauncherResult
@@ -125,6 +127,34 @@ class Launcher(Widget.RevealerWindow):
             "notify::visible",
             self._on_visible_changed,
         )
+
+        applications = ApplicationsService.get_default()
+
+
+        def refresh_apps():
+            applications._apps = {}
+
+            for app in Gio.AppInfo.get_all():
+                if isinstance(app, Gio.DesktopAppInfo):
+                    if app.get_nodisplay():
+                        continue
+
+                    obj = Application(app=app)
+
+                    applications._apps[obj.id] = obj
+
+            applications.notify("apps")
+            applications.notify("pinned")
+
+
+        async def refresh_apps_loop():
+            while True:
+                await asyncio.sleep(30)
+                refresh_apps()
+                self._build_result_tree()
+                
+
+        asyncio.create_task(refresh_apps_loop())
 
         self.update_mode_and_list()
 
