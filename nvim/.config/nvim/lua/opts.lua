@@ -11,48 +11,46 @@ g.have_nerd_font = true
 
 -- indent options
 local indent_size = 2
-o.tabstop = indent_size
-o.softtabstop = indent_size
-o.shiftwidth = indent_size
-o.expandtab = true
+
+local function set_indent(size, options)
+  options.tabstop = size
+  options.softtabstop = size
+  options.shiftwidth = size
+  options.expandtab = true
+end
+set_indent(indent_size, o)
+
+local function set_wrap(options)
+  options.wrap = true
+  options.linebreak = true
+end
 
 -- relative line numbers
 o.relativenumber = true
 
--- markdown force indent settings
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "markdown",
   callback = function()
-    vim.opt_local.tabstop = indent_size
-    vim.opt_local.softtabstop = indent_size
-    vim.opt_local.shiftwidth = indent_size
-    vim.opt_local.wrap = true
-    vim.opt_local.linebreak = true
+    set_indent(indent_size, vim.opt_local)
+    set_wrap(vim.opt_local)
   end,
 })
--- typst force wrap
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "typst",
   callback = function()
-    vim.opt_local.wrap = true
-    vim.opt_local.linebreak = true
+    set_wrap(vim.opt_local)
   end,
 })
--- make comments work in json files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "json",
   callback = function()
     vim.opt_local.filetype = "jsonc"
   end,
 })
-
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",
   callback = function()
-    vim.opt_local.expandtab = true
-    vim.opt_local.shiftwidth = indent_size
-    vim.opt_local.tabstop = indent_size
-    vim.opt_local.softtabstop = indent_size
+    set_indent(indent_size, vim.opt_local)
   end,
 })
 
