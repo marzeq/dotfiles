@@ -107,6 +107,7 @@ class Launcher(Widget.RevealerWindow):
             PowerOffMode(),
             CurrencyMode(),
         ]
+        self._displayed_modes: list[LauncherMode] = list(self.modes)
 
         self._build_result_tree()
 
@@ -232,34 +233,32 @@ class Launcher(Widget.RevealerWindow):
     def _reorganize_results_by_quality(self, query: str):
         """Reorganize mode sections by best match quality in query"""
         if not query.strip():
-            # If no query, keep original mode order
+            self._displayed_modes = list(self.modes)
+            self.result_list.set_child([mode.section for mode in self._displayed_modes])
             return
 
         mode_scores = []
         for mode in self.modes:
             visible_results = mode.visible_results()
             if visible_results:
-                # Get highest fuzzy match score for this mode's results
                 best_score = max(
                     fuzz.WRatio(query.lower(), result.value.lower())
                     for result in visible_results
                 )
                 mode_scores.append((best_score, mode))
 
-        # Sort modes by best match score (descending)
         mode_scores.sort(key=lambda x: x[0], reverse=True)
 
-        # Reorder sections in result_list based on match quality
-        new_sections = [score_mode[1].section for score_mode in mode_scores]
-        # Add any modes without visible results at the end
+        new_modes = [score_mode[1] for score_mode in mode_scores]
         for mode in self.modes:
-            if not any(mode == score_mode[1] for score_mode in mode_scores):
-                new_sections.append(mode.section)
+            if mode not in new_modes:
+                new_modes.append(mode)
 
-        self.result_list.set_child(new_sections)
+        self._displayed_modes = new_modes
+        self.result_list.set_child([mode.section for mode in self._displayed_modes])
 
     def get_results(self) -> list[LauncherResult]:
-        return [result for mode in self.modes for result in mode.visible_results()]
+        return [result for mode in self._displayed_modes for result in mode.visible_results()]
 
     def reset_scroll_state(self):
         self.scroller.get_vadjustment().set_value(0)
