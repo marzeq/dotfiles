@@ -11,9 +11,8 @@ from widgets.Bar import Bar
 from widgets.ClosePopupWidget import ClosePopupWidget
 from widgets.ControlCentre import ControlCentre
 from widgets.Lockscreen import LockProxy
-from widgets.NotifsCalendar import NotifsCalendar
+from widgets.Calendar import Calendar
 from widgets.Launcher import LauncherProxy, Launcher
-from widgets.NotificationPopup import NotificationPopup
 from widgets.OSD import OSD
 from widgets.Settings import SettingsWindow
 
@@ -47,8 +46,7 @@ util.shell("hyprctl reload")
 for i, m in enumerate(Utils.get_monitors()):  # type: ignore
     ClosePopupWidget(i)
     Bar(i)
-    NotificationPopup(i)
-    NotifsCalendar(i)
+    Calendar(i)
     ControlCentre(i)
     Launcher(i, m)
 

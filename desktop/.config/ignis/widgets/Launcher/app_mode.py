@@ -47,10 +47,32 @@ app_settings = AppSettings()
 class AppMode(LauncherMode):
     def build(self, launcher):
         super().build(launcher)
-        self.all_results = [LauncherAppResult(app, self) for app in app_settings.visible_apps]
+        self._results_by_id: dict[str, LauncherAppResult] = {}
+        self.all_results: list[LauncherAppResult] = []
+        self.refresh_apps()
+        return self.section
+
+    def refresh_apps(self) -> None:
+        refreshed_results: list[LauncherAppResult] = []
+        refreshed_by_id: dict[str, LauncherAppResult] = {}
+
+        for app in app_settings.visible_apps:
+            app_id = app.id
+            result = self._results_by_id.get(app_id)
+            if result is None:
+                result = LauncherAppResult(app, self)
+            else:
+                result.app = app
+                if result.value != app.name:
+                    result.set_value(app.name)
+
+            refreshed_results.append(result)
+            refreshed_by_id[app_id] = result
+
+        self._results_by_id = refreshed_by_id
+        self.all_results = refreshed_results
         self.set_results(self.all_results)
         self.section.visible = bool(self.results)
-        return self.section
 
     async def update(self, query: str, refresh):
         query = query.strip().lower()

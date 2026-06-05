@@ -1,16 +1,13 @@
 from ignis.widgets import Widget
 import util
-from widgets.NotifsCalendar.calendar import Calendar
-from widgets.NotifsCalendar.notifications import Notifications
+from widgets.Calendar.calendar import Calendar as _Calendar
 from gi.repository import Gtk  # pyright: ignore[reportMissingModuleSource]
 
 app = util.get_app()
 
 
-class NotifsCalendar(Widget.RevealerWindow):
+class Calendar(Widget.RevealerWindow):
     def __init__(self, monitor: int):
-        self.notifications = Notifications()
-
         revealer = Widget.Revealer(
             transition_type="slide_down",
             child=Widget.Box(
@@ -21,8 +18,7 @@ class NotifsCalendar(Widget.RevealerWindow):
                         column_num=2,
                         css_classes=["notifs-calendar"],
                         child=[
-                            self.notifications,
-                            Calendar(),
+                            _Calendar(),
                         ],
                     )
                 ],
@@ -67,8 +63,3 @@ class NotifsCalendar(Widget.RevealerWindow):
             if x[1] == 65307
             else None,
         )  # 65307 = ESC
-
-        self.connect(
-            "notify::visible",
-            lambda *_: self.notifications.set_calendar_visible(self.visible),
-        )

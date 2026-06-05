@@ -47,19 +47,7 @@ keybind = "ctrl+shift+zero=reset_font_size"
 
 keybind = "alt+shift+r=reload_config"
 
-keybind = "alt+shift+h=new_split:left"
-keybind = "alt+shift+j=new_split:down"
-keybind = "alt+shift+k=new_split:up"
-keybind = "alt+shift+l=new_split:right"
-
-keybind = "alt+h=goto_split:left"
-keybind = "alt+j=goto_split:bottom"
-keybind = "alt+k=goto_split:top"
-keybind = "alt+l=goto_split:right"
-
 keybind = "alt+space=toggle_quick_terminal"
-
-keybind = "alt+shift+q=close_surface"
 
 keybind = "ctrl+shift+v=paste_from_clipboard"
 keybind = "ctrl+shift+c=copy_to_clipboard"

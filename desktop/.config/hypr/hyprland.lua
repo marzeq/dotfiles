@@ -80,8 +80,6 @@ end)
 hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
 hl.env("HOST_LC_ALL", "$LANG")
 
-hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
-
 hl.env("GDK_BACKEND", "wayland,x11,*")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
