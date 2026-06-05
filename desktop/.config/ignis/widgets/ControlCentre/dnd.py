@@ -1,33 +1,27 @@
-from ignis.options import options
+import util
 from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
+
+def get_dnd() -> bool:
+    out = util.sync_shell("swaync-client -D")
+    if out is None or out.strip() == "":
+        return False
+
+    return out.strip() == "true"
+
+def toggle_dnd() -> bool:
+    out = util.sync_shell("swaync-client -d")
+    if out is None or out.strip() == "":
+        return False
+
+    return out.strip() == "true"
 
 class DNDWidget(ControlCentreWidget):
     def __init__(self):
-        if not options or not options.notifications:
-            raise Exception("Notifications options not available")
-
         super().__init__(
-            icon=options.notifications.bind(
-                "dnd",
-                lambda dnd: "notifications-disabled-symbolic"
-                if dnd
-                else "notifications-symbolic",
-            ),
+            icon="notifications-disabled-symbolic",
             labels=CCWLabels("Do Not Disturb"),
-            on_click=lambda _: options.notifications.set_dnd(
-                not options.notifications.dnd
-            ) if options and options.notifications else None,
+            on_click=lambda _: self.set_disabled(not toggle_dnd()),
         )
 
-        self.set_disabled(not options.notifications.dnd)  # type: ignore
+        self.set_disabled(not get_dnd())
 
-        def on_options_changed(_, name: str):
-            if not options or not options.notifications:
-                return
-            if name != "dnd":
-                return
-            self.set_disabled(not options.notifications.dnd)
-
-        options.notifications.connect(
-            "changed", on_options_changed,
-        )  # type: ignore

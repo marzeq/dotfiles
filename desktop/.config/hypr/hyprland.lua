@@ -61,6 +61,7 @@ local autostart = {
 	"awww-daemon",
 	"~/.config/hypr/scripts/set_curr_wallpaper.sh first-start",
 	"goignis init",
+  "swaync",
 	"wl-clip-persist --clipboard regular",
 	"hypridle",
 	"~/.config/hypr/scripts/autostart.sh",

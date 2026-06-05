@@ -38,6 +38,7 @@ NEOVIM_DEPS=("stow" "neovim" "fzf" "ripgrep" "curl" "tree-sitter-cli" "nodejs")
 TERMINAL_DEPS=("stow" "ghostty")
 DESKTOP_DEPS=(
   "stow" "hyprland"
+  "swaync"
   ".AUR:python-ignis"
   "python-pillow" "python-numpy" "python-rapidfuzz"
   "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
