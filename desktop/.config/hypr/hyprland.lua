@@ -268,6 +268,9 @@ hl.bind(mod .. " + SHIFT + right", hl.dsp.window.move { direction = "right" })
 
 hl.bind(mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
 
+-- misc
+hl.bind(mod .. " + N", hl.dsp.exec_cmd("swaync-client -t"))
+
 -- screenshots
 hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh area"))
 

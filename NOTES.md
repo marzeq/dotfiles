@@ -41,9 +41,10 @@ Default keybindings for the desktop are as follows:
 
 ### Shell
 
-| Keys              | Action          |
-|-------------------|-----------------|
-| `super` + `space` | Open launcher   |
+| Keys              | Action                   |
+|-------------------|--------------------------|
+| `super` + `space` | Open launcher            |
+| `super` + `n`     | Toggle notification view |
 
 ### Applications
 
