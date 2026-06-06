@@ -88,13 +88,6 @@ class Bar(Widget.Window):
 
         hypr_monitor = [m for m in HyprlandService.get_default().monitors if m.name == monitor_name][0] # type: ignore
 
-        def set_cb_style():
-            style = ""
-            if m2_notch:
-                mh = 56 / hypr_monitor.scale
-                style = f"min-height: {mh}px;"
-            cb.style = style
-
         def on_scale_changed(*_):
             style = ""
             if m2_notch:
