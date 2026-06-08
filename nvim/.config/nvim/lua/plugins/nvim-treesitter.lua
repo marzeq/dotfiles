@@ -45,7 +45,7 @@ return {
           if is_available then
             require("nvim-treesitter").install(lang):await(function ()
               vim.treesitter.start()
-              require("nvim-treesitter").indentexpr()
+              vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
             end)
           end
         end,

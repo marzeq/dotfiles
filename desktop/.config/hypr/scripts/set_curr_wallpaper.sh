@@ -14,7 +14,8 @@ else
   fi
 fi
 
-ln -s "$wallpaper" ~/.local/state/wallpaper
+mkdir -p ~/.local/state
+ln -sf "$wallpaper" ~/.local/state/wallpaper
 
 awww img "$wallpaper" \
   --transition-fps=144 \
