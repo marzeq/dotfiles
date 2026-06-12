@@ -50,7 +50,13 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",
   callback = function()
-    set_indent(indent_size, vim.opt_local)
+    set_indent(4, vim.opt_local)
+  end,
+})
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "cs",
+  callback = function()
+    set_indent(4, vim.opt_local)
   end,
 })
 

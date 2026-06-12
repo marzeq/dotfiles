@@ -42,7 +42,7 @@ DESKTOP_DEPS=(
   ".AUR:python-ignis"
   "python-pillow" "python-numpy" "python-rapidfuzz"
   "gnome-bluetooth-3.0" "dart-sass" "brightnessctl" "playerctl"
-  "python-pam" "python-aiohttp" "python-scikit-learn"
+  "python-pam" "python-aiohttp" "python-scikit-learn" "python-narwhals"
   "power-profiles-daemon" "bc" "cantarell-fonts"
   "gdm"
   "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit-gnome"
@@ -217,12 +217,12 @@ install_desktop() {
   run_or_echo systemctl --user enable gcr-ssh-agent.socket
   run_or_echo mkdir -p "$HOME/.local/share/ignis"
   run_or_echo touch \
-    "$HOME/.local/share/ignis/hyprland.conf" \
+    "$HOME/.local/share/ignis/hyprland.lua" \
     "$HOME/.local/share/ignis/hyprlock.conf" \
     "$HOME/.config/hypr/monitors.conf" \
     "$HOME/.config/hypr/workspaces.conf" \
-    "$HOME/.config/hypr/hyprland-custom.conf" \
-    "$HOME/.config/hypr/programs-custom.conf"
+    "$HOME/.config/hypr/hyprland-custom.lua" \
+    "$HOME/.config/hypr/programs-custom.lua"
   if ! $DRY_RUN; then
     info "Make sure you run nwg-displays to configure your displays graphically!"
     echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
