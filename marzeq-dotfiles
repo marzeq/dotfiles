@@ -47,7 +47,7 @@ DESKTOP_DEPS=(
   "gdm"
   "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit-gnome"
   "qt5-wayland" "qt6-wayland"
-  "pipewire" "pipewire-pulse" "pipewire-jack" "pipewire-alsa"
+  "pipewire" "pipewire-pulse" "pipewire-alsa"
   "gst-plugin-pipewire" "alsa-utils"
   "swww" "hyprpicker" "hypridle"
   "hyprshot" "grim" "slurp"
