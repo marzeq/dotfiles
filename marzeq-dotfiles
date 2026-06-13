@@ -49,7 +49,7 @@ DESKTOP_DEPS=(
   "qt5-wayland" "qt6-wayland"
   "pipewire" "pipewire-pulse" "pipewire-alsa"
   "gst-plugin-pipewire" "alsa-utils"
-  "swww" "hyprpicker" "hypridle"
+  "swww" "hyprpicker" "hypridle" "hyprlock"
   "hyprshot" "grim" "slurp"
   "imagemagick" "tesseract" "tesseract-data-eng"
   ".PARU"
