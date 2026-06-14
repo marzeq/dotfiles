@@ -59,7 +59,7 @@ mkdir -p "${OVERRIDE_DIR}"
 
 cat > "${OVERRIDE_FILE}" <<EOF
 [Service]
-ExecStartPost=bash -c 'sleep 1 && ${SWITCH_COMMAND}'
+ExecStartPost=/usr/bin/systemd-run --collect --quiet --on-active=5s ${SWITCH_COMMAND}
 ExecStop=${SWITCH_COMMAND} off
 EOF
 
@@ -112,13 +112,15 @@ cat > "${SWITCH_COMMAND}" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
+mkdir -p "${HOME_DIR}/.config/OpenRGB"
+
 accent_file="${HOME_DIR}/.local/share/ignis/accent.txt"
 
 if ! [ -f "\${accent_file}" ] || [[ "\${1:-}" == "off" ]]; then
-  openrgb --mode direct --color 000000
+  openrgb --config ${HOME_DIR}/.config/OpenRGB --mode direct --color 000000
   exit 0
 fi
-openrgb --mode direct --color \$(cat ${HOME_DIR}/.local/share/ignis/accent.txt)
+openrgb --config ${HOME_DIR}/.config/OpenRGB --mode direct --color \$(cat ${HOME_DIR}/.local/share/ignis/accent.txt)
 EOF
 chmod +x "${SWITCH_COMMAND}"
 
