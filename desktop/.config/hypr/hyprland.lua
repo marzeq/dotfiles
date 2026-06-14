@@ -35,16 +35,18 @@ if file_exists(workspaces) then
 	require("workspaces")
 end
 
-local programsCustom = config .. "/programs-custom.lua"
-local programs = {}
+local optsFp = config .. "/opts.lua"
+local opts = {}
 
-if file_exists(programsCustom) then
-	programs = require("programs-custom")
+if file_exists(optsFp) then
+	opts = require("opts")
 end
 
 -- ┌──────────┐
 -- │ PROGRAMS │
 -- └──────────┘
+
+local programs = opts.programs or {}
 
 local terminal = programs.terminal or "ghostty"
 local fileManager = programs.fileManager or "nautilus --new-window"
@@ -224,7 +226,12 @@ hl.gesture {
 -- │ KEYBINDINGS  │
 -- └──────────────┘
 
-local mod = "SUPER"
+local mod = opts.mod or "SUPER"
+local mod2 = opts.mod2 or "ALT"
+
+if mod == mod2 then
+  error("mod and mod2 cannot be the same key")
+end
 
 -- apps
 hl.bind(mod .. " + Q", hl.dsp.window.close())
@@ -283,12 +290,36 @@ hl.bind(mod .. " + SHIFT + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/hypr-ocr.
 hl.bind(mod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))
 
 -- workspaces
+
+local monitoropts = opts.monitoropts or {}
+local virtualworkspaces = true
+if opts.virtualworkspaces ~= nil then
+  virtualworkspaces = opts.virtualworkspaces
+end
+
+local vws = virtualworkspaces and require("virtual-ws")(monitoropts) or nil
+
 for i = 1, 10 do
 	local key = i == 10 and "0" or tostring(i)
 
-	hl.bind(mod .. " + " .. key, hl.dsp.focus { workspace = tostring(i) })
+  if vws then
+    hl.bind(mod .. " + " .. key, vws.goto_vws(i))
+  else
+    hl.bind(mod .. " + " .. key, hl.dsp.focus({ workspace = tostring(i) }))
+  end
 
-	hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move { workspace = tostring(i), follow = false })
+  if vws then
+    hl.bind(mod .. " + SHIFT + " .. key, vws.move_to_vws(i, { follow = false }))
+  else
+    hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move { workspace = tostring(i), follow = false })
+  end
+end
+
+-- monitor focus
+for _, monitor in ipairs(hl.get_monitors()) do
+  local key = monitor.id + 1
+
+  hl.bind(mod2 .. " + " .. key, hl.dsp.focus { monitor = monitor.name })
 end
 
 -- mouse

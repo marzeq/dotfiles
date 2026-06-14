@@ -6,3 +6,4 @@ workspaces.conf
 monitors.lua
 workspaces.lua
 *-custom.lua
+opts.lua

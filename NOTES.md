@@ -7,20 +7,40 @@ so it is highly opinionated and not extensively customisable.
 
 ## Hyprland customisation
 
-Edit the `hyprland-custom.lua` file to overwrite/add any custom hyprland settings you want, that way updating won't cause merge issues.
+### Overwriting settings
 
-To overwrite the programs that binds like `super` + `return` (terminal), `super` + `b` (browser) etc. depend on,
-you should look to the `programs-custom.lua` file instead. There, you should return a table like this:
+To modify the values the main config depends on, edit the `opts.lua` file.
+
+The spec is:
 
 ```lua
 return {
-  terminal = "alacritty",
-  fileManager = "thunar",
-  menu = "rofi -show drun",
-  browser = "helium-browser",
-  editor = "nano"
+  -- overwrites for programs launched by keybindings
+  programs = {
+    terminal = "alacritty",
+    fileManager = "thunar",
+    menu = "rofi -show drun",
+    browser = "helium-browser",
+    editor = "nano"
+  },
+  mod = "SUPER", -- mod key
+  mod2 = "ALT", -- alt mod key, used for some keybindings
+  monitoropts = {
+    ["DP-1"] = {
+      -- workspace rules but for each monitor
+      -- same as workspace rules, but the monitor and workspace key will be overwritten
+      -- by the config, so you only need to specify things like layout_opts etc.
+    }
+  },
+  virtualworkspaces = false, -- whether to use virtual workspaces or not, if false, workspaces will be per monitor. note - if set to true, monitoropts has no effect
 }
 ```
+
+If things are not provided, a default value will be used, so you only need to specify the values you want to change.
+
+### Custom config additions
+
+Edit the `hyprland-custom.lua` file to overwrite/add any custom hyprland settings you want, that way updating won't cause merge issues.
 
 ## Keybindings
 
@@ -30,46 +50,53 @@ Default keybindings for the desktop are as follows:
 
 | Keys                                                 | Action                                      |
 |------------------------------------------------------|---------------------------------------------|
-| `super` + `q`                                        | Kill active window                          |
-| `super` + `t`                                        | Toggle floating                             |
-| `super` + `s`                                        | Swap slave with master/Toggle dwindle split |
-| `super` + `shift` + `f`                              | Fullscreen                                  |
-| `super` + `h` / `j` / `k` / `l`                      | Move focus                                  |
-| `super` + `left` / `down` / `up` / `right`           | Move focus                                  |
-| `super` + `shift` + `h` / `j` / `k` / `l`            | Move window                                 |
-| `super` + `shift` + `left` / `down` / `up` / `right` | Move window                                 |
+| `mod` + `q`                                          | Kill active window                          |
+| `mod` + `t`                                          | Toggle floating                             |
+| `mod` + `s`                                          | Swap slave with master/Toggle dwindle split |
+| `mod` + `shift` + `f`                                | Fullscreen                                  |
+| `mod` + `h` / `j` / `k` / `l`                        | Move focus                                  |
+| `mod` + `left` / `down` / `up` / `right`             | Move focus                                  |
+| `mod` + `shift` + `h` / `j` / `k` / `l`              | Move window                                 |
+| `mod` + `shift` + `left` / `down` / `up` / `right`   | Move window                                 |
 
 ### Shell
 
 | Keys              | Action                   |
 |-------------------|--------------------------|
-| `super` + `space` | Open launcher            |
-| `super` + `n`     | Toggle notification view |
+| `mod` + `space`   | Open launcher            |
+| `mod` + `n`       | Toggle notification view |
 
 ### Applications
 
 | Keys               | Action            |
 |--------------------|-------------------|
-| `super` + `return` | Open terminal     |
-| `super` + `b`      | Open browser      |
-| `super` + `f`      | Open file manager |
+| `mod` + `return`   | Open terminal     |
+| `mod` + `b`        | Open browser      |
+| `mod` + `f`        | Open file manager |
 
-### Workspaces
+### Workspaces/monitor
 
 | Keys                        | Action                        |
 |-----------------------------|-------------------------------|
-| `super` + `1`–`0`           | Switch to workspace 1–10      |
-| `super` + `shift` + `1`–`0` | Move window to workspace 1–10 |
+| `mod` + `1`–`0`             | Switch to workspace 1–10      |
+| `mod` + `shift` + `1`–`0`   | Move window to workspace 1–10 |
+| `mod2` + `1`–`0`            | Switch to monitor 1–10        |
+
+#### What are virtual workspaces and how do they differ from regular workspaces
+
+Virtual workspaces are our own concept. Each virtual workspace spans
+across all monitors instead of being tied to a specific monitor -
+similar to GNOME's, KDE's and Windows' workspaces/virtual desktops.
 
 ### Screenshots / OCR / Colour picker
 
 | Keys                    | Action             |
 |-------------------------|--------------------|
-| `super` + `shift` + `s` | Area screenshot    |
-| `super` + `shift` + `w` | Window screenshot  |
-| `super` + `shift` + `m` | Monitor screenshot |
-| `super` + `shift` + `t` | OCR script         |
-| `super` + `shift` + `c` | Colour picker      |
+| `mod` + `shift` + `s`   | Area screenshot    |
+| `mod` + `shift` + `w`   | Window screenshot  |
+| `mod` + `shift` + `m`   | Monitor screenshot |
+| `mod` + `shift` + `t`   | OCR script         |
+| `mod` + `shift` + `c`   | Colour picker      |
 
 ## Unbinding
 

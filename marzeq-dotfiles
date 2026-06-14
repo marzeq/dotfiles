@@ -216,13 +216,15 @@ install_desktop() {
   run_or_echo sudo systemctl enable gdm
   run_or_echo systemctl --user enable gcr-ssh-agent.socket
   run_or_echo mkdir -p "$HOME/.local/share/ignis"
+  local optsf="$HOME/.config/hypr/opts.lua"
+  [[ -f "$optsf" ]] || run_or_echo echo "return {}" > "$optsf"
   run_or_echo touch \
     "$HOME/.local/share/ignis/hyprland.lua" \
     "$HOME/.local/share/ignis/hyprlock.conf" \
     "$HOME/.config/hypr/monitors.conf" \
     "$HOME/.config/hypr/workspaces.conf" \
-    "$HOME/.config/hypr/hyprland-custom.lua" \
-    "$HOME/.config/hypr/programs-custom.lua"
+    "$HOME/.config/hypr/hyprland-custom.lua"
+
   if ! $DRY_RUN; then
     info "Make sure you run nwg-displays to configure your displays graphically!"
     echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
