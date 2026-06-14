@@ -105,6 +105,10 @@ function prompt() {
   local EXIT_CODE_COLOR=$green
   [[ $LAST_EXIT_CODE -ne 0 ]] && EXIT_CODE_COLOR=$red
 
+  local IS_ROOT=0
+  [[ $EUID -eq 0 ]] && IS_ROOT=1
+  [[ $IS_ROOT -eq 1 ]] && ENV_FORMAT+="${yellow}󰨐${reset} "
+
   PROMPT="${dim}${ENV_FORMAT}${reset}${cyan}%1~${reset}${BRANCH_FORMAT} ${bold}${EXIT_CODE_COLOR}❭ ${reset}"
 }
 
