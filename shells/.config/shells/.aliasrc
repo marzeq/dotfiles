@@ -140,6 +140,9 @@ if hascmd git; then
     elif [[ "$origin_url" == *codeberg.org* ]]; then
       local branch=$(git branch --show-current)
       origin_url="$origin_url/src/branch/$branch"
+    elif [[ "$origin_url" == *git.marzeq.foo* ]]; then
+      local branch=$(git branch --show-current)
+      origin_url="$origin_url.git/tree/$branch"
     fi
     
     echo "Opening $origin_url"

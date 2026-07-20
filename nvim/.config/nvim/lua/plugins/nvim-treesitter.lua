@@ -52,4 +52,7 @@ return {
       })
     end,
   },
+  {
+    "rluba/jai.vim"
+  }
 }

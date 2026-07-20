@@ -53,7 +53,7 @@ DESKTOP_DEPS=(
   "hyprshot" "grim" "slurp"
   "imagemagick" "tesseract" "tesseract-data-eng"
   ".PARU"
-  "wl-clipboard"
+  "wl-clipboard" "wl-clip-persist"
   "pamixer" "pavucontrol"
   "nwg-displays"
   "adw-gtk-theme"
@@ -221,8 +221,8 @@ install_desktop() {
   run_or_echo touch \
     "$HOME/.local/share/ignis/hyprland.lua" \
     "$HOME/.local/share/ignis/hyprlock.conf" \
-    "$HOME/.config/hypr/monitors.conf" \
-    "$HOME/.config/hypr/workspaces.conf" \
+    "$HOME/.config/hypr/monitors.lua" \
+    "$HOME/.config/hypr/workspaces.lua" \
     "$HOME/.config/hypr/hyprland-custom.lua"
 
   if ! $DRY_RUN; then

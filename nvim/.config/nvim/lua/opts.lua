@@ -149,3 +149,7 @@ o.title = true
 -- ignore case in search patterns
 o.ignorecase = true
 o.smartcase = true
+
+o.exrc = true
+
+vim.lsp.semantic_tokens.enable(false)

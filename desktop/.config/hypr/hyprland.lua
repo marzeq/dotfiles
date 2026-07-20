@@ -320,6 +320,8 @@ for _, monitor in ipairs(hl.get_monitors()) do
   local key = monitor.id + 1
 
   hl.bind(mod2 .. " + " .. key, hl.dsp.focus { monitor = monitor.name })
+
+  hl.bind(mod2 .. " + SHIFT + " .. key, hl.dsp.window.move { monitor = monitor.name, follow = true })
 end
 
 -- mouse

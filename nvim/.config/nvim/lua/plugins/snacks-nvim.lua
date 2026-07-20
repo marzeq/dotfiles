@@ -28,7 +28,11 @@ return {
         },
       },
     },
-    image = {},
+    image = {
+      math = {
+        enabled = false,
+      },
+    },
     notifier = {},
     indent = {
       indent = {
