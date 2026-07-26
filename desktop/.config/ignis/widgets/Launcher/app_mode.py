@@ -65,6 +65,7 @@ class AppMode(LauncherMode):
                 result.app = app
                 if result.value != app.name:
                     result.set_value(app.name)
+                result.set_search_terms(self._app_search_terms(app))
 
             refreshed_results.append(result)
             refreshed_by_id[app_id] = result
@@ -73,6 +74,10 @@ class AppMode(LauncherMode):
         self.all_results = refreshed_results
         self.set_results(self.all_results)
         self.section.visible = bool(self.results)
+
+    @staticmethod
+    def _app_search_terms(app: Application) -> list[str]:
+        return ([app.description] if app.description else []) + app.keywords
 
     async def update(self, query: str, refresh):
         query = query.strip().lower()
@@ -117,6 +122,7 @@ class LauncherAppResult(LauncherResult):
             value=app.name,
             icon_name=app.icon,
             launch=lambda: self.launch_app(),
+            search_terms=mode._app_search_terms(app),
             popover_menu=Widget.PopoverMenu(
                 items=[
                     Widget.MenuItem(label="Hide", on_activate=lambda _: self.hide_app())

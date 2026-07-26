@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable, Sequence
+from typing import TYPE_CHECKING, Callable, Sequence, cast
 from ignis.widgets import Widget
 from ignis.base_widget import BaseWidget
 from rapidfuzz import fuzz, process
@@ -37,8 +37,10 @@ class LauncherResult(Widget.Button):
         launch: Callable[[], None],
         css_classes: list[str] | None = None,
         popover_menu: Widget.PopoverMenu | None = None,
+        search_terms: Sequence[str] | None = None,
     ):
         self.value = value
+        self.search_terms = tuple(search_terms or ())
         self._launch = launch
         self._label = Widget.Label(
             label=value,
@@ -73,19 +75,25 @@ class LauncherResult(Widget.Button):
         self.value = value
         self._label.label = value
 
+    @property
+    def search_text(self) -> str:
+        return " ".join((self.value, *self.search_terms))
+
+    def set_search_terms(self, search_terms: Sequence[str]) -> None:
+        self.search_terms = tuple(search_terms)
+
 
 def fuzzy_search_results(results: Sequence[LauncherResult], query: str) -> list[LauncherResult]:
     normalized = query.strip().lower()
     if not normalized:
         return []
 
-    results_by_name = {result.value.lower(): result for result in results}
     matches = process.extract(
         normalized,
-        results_by_name.keys(),
+        [result.search_text.lower() for result in results],
         scorer=fuzz.WRatio,
         limit=20,
         score_cutoff=60,
     )
 
-    return [results_by_name[match[0]] for match in matches]
+    return [results[cast(int, match[2])] for match in matches]
