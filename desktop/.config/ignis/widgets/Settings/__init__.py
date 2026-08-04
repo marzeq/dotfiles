@@ -89,6 +89,17 @@ $primary_monitor={self.primary_monitor}
 hyprland_settings = HyprlandSettings()
 
 
+@JsonSettings("bar")
+class BarSettingsSettings(BindableSettings):
+    show_only_on_primary_monitor: bool = False
+
+    def set_show_only_on_primary_monitor(self, value: bool):
+        self.show_only_on_primary_monitor = value
+
+
+bar_settings = BarSettingsSettings()
+
+
 def get_keyboard_layouts() -> list[str]:
     layouts = []
     with open("/usr/share/X11/xkb/rules/base.lst", "r") as f:
@@ -471,6 +482,23 @@ class SettingsWindow(Widget.RegularWindow):
                             widget=self.post_accent_change_entry,
                             label="Post accent colour change command",
                         ),
+                    ],
+                ),
+                SettingsSection(
+                    title="Bar",
+                    description="Control how the top bar behaves",
+                    child=[
+                        Widget.Box(
+                            vertical=True,
+                            child=[
+                                SwitchWithLabel(
+                                    label="Show bar only on the primary monitor",
+                                    active=bar_settings.show_only_on_primary_monitor,
+                                    on_change=lambda _,
+                                    active: bar_settings.set_show_only_on_primary_monitor(active),
+                                ),
+                            ],
+                        )
                     ],
                 ),
                 SettingsSection(

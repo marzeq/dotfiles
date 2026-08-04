@@ -42,13 +42,13 @@ if hascmd xdg-open; then
   }
 fi
 
-if hascmd vim || hascmd nvim && hascmd sudoedit; then
+if hascmd vim || hascmd nvim || hascmd nano && hascmd sudoedit; then
   function sudo() {
-    if [ "$1" = "vim" ] || [ "$1" = "nvim" ]; then
+    if [ "$1" = "vim" ] || [ "$1" = "nvim" ] || [ "$1" = "nano" ]; then
       shift
-      sudoedit $@
+      sudoedit "$@"
     else
-      command sudo $@
+      command sudo "$@"
     fi
   }
 fi

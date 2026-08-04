@@ -6,6 +6,7 @@ import util
 from widgets.Clock import Clock
 from widgets.Workspaces import Workspaces
 from widgets.Tray import Tray
+from widgets.Settings import hyprland_settings, bar_settings
 
 app = util.get_app()
 
@@ -86,7 +87,20 @@ class Bar(Widget.Window):
             ),
         )
 
-        hypr_monitor = [m for m in HyprlandService.get_default().monitors if m.name == monitor_name][0] # type: ignore
+
+        matching = [m for m in util.hyprland.monitors if m.id == monitor_id]
+        if len(matching) == 0:
+            raise ValueError(f"Monitor with ID {monitor_id} does not exist.")
+        hypr_monitor = matching[0]
+        if bar_settings.show_only_on_primary_monitor and hypr_monitor.name != hyprland_settings.primary_monitor:
+            self.visible = False
+
+        def on_primary_show_changed(*_):
+            if bar_settings.show_only_on_primary_monitor:
+                return hypr_monitor.name == hyprland_settings.primary_monitor
+            return True
+
+        self.visible = bar_settings.bind("show_only_on_primary_monitor", on_primary_show_changed)
 
         def on_scale_changed(*_):
             style = ""
