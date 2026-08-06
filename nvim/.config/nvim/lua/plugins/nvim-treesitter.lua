@@ -18,17 +18,19 @@ return {
         pattern = { [".*%.mconf"] = "mconf" },
       })
 
-      vim.api.nvim_create_autocmd("User", { pattern = "TSUpdate",
-      callback = function()
-        require("nvim-treesitter.parsers").mconf = {
-          install_info = {
-            url = "https://github.com/marzeq/tree-sitter-mconf",
-            revision = "f1422fe2c06c6e7f7b7ba3b48bb26364aef5fec7",
-            queries = "queries/mconf",
-          },
-          tier = 2,
-        }
-      end})
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "TSUpdate",
+        callback = function()
+          require("nvim-treesitter.parsers").mconf = {
+            install_info = {
+              url = "https://github.com/marzeq/tree-sitter-mconf",
+              revision = "f1422fe2c06c6e7f7b7ba3b48bb26364aef5fec7",
+              queries = "queries/mconf",
+            },
+            tier = 2,
+          }
+        end
+      })
 
       vim.api.nvim_create_autocmd("FileType", {
         pattern = "mconf",
@@ -37,13 +39,46 @@ return {
         end,
       })
 
+      if vim.fn.isdirectory(vim.fn.expand("~/code/qk")) == 1 then
+        vim.api.nvim_create_autocmd("User", {
+          pattern = "TSUpdate",
+          callback = function()
+            require("nvim-treesitter.parsers").qk = {
+              install_info = {
+                path = vim.fn.expand("~/code/qk"),
+                location = "editor_support/tree-sitter-qk",
+                queries = "editor_support/tree-sitter-qk/queries",
+              },
+              tier = 2,
+            }
+          end,
+        })
+
+        vim.filetype.add({
+          extension = {
+            qk = "qk",
+            qks = "qk",
+          },
+        })
+
+        vim.treesitter.language.register("qk", { "qk" })
+
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = "qk",
+          callback = function()
+            local ft = require("Comment.ft")
+            ft.set("qk", ft.get("c"))
+          end,
+        })
+      end
+
       vim.api.nvim_create_autocmd("FileType", {
         callback = function(ev)
           local lang = vim.treesitter.language.get_lang(ev.match)
           local available_langs = require("nvim-treesitter").get_available()
           local is_available = vim.tbl_contains(available_langs, lang)
           if is_available then
-            require("nvim-treesitter").install(lang):await(function ()
+            require("nvim-treesitter").install(lang):await(function()
               vim.treesitter.start()
               vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
             end)
