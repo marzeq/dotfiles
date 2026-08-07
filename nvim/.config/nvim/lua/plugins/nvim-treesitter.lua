@@ -39,38 +39,36 @@ return {
         end,
       })
 
-      if vim.fn.isdirectory(vim.fn.expand("~/code/qk")) == 1 then
-        vim.api.nvim_create_autocmd("User", {
-          pattern = "TSUpdate",
-          callback = function()
-            require("nvim-treesitter.parsers").qk = {
-              install_info = {
-                path = vim.fn.expand("~/code/qk"),
-                location = "editor_support/tree-sitter-qk",
-                queries = "editor_support/tree-sitter-qk/queries",
-              },
-              tier = 2,
-            }
-          end,
-        })
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "TSUpdate",
+        callback = function()
+          require("nvim-treesitter.parsers").qk = {
+            install_info = {
+              url = "https://github.com/marzeq/tree-sitter-qk",
+              revision = "cf11cec17532020af3d8a964a4d3d41e9d9b2631",
+              queries = "queries",
+            },
+            tier = 2,
+          }
+        end,
+      })
 
-        vim.filetype.add({
-          extension = {
-            qk = "qk",
-            qks = "qk",
-          },
-        })
+      vim.filetype.add({
+        extension = {
+          qk = "qk",
+          qks = "qk",
+        },
+      })
 
-        vim.treesitter.language.register("qk", { "qk" })
+      vim.treesitter.language.register("qk", { "qk" })
 
-        vim.api.nvim_create_autocmd("FileType", {
-          pattern = "qk",
-          callback = function()
-            local ft = require("Comment.ft")
-            ft.set("qk", ft.get("c"))
-          end,
-        })
-      end
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "qk",
+        callback = function()
+          local ft = require("Comment.ft")
+          ft.set("qk", ft.get("c"))
+        end,
+      })
 
       vim.api.nvim_create_autocmd("FileType", {
         callback = function(ev)
