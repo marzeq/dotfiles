@@ -486,7 +486,7 @@ class SettingsWindow(Widget.RegularWindow):
                 ),
                 SettingsSection(
                     title="Bar",
-                    description="Control how the top bar behaves",
+                    description="Control how the top bar and its clock, workspaces and tray area are displayed across monitors.",
                     child=[
                         Widget.Box(
                             vertical=True,
@@ -497,63 +497,40 @@ class SettingsWindow(Widget.RegularWindow):
                                     on_change=lambda _,
                                     active: bar_settings.set_show_only_on_primary_monitor(active),
                                 ),
-                            ],
-                        )
-                    ],
-                ),
-                SettingsSection(
-                    title="Clock",
-                    description="Control the clock format and which details are shown in the top bar and on the lock screen.",
-                    child=[
-                        Widget.Box(
-                            vertical=True,
-                            child=[
                                 SwitchWithLabel(
-                                    label="Use 24-hour format",
+                                    label="Use 24-hour format for clock",
                                     active=clock_settings.use_24h,
                                     on_change=lambda _,
                                     active: clock_settings.set_use_24h(active),
                                 ),
                                 SwitchWithLabel(
-                                    label="Show day of week",
+                                    label="Show day of week in clock",
                                     active=clock_settings.show_dow,
                                     on_change=lambda _,
                                     active: clock_settings.set_show_dow(active),
                                 ),
                                 SwitchWithLabel(
-                                    label="Show seconds",
+                                    label="Show seconds in clock",
                                     active=clock_settings.show_seconds,
                                     on_change=lambda _,
                                     active: clock_settings.set_show_seconds(active),
                                 ),
+                                SwitchWithLabel(
+                                    label="Show all workspaces on each monitor",
+                                    active=workspace_settings.show_all_ws_on_monitor,
+                                    on_change=lambda _,
+                                    active: workspace_settings.set_show_all_ws_on_monitor(
+                                        active
+                                    ),
+                                ),
+                                SwitchWithLabel(
+                                    label="Show battery percentage",
+                                    active=tray_settings.show_batt_percent,
+                                    on_change=lambda _,
+                                    active: tray_settings.set_show_batt_percent(active),
+                                ),
                             ],
-                        )
-                    ],
-                ),
-                SettingsSection(
-                    title="Workspaces",
-                    description="Decide how workspaces are displayed across monitors in the top bar.",
-                    child=[
-                        SwitchWithLabel(
-                            label="Show all workspaces on each monitor",
-                            active=workspace_settings.show_all_ws_on_monitor,
-                            on_change=lambda _,
-                            active: workspace_settings.set_show_all_ws_on_monitor(
-                                active
-                            ),
-                        )
-                    ],
-                ),
-                SettingsSection(
-                    title="Tray area",
-                    description="Customize the tray area icons and their behavior.",
-                    child=[
-                        SwitchWithLabel(
-                            label="Show battery percentage",
-                            active=tray_settings.show_batt_percent,
-                            on_change=lambda _,
-                            active: tray_settings.set_show_batt_percent(active),
-                        )
+                        ),
                     ],
                 ),
                 SettingsSection(
@@ -593,7 +570,7 @@ class SettingsWindow(Widget.RegularWindow):
                                 settings_obj=hyprland_settings,
                                 notify_props=["primary-monitor"],
                             ),
-                            label="Primary monitor (affects lockscreen)",
+                            label="Primary monitor",
                         ),
                     ],
                 ),

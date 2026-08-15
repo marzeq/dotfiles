@@ -31,21 +31,24 @@ HOME_DIR="$(getent passwd "${USER_NAME}" | cut -d: -f6)"
 OVERRIDE_DIR="/etc/systemd/system/openrgb.service.d"
 OVERRIDE_FILE="${OVERRIDE_DIR}/override.conf"
 
-AFTER_SLEEP_SERVICE="/etc/systemd/system/openrgb-after-sleep.service"
-BEFORE_SLEEP_SERVICE="/etc/systemd/system/openrgb-before-sleep.service"
+SLEEP_SERVICE="/etc/systemd/system/openrgb-sleep.service"
+LEGACY_AFTER_SLEEP_SERVICE="/etc/systemd/system/openrgb-after-sleep.service"
+LEGACY_BEFORE_SLEEP_SERVICE="/etc/systemd/system/openrgb-before-sleep.service"
 BEFORE_SHUTDOWN_SERVICE="/etc/systemd/system/openrgb-before-shutdown.service"
 
 SWITCH_COMMAND="/usr/local/bin/_openrgb-accent-update.sh"
 
 if [[ "${MODE}" == "--remove" ]]; then
+  systemctl disable --now openrgb-sleep.service 2>/dev/null || true
   systemctl disable --now openrgb-after-sleep.service 2>/dev/null || true
   systemctl disable --now openrgb-before-sleep.service 2>/dev/null || true
   systemctl disable --now openrgb-before-shutdown.service 2>/dev/null || true
 
   rm -f \
     "${OVERRIDE_FILE}" \
-    "${AFTER_SLEEP_SERVICE}" \
-    "${BEFORE_SLEEP_SERVICE}" \
+    "${SLEEP_SERVICE}" \
+    "${LEGACY_AFTER_SLEEP_SERVICE}" \
+    "${LEGACY_BEFORE_SLEEP_SERVICE}" \
     "${BEFORE_SHUTDOWN_SERVICE}" \
     "${SWITCH_COMMAND}"
 
@@ -57,36 +60,33 @@ fi
 
 mkdir -p "${OVERRIDE_DIR}"
 
+# Remove units created by older versions. The post-resume command must be an
+# ExecStop action: a service ordered After=sleep.target still starts before the
+# actual suspend operation and races with systemd-suspend.service.
+systemctl disable --now openrgb-after-sleep.service 2>/dev/null || true
+systemctl disable --now openrgb-before-sleep.service 2>/dev/null || true
+rm -f "${LEGACY_AFTER_SLEEP_SERVICE}" "${LEGACY_BEFORE_SLEEP_SERVICE}"
+
 cat > "${OVERRIDE_FILE}" <<EOF
 [Service]
 ExecStartPost=/usr/bin/systemd-run --collect --quiet --on-active=5s ${SWITCH_COMMAND}
 ExecStop=${SWITCH_COMMAND} off
 EOF
 
-cat > "${AFTER_SLEEP_SERVICE}" <<EOF
+cat > "${SLEEP_SERVICE}" <<EOF
 [Unit]
-Description=Apply OpenRGB preferred accent colour after resume
-After=sleep.target openrgb.service
-Requires=openrgb.service
-
-[Service]
-Type=oneshot
-ExecStart=${SWITCH_COMMAND}
-
-[Install]
-WantedBy=sleep.target
-# vim: ft=systemd
-EOF
-
-cat > "${BEFORE_SLEEP_SERVICE}" <<EOF
-[Unit]
-Description=Turn off OpenRGB lighting before suspend
+Description=Manage OpenRGB lighting around sleep
+DefaultDependencies=no
+StopWhenUnneeded=yes
 Before=sleep.target
+After=openrgb.service
 Requires=openrgb.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=${SWITCH_COMMAND} off
+ExecStop=${SWITCH_COMMAND}
 
 [Install]
 WantedBy=sleep.target
@@ -127,8 +127,7 @@ chmod +x "${SWITCH_COMMAND}"
 systemctl daemon-reload
 
 systemctl enable openrgb.service
-systemctl enable openrgb-after-sleep.service
-systemctl enable openrgb-before-sleep.service
+systemctl enable openrgb-sleep.service
 systemctl enable openrgb-before-shutdown.service
 
 echo "Set /usr/local/bin/_openrgb-accent-update.sh as your post accent colour change command in the settings"

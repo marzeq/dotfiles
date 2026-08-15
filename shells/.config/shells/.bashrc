@@ -68,3 +68,8 @@ else
 fi
 
 export GPG_TTY=$(tty)
+
+# GCR handles desktop shells; remote shells need a session-local agent.
+if [[ -n ${SSH_CONNECTION:-} ]]; then
+  source "$HOME/.config/shells/.ssh-agentrc"
+fi

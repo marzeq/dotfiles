@@ -97,7 +97,7 @@ class Bar(Widget.Window):
 
         def on_primary_show_changed(*_):
             if bar_settings.show_only_on_primary_monitor:
-                return hypr_monitor.name == hyprland_settings.primary_monitor
+                return hyprland_settings.bind("primary_monitor", lambda *_: hypr_monitor.name == hyprland_settings.primary_monitor)
             return True
 
         self.visible = bar_settings.bind("show_only_on_primary_monitor", on_primary_show_changed)

@@ -15,42 +15,7 @@ return {
       })
 
       vim.filetype.add({
-        pattern = { [".*%.mconf"] = "mconf" },
-      })
-
-      vim.api.nvim_create_autocmd("User", {
-        pattern = "TSUpdate",
-        callback = function()
-          require("nvim-treesitter.parsers").mconf = {
-            install_info = {
-              url = "https://github.com/marzeq/tree-sitter-mconf",
-              revision = "f1422fe2c06c6e7f7b7ba3b48bb26364aef5fec7",
-              queries = "queries/mconf",
-            },
-            tier = 2,
-          }
-        end
-      })
-
-      vim.api.nvim_create_autocmd("FileType", {
-        pattern = "mconf",
-        callback = function()
-          vim.bo.commentstring = "# %s"
-        end,
-      })
-
-      vim.api.nvim_create_autocmd("User", {
-        pattern = "TSUpdate",
-        callback = function()
-          require("nvim-treesitter.parsers").qk = {
-            install_info = {
-              url = "https://github.com/marzeq/tree-sitter-qk",
-              revision = "cf11cec17532020af3d8a964a4d3d41e9d9b2631",
-              queries = "queries",
-            },
-            tier = 2,
-          }
-        end,
+        extension = { mconf = "mconf" },
       })
 
       vim.filetype.add({
@@ -67,6 +32,35 @@ return {
         callback = function()
           local ft = require("Comment.ft")
           ft.set("qk", ft.get("c"))
+        end,
+      })
+
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "TSUpdate",
+        callback = function()
+          require("nvim-treesitter.parsers").mconf = {
+            install_info = {
+              url = "https://github.com/marzeq/tree-sitter-mconf",
+              revision = "f1422fe2c06c6e7f7b7ba3b48bb26364aef5fec7",
+              queries = "queries/mconf",
+            },
+            tier = 2,
+          }
+          require("nvim-treesitter.parsers").qk = {
+            install_info = {
+              url = "https://github.com/marzeq/tree-sitter-qk",
+              revision = "84e0edd3213d84bf59570985a01396c03407dcc8",
+              queries = "queries",
+            },
+            tier = 2,
+          }
+        end
+      })
+
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "mconf",
+        callback = function()
+          vim.bo.commentstring = "# %s"
         end,
       })
 

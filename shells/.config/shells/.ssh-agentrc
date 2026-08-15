@@ -1,0 +1,40 @@
+# Desktop sessions get their SSH agent from GCR.  sshd does not inherit that
+# session environment, so give remote interactive shells their own agent.
+# Keep a forwarded (or otherwise working) agent when one is already available.
+_ssh_agent_available=0
+if [[ -n ${SSH_AUTH_SOCK:-} ]]; then
+  ssh-add -l >/dev/null 2>&1
+  case $? in
+    0|1) _ssh_agent_available=1 ;;
+  esac
+fi
+
+if (( ! _ssh_agent_available )) && command -v ssh-agent >/dev/null 2>&1; then
+  unset SSH_AGENT_PID SSH_AUTH_SOCK
+  _ssh_agent_env=$(ssh-agent -s 2>/dev/null)
+
+  if [[ $? -eq 0 ]] && eval "$_ssh_agent_env" >/dev/null &&
+    [[ -n ${SSH_AGENT_PID:-} && -n ${SSH_AUTH_SOCK:-} ]]; then
+    _ssh_shell_agent_pid=$SSH_AGENT_PID
+    _ssh_shell_agent_sock=$SSH_AUTH_SOCK
+
+    _stop_ssh_shell_agent() {
+      [[ -n ${_ssh_shell_agent_pid:-} ]] || return
+      SSH_AGENT_PID=$_ssh_shell_agent_pid \
+        SSH_AUTH_SOCK=$_ssh_shell_agent_sock \
+        ssh-agent -k >/dev/null 2>&1
+      unset _ssh_shell_agent_pid _ssh_shell_agent_sock
+    }
+
+    if [[ -n ${ZSH_VERSION:-} ]]; then
+      autoload -Uz add-zsh-hook
+      add-zsh-hook zshexit _stop_ssh_shell_agent
+    else
+      trap _stop_ssh_shell_agent EXIT
+    fi
+  fi
+
+  unset _ssh_agent_env
+fi
+
+unset _ssh_agent_available
