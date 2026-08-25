@@ -18,6 +18,7 @@ import util
 
 
 POPUP_ANIMATION_MS = 220
+SCROLL_FADE_RAMP_PX = 48
 NOTIFICATION_IMAGE_CACHE = Path(NOTIFICATIONS_IMAGE_DATA)
 
 notification_service = NotificationService.get_default()
@@ -476,7 +477,9 @@ class Notifications(Widget.Box):
             vertical=True,
             spacing=16,
             valign="center",
+            halign="center",
             vexpand=True,
+            can_target=False,
             css_classes=["notification-empty"],
             child=[
                 Widget.Icon(image="notifications-symbolic", pixel_size=68),
@@ -514,7 +517,7 @@ class Notifications(Widget.Box):
             vexpand=True,
             hscrollbar_policy="never",
             vscrollbar_policy="automatic",
-            child=Widget.Overlay(child=self._list, overlays=[self._empty]),
+            child=self._list,
         )
         adjustment = self._scroll.get_vadjustment()
         adjustment.connect("changed", self._sync_scroll_fade)
@@ -527,14 +530,26 @@ class Notifications(Widget.Box):
             vexpand=True,
             css_classes=["nc-notifications"],
             child=[
-                self._media,
                 Widget.Overlay(
                     vexpand=True,
-                    child=self._scroll,
+                    child=Widget.Box(
+                        vertical=True,
+                        spacing=12,
+                        child=[
+                            self._media,
+                            Widget.Overlay(
+                                vexpand=True,
+                                child=self._scroll,
+                                overlays=[
+                                    self._scroll_fade_top,
+                                    self._scroll_fade,
+                                ],
+                            ),
+                            self._footer,
+                        ],
+                    ),
                     overlays=[
-                        self._scroll_fade_top,
-                        self._scroll_fade,
-                        self._footer,
+                        self._empty,
                     ],
                 ),
             ],
@@ -573,14 +588,21 @@ class Notifications(Widget.Box):
         self._clear_button.sensitive = not empty
 
     def _sync_scroll_fade(self, adjustment, *_args) -> None:
-        has_more_below = (
+        distance_from_top = max(0.0, adjustment.get_value())
+        distance_from_bottom = max(
+            0.0,
             adjustment.get_upper()
             - adjustment.get_page_size()
-            - adjustment.get_value()
-            > 1
+            - adjustment.get_value(),
         )
-        self._scroll_fade_top.visible = bool(self._cards) and adjustment.get_value() > 1
-        self._scroll_fade.visible = bool(self._cards) and has_more_below
+        top_opacity = min(1.0, distance_from_top / SCROLL_FADE_RAMP_PX)
+        bottom_opacity = min(1.0, distance_from_bottom / SCROLL_FADE_RAMP_PX)
+
+        has_cards = bool(self._cards)
+        self._scroll_fade_top.opacity = top_opacity
+        self._scroll_fade.opacity = bottom_opacity
+        self._scroll_fade_top.visible = has_cards and top_opacity > 0
+        self._scroll_fade.visible = has_cards and bottom_opacity > 0
 
 
 class NotificationPopups(Widget.Window):
