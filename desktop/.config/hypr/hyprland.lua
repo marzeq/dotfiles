@@ -63,7 +63,6 @@ local autostart = {
 	"awww-daemon",
 	"~/.config/hypr/scripts/set_curr_wallpaper.sh first-start",
 	"goignis init",
-  "swaync",
 	"wl-clip-persist --clipboard regular",
 	"hypridle",
 	"~/.config/hypr/scripts/autostart.sh",
@@ -434,3 +433,7 @@ local hyprlandCustom = config .. "/hyprland-custom.lua"
 if file_exists(hyprlandCustom) then
 	require("hyprland-custom")
 end
+
+hl.on("hyprland.start", function()
+  hl.exec_cmd("hyprpm reload")
+end)

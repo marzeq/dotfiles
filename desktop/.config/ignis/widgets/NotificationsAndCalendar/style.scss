@@ -1,0 +1,274 @@
+.notifs-calendar-container {
+  margin-top: 0.5rem;
+}
+
+.notifs-calendar {
+  @include popup;
+}
+
+.nc-calendar {
+  border-left: $separator;
+  min-width: 20.25rem;
+  padding-left: 1.75rem;
+}
+
+.nc-notifications {
+  min-width: 25rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.nc-notifications scrolledwindow {
+  min-height: 0;
+}
+
+.notification-list {
+  padding: 2px;
+  padding-bottom: 3.5rem;
+}
+
+.notification-card,
+.notification-media {
+  background-color: $button-bg;
+  border-radius: 0.9rem;
+  padding: 0.8rem;
+  color: $fg;
+}
+
+.notification-card {
+  min-width: 19rem;
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+
+  &:active {
+    background-color: $button-bg-active;
+  }
+}
+
+.notification-popup-card {
+  min-width: 30rem;
+  box-shadow: $popup-shadow;
+  border: $popup-border;
+}
+
+.notification-urgency-2 {
+  border-left: 3px solid $accent;
+}
+
+.notification-icon {
+  border-radius: 0.65rem;
+}
+
+.notification-media-art-frame {
+  border-radius: 0.25rem;
+}
+
+.notification-age,
+.notification-media-subtitle {
+  color: $fg-inactive;
+  font-size: 0.78rem;
+}
+
+.notification-title,
+.notification-media-title {
+  font-weight: 700;
+}
+
+.notification-body {
+  color: $fg-subtle;
+}
+
+.notification-close,
+.notification-media-controls button {
+  @include custom-button;
+
+  background-color: transparent;
+  border-radius: 100%;
+  padding: 0.35rem;
+}
+
+.notification-media-controls button {
+  border-radius: 100%;
+  min-height: 1.8rem;
+  min-width: 1.8rem;
+  padding: 0.2rem;
+
+  &:hover {
+    background-color: rgba($fg, 0.1);
+  }
+
+  &:active {
+    background-color: rgba($fg, 0.18);
+  }
+}
+
+.notification-media-controls {
+  margin-right: 0.5rem;
+}
+
+.notification-close {
+  padding: 0.35rem;
+
+  &:hover {
+    background-color: rgba($fg, 0.14);
+  }
+
+  &:active {
+    background-color: rgba($fg, 0.28);
+  }
+}
+
+.notification-action,
+.notification-clear {
+  @include custom-button;
+
+  border-radius: 0.7rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.notification-actions {
+  margin-top: 0.1rem;
+
+  button {
+    background-color: rgba($fg, 0.06);
+
+    &:hover {
+      background-color: rgba($fg, 0.14);
+    }
+
+    &:active {
+      background-color: rgba($fg, 0.24);
+    }
+  }
+}
+
+.notification-clear {
+  padding: 0.55rem 1.25rem;
+}
+
+.notification-footer {
+  min-height: 2rem;
+  padding-bottom: 0.1rem;
+  padding-top: 0.1rem;
+}
+
+.notification-scroll-fade-bottom {
+  background-image: linear-gradient(
+    to bottom,
+    rgba($bg, 0),
+    rgba($bg, 0.72) 58%,
+    $bg 100%
+  );
+}
+
+.notification-scroll-fade-top {
+  background-image: linear-gradient(
+    to top,
+    rgba($bg, 0),
+    rgba($bg, 0.72) 58%,
+    $bg 100%
+  );
+}
+
+.notification-empty {
+  color: $fg-inactive;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.notification-media-slot {
+  margin-bottom: 0.15rem;
+}
+
+.notification-popup-list {
+  background: transparent;
+  padding: 2px;
+}
+
+.notification-popup-list > box {
+  padding: 1px;
+}
+
+.nc-calendar-dow {
+  margin-top: 1rem;
+  font-weight: 700;
+}
+
+.nc-calendar-date {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.nc-calendar-dow,
+.nc-calendar-date {
+  color: $fg;
+  padding: 0 0.75rem;
+}
+
+.nc-calendar-month-switcher {
+  padding-top: 1.5rem;
+}
+
+.nc-calendar-month {
+  @include custom-button;
+
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4rem;
+
+  background-color: transparent;
+  &:hover {
+    background-color: $button-bg;
+  }
+  &:active {
+    background-color: $button-bg-hover;
+  }
+}
+
+.nc-calendar-arrow {
+  @include custom-button;
+
+  border-radius: 100%;
+  padding: 0.75rem;
+  background-color: transparent;
+  &:hover {
+    background-color: $button-bg;
+  }
+  &:active {
+    background-color: $button-bg-hover;
+  }
+}
+
+.nc-calendar-dow-label {
+  font-size: 0.95rem;
+  padding-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: $fg-inactive;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nc-calendar-day {
+  font-size: 0.95rem;
+  border-radius: 100%;
+  padding: 1px 1px 0 0;
+  min-width: calc(2.8rem + 1px);
+  min-height: calc(2.8rem + 1px);
+  color: $fg-inactive;
+}
+
+.nc-calendar-day-workday,
+.nc-calendar-day-today {
+  color: $fg;
+}
+
+.nc-calendar-day-today {
+  background-color: $accent;
+}
+
+.nc-calendar-day-currmo {
+  font-weight: 700;
+}

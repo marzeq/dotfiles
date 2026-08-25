@@ -2,6 +2,7 @@ import os
 import util
 import gc
 import asyncio
+import psutil
 
 from gi.repository import Gtk  # type: ignore[reportMissingModuleSource]
 
@@ -11,7 +12,8 @@ from widgets.Bar import Bar
 from widgets.ClosePopupWidget import ClosePopupWidget
 from widgets.ControlCentre import ControlCentre
 from widgets.Lockscreen import LockProxy
-from widgets.Calendar import Calendar
+from widgets.NotificationsAndCalendar import NotificationsAndCalendar
+from widgets.NotificationsAndCalendar.notifications import NotificationPopups
 from widgets.Launcher import LauncherProxy, Launcher
 from widgets.OSD import OSD
 from widgets.Settings import SettingsWindow
@@ -46,19 +48,35 @@ util.shell("hyprctl reload")
 for i, m in enumerate(Utils.get_monitors()):  # type: ignore
     ClosePopupWidget(i)
     Bar(i)
-    Calendar(i)
+    NotificationsAndCalendar(i)
     ControlCentre(i)
     Launcher(i, m)
 
+NotificationPopups()
 OSD()
 LauncherProxy()
 SettingsWindow()
 LockProxy()
 
+def process_tree_memory(pid: int) -> int:
+    parent = psutil.Process(pid)
+
+    processes = [parent] + parent.children(recursive=True)
+
+    total = 0
+    for proc in processes:
+        try:
+            total += proc.memory_info().rss
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    return total
+
 
 async def cleanup_every(seconds: int):
     while True:
         gc.collect()
+        print(f"Current memory usage: {process_tree_memory(os.getpid()) / (1024 * 1024):.2f} MB")
         await asyncio.sleep(seconds)
 
 asyncio.create_task(cleanup_every(60))
@@ -67,4 +85,3 @@ def cleanup():
     util.sync_shell("gsettings reset org.gnome.desktop.wm.preferences button-layout")
 
 app.connect("shutdown", lambda *_: cleanup())
-

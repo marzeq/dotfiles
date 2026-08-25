@@ -1,19 +1,16 @@
-import util
+from ignis.options import options
+
 from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
 
-def get_dnd() -> bool:
-    out = util.sync_shell("swaync-client -D")
-    if out is None or out.strip() == "":
-        return False
 
-    return out.strip() == "true"
+def get_dnd() -> bool:
+    return options.notifications.dnd
+
 
 def toggle_dnd() -> bool:
-    out = util.sync_shell("swaync-client -d")
-    if out is None or out.strip() == "":
-        return False
+    options.notifications.dnd = not options.notifications.dnd
+    return options.notifications.dnd
 
-    return out.strip() == "true"
 
 class DNDWidget(ControlCentreWidget):
     def __init__(self):
@@ -24,4 +21,6 @@ class DNDWidget(ControlCentreWidget):
         )
 
         self.set_disabled(not get_dnd())
-
+        options.notifications.connect_option(
+            "dnd", lambda: self.set_disabled(not get_dnd())
+        )

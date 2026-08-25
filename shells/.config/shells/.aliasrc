@@ -93,6 +93,18 @@ if hascmd git; then
     git clone "git@github.com:$username/$repo.git" "${@:2}"
   }
 
+  function mcl() {
+    local repo="$1"
+
+    if [[ -z "$repo" ]]; then
+      echo "Usage: mcl <repo-name> [destination]"
+      return 1
+    fi
+
+    echo "Cloning 'git.marzeq.foo:marzeq/$repo'..."
+    git clone "git@git.marzeq.foo:marzeq/$repo.git" "${@:2}"
+  }
+
   alias g="git"
   alias glg="git log --graph --decorate --all --pretty=format:'%C(auto)%h%d%C(#888888)(%an; %ar)%Creset %s'"
 

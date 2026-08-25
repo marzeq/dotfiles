@@ -224,7 +224,16 @@ class Launcher(Widget.RevealerWindow):
                 )
                 mode_scores.append((best_score, mode))
 
-        mode_scores.sort(key=lambda x: x[0], reverse=True)
+        # A valid calculation should always be the first visible result (and
+        # therefore the result activated by Enter). Other modes retain their
+        # fuzzy-match ordering beneath it.
+        mode_scores.sort(
+            key=lambda scored: (
+                isinstance(scored[1], CalcMode),
+                scored[0],
+            ),
+            reverse=True,
+        )
 
         new_modes = [score_mode[1] for score_mode in mode_scores]
         for mode in self.modes:

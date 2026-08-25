@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable, Sequence, cast
+import re
+from typing import TYPE_CHECKING, Callable, Sequence
 from ignis.widgets import Widget
 from ignis.base_widget import BaseWidget
-from rapidfuzz import fuzz, process
+from rapidfuzz import fuzz
 
 if TYPE_CHECKING:
     from . import Launcher
@@ -83,17 +84,92 @@ class LauncherResult(Widget.Button):
         self.search_terms = tuple(search_terms)
 
 
+def _subsequence_quality(query: str, candidate: str) -> float | None:
+    positions: list[int] = []
+    offset = 0
+    for character in query:
+        position = candidate.find(character, offset)
+        if position < 0:
+            return None
+        positions.append(position)
+        offset = position + 1
+
+    span = positions[-1] - positions[0] + 1
+    density = len(query) / span
+    consecutive = sum(
+        current == previous + 1
+        for previous, current in zip(positions, positions[1:])
+    ) / max(1, len(query) - 1)
+    starts_name = positions[0] == 0
+    return density * 60 + consecutive * 25 + starts_name * 15
+
+
+def _result_match_rank(
+    result: LauncherResult,
+    query: str,
+) -> tuple[int, float] | None:
+    name = result.value.strip().lower()
+    name_words = re.findall(r"[a-z0-9]+", name)
+    compact_name = "".join(name_words)
+    compact_query = "".join(re.findall(r"[a-z0-9]+", query))
+    initials = "".join(word[0] for word in name_words)
+
+    if name == query:
+        return (7, 100)
+    if name.startswith(query):
+        return (6, len(query) / max(1, len(name)))
+    if any(word.startswith(query) for word in name_words):
+        return (5, 100)
+    if len(compact_query) >= 2 and initials.startswith(compact_query):
+        return (5, 90)
+
+    terms = [term.strip().lower() for term in result.search_terms if term.strip()]
+    metadata_words = [
+        word
+        for term in terms
+        for word in re.findall(r"[a-z0-9]+", term)
+    ]
+    if query in terms or (compact_query and compact_query in metadata_words):
+        return (4, 100)
+    if any(
+        term.startswith(query) or (compact_query and word.startswith(compact_query))
+        for term in terms
+        for word in re.findall(r"[a-z0-9]+", term)
+    ):
+        return (4, 90)
+
+    subsequence_score = (
+        _subsequence_quality(compact_query, compact_name) if compact_query else None
+    )
+    if subsequence_score is not None and subsequence_score >= 45:
+        return (3, subsequence_score)
+
+    name_score = fuzz.WRatio(query, name)
+    metadata_score = (
+        max(
+            (
+                fuzz.ratio(compact_query, candidate) * 0.9
+                for candidate in metadata_words
+            ),
+            default=0,
+        )
+        if compact_query
+        else 0
+    )
+    fuzzy_score = max(name_score, metadata_score)
+    return (2, fuzzy_score) if fuzzy_score >= 70 else None
+
+
 def fuzzy_search_results(results: Sequence[LauncherResult], query: str) -> list[LauncherResult]:
     normalized = query.strip().lower()
     if not normalized:
         return []
 
-    matches = process.extract(
-        normalized,
-        [result.search_text.lower() for result in results],
-        scorer=fuzz.WRatio,
-        limit=20,
-        score_cutoff=60,
-    )
+    ranked: list[tuple[tuple[int, float], LauncherResult]] = []
+    for result in results:
+        rank = _result_match_rank(result, normalized)
+        if rank is not None:
+            ranked.append((rank, result))
 
-    return [results[cast(int, match[2])] for match in matches]
+    ranked.sort(key=lambda match: match[0], reverse=True)
+    return [result for _, result in ranked[:20]]
