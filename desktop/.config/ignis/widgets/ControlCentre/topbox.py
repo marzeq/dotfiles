@@ -16,13 +16,16 @@ class TopBox(Widget.CenterBox):
     def __init__(self, power_menu: PowerMenu, cc: Widget.RevealerWindow):
         self.power_menu = power_menu
         self.cc = cc
+        self._battery_handlers: list[tuple[object, int]] = []
+        self._start = Widget.Box()
+        self._end = Widget.Box()
         super().__init__(
             css_classes=["control-centre-top"],
-            start_widget=Widget.Box(
-                child=upower.bind("batteries", self._start_children)
-            ),
-            end_widget=Widget.Box(child=upower.bind("batteries", self._end_children)),
+            start_widget=self._start,
+            end_widget=self._end,
         )
+        upower.connect("notify::batteries", self._rebuild)
+        self._rebuild()
 
     async def close_popup_immediately(self):
         self.cc.revealer.transition_duration = 0
@@ -30,7 +33,18 @@ class TopBox(Widget.CenterBox):
         self.cc.revealer.transition_duration = util.popup_manager.popup_anim_speed
         # await asyncio.sleep(util.popup_manager.popup_anim_speed / 1000)
 
-    def _start_children(self, _):
+    def _disconnect_battery(self) -> None:
+        for battery, handler in self._battery_handlers:
+            if battery.handler_is_connected(handler):
+                battery.disconnect(handler)
+        self._battery_handlers.clear()
+
+    def _rebuild(self, *_args) -> None:
+        self._disconnect_battery()
+        util.replace_box_children(self._start, self._start_children())
+        util.replace_box_children(self._end, self._end_children())
+
+    def _start_children(self):
         settings_button = Widget.Button(
             child=Widget.Icon(image="applications-system-symbolic"),
             css_classes=["cc-top-button"],
@@ -44,7 +58,7 @@ class TopBox(Widget.CenterBox):
                 css_classes=["cc-top-button"],
                 on_click=lambda _: util.shell(
                     "hyprshot -szm region -o ~/pictures/screenshots/",
-                    before=self.close_popup_immediately(),
+                    before=self.close_popup_immediately,
                 ),
             )
         ]
@@ -53,20 +67,16 @@ class TopBox(Widget.CenterBox):
             children += [settings_button]
         else:
             batt = upower.display_device
+            battery_icon = Widget.Icon(image=batt.icon_name)
+            battery_label = Widget.Label(
+                label=f"{math.floor(batt.percent)}%",
+                css_classes=["cc-battery-percent"],
+            )
             bat_percent = Widget.Button(
                 child=Widget.Box(
                     child=[
-                        Widget.Icon(
-                            image=batt.bind("icon_name"),
-                            # css_classes=batt.bind(
-                            #     "charging",
-                            #     lambda *_: ["battery-charging"] if batt.charging else [],
-                            # ),
-                        ),
-                        Widget.Label(
-                            label=batt.bind("percent", lambda *_: f"{math.floor(batt.percent)}%"),
-                            css_classes=["cc-battery-percent"],
-                        ),
+                        battery_icon,
+                        battery_label,
                     ]
                 ),
                 css_classes=["cc-top-button"],
@@ -84,16 +94,20 @@ class TopBox(Widget.CenterBox):
                 return 15
 
             def on_battery_update(*_):
+                battery_icon.image = batt.icon_name
+                battery_label.label = f"{math.floor(batt.percent)}%"
                 update_battery_tooltip()
 
-            batt.connect("notify::charging", on_battery_update)
-            batt.connect("notify::time-remaining", on_battery_update)
+            for prop in ("icon-name", "percent", "charging", "time-remaining"):
+                self._battery_handlers.append(
+                    (batt, batt.connect(f"notify::{prop}", on_battery_update))
+                )
             update_battery_tooltip()
 
             children += [bat_percent]
         return children
 
-    def _end_children(self, _):
+    def _end_children(self):
         settings_button = Widget.Button(
             child=Widget.Icon(image="applications-system-symbolic"),
             css_classes=["cc-top-button"],
@@ -107,7 +121,7 @@ class TopBox(Widget.CenterBox):
                 css_classes=["cc-top-button"],
                 on_click=lambda _: util.shell(
                     "loginctl lock-session",
-                    before=self.close_popup_immediately(),
+                    before=self.close_popup_immediately,
                 ),
             ),
             Widget.Button(

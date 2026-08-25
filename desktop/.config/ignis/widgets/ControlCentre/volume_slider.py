@@ -21,13 +21,14 @@ class SpeakerPopup(DeviceListPopup[Stream]):
             title="Sound Output",
             device=audio,
             item_key="speakers",
-            icon_name_fn=lambda sp: sp.bind("icon_name"),
-            label_fn=lambda sp: sp.bind("description"),
+            icon_name_fn=lambda sp: sp.icon_name,
+            label_fn=lambda sp: sp.description,
             connect_fn=speaker_select,
             disconnect_fn=speaker_deselect,
             header_icon="audio-headphones-symbolic",
             connected_property="is_default",
             connected_check=lambda is_default: is_default,
+            notify_properties=["icon_name", "description"],
         )
 
     def filter_items(self, items):

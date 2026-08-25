@@ -71,9 +71,7 @@ class TimeDateScreen(Widget.Box):
             label="",
             css_classes=["lockscreen-date"],
         )
-        self._time_date_task: asyncio.Task[None] = asyncio.create_task(
-            self._update_time_date_loop()
-        )
+        self._time_date_task: asyncio.Task[None] | None = None
 
         super().__init__(
             vertical=True,
@@ -85,6 +83,17 @@ class TimeDateScreen(Widget.Box):
                 self._date_label,
             ],
         )
+        self.connect("realize", self._start_updates)
+        self.connect("unrealize", self._stop_updates)
+
+    def _start_updates(self, *_args) -> None:
+        if self._time_date_task is None or self._time_date_task.done():
+            self._time_date_task = util.create_task(self._update_time_date_loop())
+
+    def _stop_updates(self, *_args) -> None:
+        if self._time_date_task is not None:
+            self._time_date_task.cancel()
+            self._time_date_task = None
 
     async def _update_time_date_loop(self):
         try:
@@ -107,8 +116,7 @@ class TimeDateScreen(Widget.Box):
             return
 
     def destroy(self):
-        if self._time_date_task and not self._time_date_task.done():
-            self._time_date_task.cancel()
+        self._stop_updates()
 
 
 class EntryScreen(Widget.Box):
@@ -204,6 +212,9 @@ class LockScreen(Widget.Window):
 
         self._destroyed = False
         self._upower_batteries_handler_id: int | None = None
+        self._battery = None
+        self._battery_handler_ids: list[int] = []
+        self._tray_settings_handler_id: int | None = None
 
         lock_instance.assign_window_to_monitor(self, monitor)
 
@@ -234,7 +245,7 @@ class LockScreen(Widget.Window):
         self.entry_screen = EntryScreen(
             on_accept=lambda t: None
             if self.authenticating
-            else asyncio.create_task(self._on_accept(t)),
+            else util.create_task(self._on_accept(t)),
             on_change=lambda: self._on_change(),
         )
         self.entry = self.entry_screen.entry
@@ -293,6 +304,9 @@ class LockScreen(Widget.Window):
         self._upower_batteries_handler_id = upower.connect(
             "notify::batteries", on_batteries_changed
         )
+        self._tray_settings_handler_id = tray_settings.connect(
+            "notify::show-batt-percent", self._refresh_battery_status
+        )
         self.update_battery_status()
 
     def destroy(self):
@@ -310,6 +324,11 @@ class LockScreen(Widget.Window):
                 except Exception:
                     pass
             self._upower_batteries_handler_id = None
+
+        if self._tray_settings_handler_id is not None:
+            tray_settings.disconnect(self._tray_settings_handler_id)
+            self._tray_settings_handler_id = None
+        self._disconnect_battery()
 
         self._wallpaper.set_property("image", "")
         self.set_child(None)
@@ -362,37 +381,44 @@ class LockScreen(Widget.Window):
         destroy_windows()
 
     def update_battery_status(self):
+        self._disconnect_battery()
         if len(upower.batteries) == 0:
             self.battery_status.visible = False
+            util.replace_box_children(self.battery_status, [])
             return
 
-        batt = upower.display_device
+        self._battery = upower.display_device
+        batt = self._battery
 
         self.battery_status.visible = True
-        self.battery_status.set_child([
-            Widget.Icon(
-                image=batt.bind("icon_name"),
-                css_classes=batt.bind(
-                    "charging",
-                    lambda *_: ["battery-charging"] if batt.charging else [],
-                ),
-            ),
-            Widget.Label(
-                label=tray_settings.bind_properties(
-                    lambda *_: batt.bind(
-                        "percent",
-                        lambda percent: f"{int(percent)}%" if tray_settings.show_batt_percent else "",
-                    )
-                ),
-                css_classes=tray_settings.bind_properties(
-                    lambda *_: (
-                        ["batt-percent"]
-                        if tray_settings.show_batt_percent
-                        else []
-                    )
-                ),
+        self._battery_icon = Widget.Icon()
+        self._battery_label = Widget.Label()
+        util.replace_box_children(
+            self.battery_status, [self._battery_icon, self._battery_label]
+        )
+        for prop in ("icon-name", "charging", "percent"):
+            self._battery_handler_ids.append(
+                batt.connect(f"notify::{prop}", self._refresh_battery_status)
             )
-        ])
+        self._refresh_battery_status()
+
+    def _disconnect_battery(self) -> None:
+        if self._battery is not None:
+            for handler in self._battery_handler_ids:
+                if self._battery.handler_is_connected(handler):
+                    self._battery.disconnect(handler)
+        self._battery_handler_ids.clear()
+        self._battery = None
+
+    def _refresh_battery_status(self, *_args) -> None:
+        batt = self._battery
+        if batt is None:
+            return
+        self._battery_icon.image = batt.icon_name
+        self._battery_icon.css_classes = ["battery-charging"] if batt.charging else []
+        show_percent = tray_settings.show_batt_percent
+        self._battery_label.label = f"{int(batt.percent)}%" if show_percent else ""
+        self._battery_label.css_classes = ["batt-percent"] if show_percent else []
 
 
 class LockProxy(Widget.Window):

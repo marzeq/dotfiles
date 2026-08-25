@@ -92,15 +92,15 @@ class Bar(Widget.Window):
         if len(matching) == 0:
             raise ValueError(f"Monitor with ID {monitor_id} does not exist.")
         hypr_monitor = matching[0]
-        if bar_settings.show_only_on_primary_monitor and hypr_monitor.name != hyprland_settings.primary_monitor:
-            self.visible = False
+        def sync_visibility(*_):
+            self.visible = (
+                not bar_settings.show_only_on_primary_monitor
+                or hypr_monitor.name == hyprland_settings.primary_monitor
+            )
 
-        def on_primary_show_changed(*_):
-            if bar_settings.show_only_on_primary_monitor:
-                return hyprland_settings.bind("primary_monitor", lambda *_: hypr_monitor.name == hyprland_settings.primary_monitor)
-            return True
-
-        self.visible = bar_settings.bind("show_only_on_primary_monitor", on_primary_show_changed)
+        bar_settings.connect("notify::show-only-on-primary-monitor", sync_visibility)
+        hyprland_settings.connect("notify::primary-monitor", sync_visibility)
+        sync_visibility()
 
         def on_scale_changed(*_):
             style = ""

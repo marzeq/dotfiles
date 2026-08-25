@@ -89,7 +89,7 @@ class AppMode(LauncherMode):
 
         if not query:
             self.results = list(self.all_results)
-            self.section.set_child(self.results)
+            util.replace_box_children(self.section, self.results)
 
             for result in self.results:
                 result.visible = not app_settings.is_hidden(result.value)
@@ -111,7 +111,7 @@ class AppMode(LauncherMode):
             )
 
         self.results = ordered_results
-        self.section.set_child(self.results)
+        util.replace_box_children(self.section, self.results)
         self.section.visible = bool(self.visible_results())
         refresh()
 

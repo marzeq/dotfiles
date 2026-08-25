@@ -1,7 +1,7 @@
 from typing import Any, Callable
 from ignis.base_widget import BaseWidget
 from ignis.widgets import Widget
-from ignis.gobject import Binding
+import util
 from widgets.ControlCentre.widget import ControlCentrePopup
 
 
@@ -11,13 +11,14 @@ class DeviceListPopup[T](ControlCentrePopup):
         title: str,
         device: Any,
         item_key: str,
-        icon_name_fn: Callable[[T], str | Binding],
-        label_fn: Callable[[T], str | Binding],
+        icon_name_fn: Callable[[T], str],
+        label_fn: Callable[[T], str],
         connect_fn: Callable[[T], Any],
         disconnect_fn: Callable[[T], Any],
         header_icon: str,
         connected_property: str,
-        connected_check: Callable[[Any], bool | Binding],
+        connected_check: Callable[[Any], bool],
+        notify_properties: list[str] | None = None,
     ) -> None:
         self.device: Any = device
         self.item_key: str = item_key
@@ -28,15 +29,14 @@ class DeviceListPopup[T](ControlCentrePopup):
         self.wants_see_more: bool = False
         self.connected_property = connected_property
         self.connected_check = connected_check
+        self.notify_properties = notify_properties or []
+        self._row_handlers: list[tuple[T, int]] = []
 
         if self.device is None:
             super().__init__(Widget.Box())
             return
 
-        self.items_box = Widget.Box(
-            vertical=True,
-            child=self.device.bind(self.item_key, transform=self.render_items),
-        )
+        self.items_box = Widget.Box(vertical=True)
 
         super().__init__(
             Widget.Box(
@@ -62,6 +62,21 @@ class DeviceListPopup[T](ControlCentrePopup):
                 ],
             )
         )
+        self.device.connect(f"notify::{self.item_key.replace('_', '-')}", self._render)
+        self._render()
+
+    def _disconnect_rows(self) -> None:
+        for item, handler in self._row_handlers:
+            if item.handler_is_connected(handler):
+                item.disconnect(handler)
+        self._row_handlers.clear()
+
+    def _render(self, *_args) -> None:
+        self._disconnect_rows()
+        util.replace_box_children(
+            self.items_box,
+            self.render_items(getattr(self.device, self.item_key)),
+        )
 
     def render_items(self, items: list[T]) -> list[BaseWidget]:
         items_filtered: list[T] = self.filter_items(items)
@@ -82,9 +97,7 @@ class DeviceListPopup[T](ControlCentrePopup):
                 image="object-select-symbolic",
                 pixel_size=18,
                 css_classes=["cc-popup-opt-check"],
-                visible=item.bind(  # type: ignore
-                    self.connected_property, lambda val: self.connected_check(val)
-                ),
+                visible=self.connected_check(getattr(item, self.connected_property)),
             )
 
             label_widget = Widget.Label(
@@ -92,6 +105,28 @@ class DeviceListPopup[T](ControlCentrePopup):
                 ellipsize="end",
                 max_width_chars=30,
             )
+
+            def update_row(
+                *_args,
+                row_item=item,
+                row_icon=icon_widget,
+                row_label=label_widget,
+                row_checkmark=checkmark_widget,
+            ) -> None:
+                if row_icon is not None:
+                    row_icon.image = self.icon_name_fn(row_item)
+                row_label.label = self.label_fn(row_item)
+                row_checkmark.visible = self.connected_check(
+                    getattr(row_item, self.connected_property)
+                )
+
+            properties = set(self.notify_properties)
+            properties.add(self.connected_property)
+            for prop in properties:
+                handler = item.connect(
+                    f"notify::{prop.replace('_', '-')}", update_row
+                )
+                self._row_handlers.append((item, handler))
             children: list[BaseWidget] = (
                 [icon_widget, checkmark_widget] if icon_widget else []
             )
@@ -130,7 +165,7 @@ class DeviceListPopup[T](ControlCentrePopup):
 
     def set_see_more(self, see_more: bool) -> None:
         self.wants_see_more = see_more
-        self.items_box.set_child(self.render_items(getattr(self.device, self.item_key)))
+        self._render()
 
     def toggle_see_more(self) -> None:
         self.set_see_more(not self.wants_see_more)

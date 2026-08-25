@@ -2,7 +2,6 @@ import os
 import util
 import gc
 import asyncio
-import psutil
 
 from gi.repository import Gtk  # type: ignore[reportMissingModuleSource]
 
@@ -58,30 +57,16 @@ LauncherProxy()
 SettingsWindow()
 LockProxy()
 
-def process_tree_memory(pid: int) -> int:
-    parent = psutil.Process(pid)
-
-    processes = [parent] + parent.children(recursive=True)
-
-    total = 0
-    for proc in processes:
-        try:
-            total += proc.memory_info().rss
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
-
-    return total
-
 
 async def cleanup_every(seconds: int):
     while True:
         gc.collect()
-        print(f"Current memory usage: {process_tree_memory(os.getpid()) / (1024 * 1024):.2f} MB")
         await asyncio.sleep(seconds)
 
-asyncio.create_task(cleanup_every(60))
+util.create_task(cleanup_every(60))
 
 def cleanup():
+    util.cancel_background_tasks()
     util.sync_shell("gsettings reset org.gnome.desktop.wm.preferences button-layout")
 
 app.connect("shutdown", lambda *_: cleanup())

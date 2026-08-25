@@ -1,4 +1,3 @@
-import asyncio
 from ignis.services.network import Ethernet, EthernetDevice, NetworkService
 import util
 from widgets.ControlCentre.popup_registry import popup_registry
@@ -9,11 +8,11 @@ network = NetworkService.get_default()
 
 
 def eth_connect(dev: EthernetDevice) -> None:
-    asyncio.create_task(dev.connect_to())
+    util.create_task(dev.connect_to())
 
 
 def eth_disconnect(dev: EthernetDevice) -> None:
-    asyncio.create_task(dev.disconnect_from())
+    util.create_task(dev.disconnect_from())
 
 
 class EthernetPopup(DeviceListPopup[EthernetDevice]):
@@ -24,14 +23,13 @@ class EthernetPopup(DeviceListPopup[EthernetDevice]):
             device=eth,
             item_key="devices",
             icon_name_fn=lambda _: "network-wired-symbolic",
-            label_fn=lambda d: d.bind_many(
-                ["name", "perm_hw_address"], lambda name, addr: name or addr
-            ),
+            label_fn=lambda d: d.name or d.perm_hw_address,
             connect_fn=eth_connect,
             disconnect_fn=eth_disconnect,
             header_icon="network-wired-symbolic",
             connected_property="is_connected",
             connected_check=lambda is_connected: is_connected,
+            notify_properties=["name", "perm_hw_address"],
         )
 
     def filter_items(self, items):

@@ -84,7 +84,18 @@ class Clock(Widget.EventBox):
             "ignis_notifs_calendar", monitor, self
         )
 
-        asyncio.create_task(self.update_time())
+        self._update_task: asyncio.Task[None] | None = None
+        self.connect("realize", self._start_update)
+        self.connect("unrealize", self._stop_update)
+
+    def _start_update(self, *_args) -> None:
+        if self._update_task is None or self._update_task.done():
+            self._update_task = util.create_task(self.update_time())
+
+    def _stop_update(self, *_args) -> None:
+        if self._update_task is not None:
+            self._update_task.cancel()
+            self._update_task = None
     
     async def update_time(self):
         while True:

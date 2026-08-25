@@ -1,9 +1,10 @@
 import inspect
 import json
+import logging
 import subprocess
 import asyncio
 import os
-import subprocess
+import signal
 from typing import (
     Any,
     Awaitable,
@@ -16,7 +17,7 @@ from typing import (
 
 from ignis.app import IgnisApp
 from ignis.gobject import Binding, IgnisGObject
-from gi.repository import GObject, Gio  # pyright: ignore[reportMissingModuleSource]
+from gi.repository import GObject, Gio, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.audio import AudioService
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
@@ -48,6 +49,57 @@ if app is None:
 hyprland = HyprlandService.get_default()
 
 root_dir = Utils.get_current_dir()  # type: ignore
+logger = logging.getLogger(__name__)
+
+_background_tasks: set[asyncio.Task[Any]] = set()
+_background_processes: set[asyncio.subprocess.Process] = set()
+
+
+def create_task[T](coroutine: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
+    """Start an owned background task and release it as soon as it finishes."""
+    task = asyncio.create_task(coroutine)
+    _background_tasks.add(task)
+
+    def finished(completed: asyncio.Task[Any]) -> None:
+        _background_tasks.discard(completed)
+        if not completed.cancelled():
+            # Retrieve failures so abandoned tasks do not retain tracebacks or
+            # produce "exception was never retrieved" warnings.
+            exception = completed.exception()
+            if exception is not None:
+                logger.error(
+                    "Background task failed",
+                    exc_info=(type(exception), exception, exception.__traceback__),
+                )
+
+    task.add_done_callback(finished)
+    return task
+
+
+def cancel_background_tasks() -> None:
+    """Cancel tasks and terminate subprocess groups during configuration reload."""
+    for task in tuple(_background_tasks):
+        task.cancel()
+    for process in tuple(_background_processes):
+        if process.returncode is None:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except (ProcessLookupError, PermissionError):
+                pass
+
+
+def replace_box_children(box: Widget.Box, children: list[Gtk.Widget | None]) -> None:
+    """Replace Box children while honoring Ignis' unparent cleanup wrapper.
+
+    Ignis patches each appended child's ``unparent`` method. Calling that
+    wrapper is important: GTK removal alone leaves a closure retaining both
+    the old child and its former parent.
+    """
+    for child in tuple(box.child):
+        child.unparent()
+    for child in children:
+        if child is not None:
+            box.append(child)
 
 
 def active_monitor() -> int:
@@ -113,19 +165,38 @@ def shell(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
-            preexec_fn=os.setpgrp,
+            start_new_session=True,
         )
-        stdout, _ = await process.communicate()
+        _background_processes.add(process)
+        try:
+            stdout, _ = await process.communicate()
 
-        if process.returncode == 0:
-            if after is not None:
-                await await_or_call(after)
-            return stdout.decode().strip()
+            if process.returncode == 0:
+                if after is not None:
+                    await await_or_call(after)
+                return stdout.decode().strip()
 
-        return None
+            return None
+        except asyncio.CancelledError:
+            if process.returncode is None:
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                except (ProcessLookupError, PermissionError):
+                    pass
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=1)
+                except TimeoutError:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError):
+                        pass
+                    await process.wait()
+            raise
+        finally:
+            _background_processes.discard(process)
 
     if background:
-        asyncio.create_task(_body())
+        create_task(_body())
         return None
 
     return _body()
@@ -188,41 +259,42 @@ async def get_top_colours(
     Extracts the top N dominant colours from an image, ensuring a minimum distance between selected colours.
     """
 
-    def rgb_distance(c1, c2):
-        return np.linalg.norm(np.array(c1) - np.array(c2))
+    def extract() -> list[str]:
+        def rgb_distance(c1, c2):
+            return np.linalg.norm(np.array(c1) - np.array(c2))
 
-    img = Image.open(image_path).convert("RGB")
-    img = img.resize((200, 200))
-    pixels = np.asarray(img, dtype=np.float64).reshape(-1, 3)
+        with Image.open(image_path) as source:
+            img = source.convert("RGB").resize((200, 200))
+            pixels = np.asarray(img, dtype=np.float64).reshape(-1, 3)
 
-    kmeans = KMeans(n_clusters=num_colours, random_state=0)
-    kmeans.fit(pixels)
-    colours = kmeans.cluster_centers_
+        kmeans = KMeans(n_clusters=num_colours, random_state=0)
+        kmeans.fit(pixels)
+        colours = kmeans.cluster_centers_
 
-    def saturation(rgb):
-        r, g, b = [x / 255.0 for x in rgb]
-        mx = max(r, g, b)
-        mn = min(r, g, b)
-        return 0 if mx == 0 else (mx - mn) / mx
+        def saturation(rgb):
+            r, g, b = [x / 255.0 for x in rgb]
+            mx = max(r, g, b)
+            mn = min(r, g, b)
+            return 0 if mx == 0 else (mx - mn) / mx
 
-    sorted_colours = sorted(colours, key=saturation, reverse=True)
+        diverse_colours = []
+        for colour in sorted(colours, key=saturation, reverse=True):
+            if contrast_ratio(colour, (255, 255, 255)) < contrast_threshold:
+                continue
+            if all(
+                rgb_distance(colour, selected) >= min_distance
+                for selected in diverse_colours
+            ):
+                diverse_colours.append(colour)
+            if len(diverse_colours) >= top_n:
+                break
 
-    diverse_colours = []
-    for c in sorted_colours:
-        # ensure sufficient legibility for a white foreground
-        if contrast_ratio(c, (255, 255, 255)) < contrast_threshold:
-            continue
-        # ensure minimum distance from already selected colours
-        if all(rgb_distance(c, dc) >= min_distance for dc in diverse_colours):
-            diverse_colours.append(c)
-        if len(diverse_colours) >= top_n:
-            break
+        return [
+            f"#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}"
+            for c in diverse_colours
+        ]
 
-    hex_colours = [
-        f"#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}" for c in diverse_colours
-    ]
-
-    return hex_colours
+    return await asyncio.to_thread(extract)
 
 
 class PopupManager:

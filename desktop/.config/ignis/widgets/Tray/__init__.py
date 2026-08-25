@@ -32,6 +32,8 @@ class Tray(Widget.EventBox):
         on_hover: Callable[..., Any],
         on_hover_lost: Callable[..., Any],
     ):
+        self._battery = None
+        self._battery_handlers: list[int] = []
         self.network_icon = Widget.Icon(
             css_classes=["tray-icon"], image="network-wired-disconnected-symbolic"
         )
@@ -58,6 +60,7 @@ class Tray(Widget.EventBox):
         )
 
         upower.connect("notify::batteries", update_power)
+        tray_settings.connect("notify::show-batt-percent", self._refresh_battery)
         self.update_power_icon()
 
         super().__init__(
@@ -110,26 +113,33 @@ class Tray(Widget.EventBox):
             self.network_icon.image = "network-wired-disconnected-symbolic"  # type: ignore
 
     def update_power_icon(self):
+        if self._battery is not None:
+            for handler in self._battery_handlers:
+                if self._battery.handler_is_connected(handler):
+                    self._battery.disconnect(handler)
+        self._battery_handlers.clear()
+        self._battery = None
+
         if len(upower.batteries) == 0:
             self.power_icon.image = "system-shutdown-symbolic"  # type: ignore
+            self.power_icon.css_classes = []
+            self.batt_percent_label.label = ""
+            self.batt_percent_label.css_classes = []
             return
 
-        batt = upower.display_device
-        self.power_icon.image = batt.bind("icon_name")
-        self.power_icon.css_classes= batt.bind(
-            "charging",
-            lambda *_: ["battery-charging"] if batt.charging else [],
-        )
-        self.batt_percent_label.label = tray_settings.bind_properties(
-            lambda *_: batt.bind(
-                "percent",
-                lambda percent: f"{int(percent)}%" if tray_settings.show_batt_percent else "",
+        self._battery = upower.display_device
+        for prop in ("icon-name", "charging", "percent"):
+            self._battery_handlers.append(
+                self._battery.connect(f"notify::{prop}", self._refresh_battery)
             )
-        )
-        self.batt_percent_label.css_classes = tray_settings.bind_properties(
-            lambda *_: (
-                ["tray-batt-percent"]
-                if tray_settings.show_batt_percent
-                else []
-            )
-        )
+        self._refresh_battery()
+
+    def _refresh_battery(self, *_args):
+        batt = self._battery
+        if batt is None:
+            return
+        self.power_icon.image = batt.icon_name
+        self.power_icon.css_classes = ["battery-charging"] if batt.charging else []
+        show_percent = tray_settings.show_batt_percent
+        self.batt_percent_label.label = f"{int(batt.percent)}%" if show_percent else ""
+        self.batt_percent_label.css_classes = ["tray-batt-percent"] if show_percent else []

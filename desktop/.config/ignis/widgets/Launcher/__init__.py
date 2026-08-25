@@ -137,7 +137,7 @@ class Launcher(Widget.RevealerWindow):
 
     def _build_result_tree(self):
         sections = [mode.build(self) for mode in self.modes]
-        self.result_list.set_child(sections)
+        util.replace_box_children(self.result_list, sections)
         self.refresh_results_layout()
 
     def _cancel_search_task(self):
@@ -200,7 +200,7 @@ class Launcher(Widget.RevealerWindow):
                 if self._search_task is asyncio.current_task():
                     self._search_task = None
 
-        self._search_task = asyncio.create_task(delayed())
+        self._search_task = util.create_task(delayed())
 
     async def _run_search(self, query: str):
         await asyncio.gather(*(mode.update(query, self.refresh_results_layout) for mode in self.modes))
@@ -211,7 +211,9 @@ class Launcher(Widget.RevealerWindow):
         """Reorganize mode sections by best match quality in query"""
         if not query.strip():
             self._displayed_modes = list(self.modes)
-            self.result_list.set_child([mode.section for mode in self._displayed_modes])
+            util.replace_box_children(
+                self.result_list, [mode.section for mode in self._displayed_modes]
+            )
             return
 
         mode_scores = []
@@ -241,7 +243,9 @@ class Launcher(Widget.RevealerWindow):
                 new_modes.append(mode)
 
         self._displayed_modes = new_modes
-        self.result_list.set_child([mode.section for mode in self._displayed_modes])
+        util.replace_box_children(
+            self.result_list, [mode.section for mode in self._displayed_modes]
+        )
 
     def get_results(self) -> list[LauncherResult]:
         return [result for mode in self._displayed_modes for result in mode.visible_results()]

@@ -2,9 +2,13 @@ import os
 import re
 from pathlib import Path
 
-from gi.repository import Gio
+from gi.repository import Gio, Gtk
+from ignis.app import IgnisApp
+from ignis.dbus_menu import DBusMenu
 from ignis.widgets import Widget
 from ignis.services.system_tray import SystemTrayItem
+import ignis.services.system_tray.item as system_tray_item_module
+import util
 
 
 _PROCESS_NAME_CACHE: dict[str, str | None] = {}
@@ -20,6 +24,63 @@ _GENERIC_APP_NAMES = {
     "python",
     "python3",
 }
+
+
+class ManagedDBusMenu(DBusMenu):
+    """A DBusMenu copy whose D-Bus subscriptions and app actions are owned."""
+
+    def __init__(self, proxy):
+        Gtk.PopoverMenu.__init__(self)
+        self._DBusMenu__proxy = proxy
+        self._menu_id = 0
+        self._subscription_ids = [
+            proxy.signal_subscribe(
+                "LayoutUpdated", lambda *_: util.create_task(self._managed_sync())
+            ),
+            proxy.signal_subscribe(
+                "ItemsPropertiesUpdated",
+                lambda *_: util.create_task(self._managed_sync()),
+            ),
+        ]
+        self._action_names: set[str] = set()
+        self._disposed = False
+
+    async def _managed_sync(self) -> None:
+        if not self._disposed:
+            await self._DBusMenu__sync()
+
+    def _clear_actions(self) -> None:
+        application = IgnisApp.get_default()
+        if application is not None:
+            for name in self._action_names:
+                application.remove_action(name)
+        self._action_names.clear()
+
+    def _update_menu(self, layout: list) -> None:
+        self._clear_actions()
+        application = IgnisApp.get_default()
+        before = set(application.list_actions()) if application is not None else set()
+        super()._update_menu(layout)
+        if application is not None:
+            self._action_names = set(application.list_actions()) - before
+
+    def dispose_menu(self) -> None:
+        if self._disposed:
+            return
+        self._disposed = True
+        proxy = self._DBusMenu__proxy
+        for subscription_id in self._subscription_ids:
+            proxy.signal_unsubscribe(subscription_id)
+        self._subscription_ids.clear()
+        self.popdown()
+        self.set_menu_model(None)
+        self._clear_actions()
+
+
+# SystemTrayService is instantiated after this module is imported. Supplying
+# the managed implementation here gives the service-owned menu the same
+# teardown guarantees as the per-monitor copies below.
+system_tray_item_module.DBusMenu = ManagedDBusMenu
 
 
 def _text(value) -> str | None:
@@ -151,25 +212,29 @@ def resolve_tray_title(item: SystemTrayItem) -> str:
 class SystemTrayApp(Widget.CenterBox):
     def __init__(self, item: SystemTrayItem):
         self.item = item
-        self.menu = item.menu.copy() if item.menu else None
+        self._disposed = False
+        self._item_handlers: list[int] = []
+        self._menu_handler = 0
+        self.menu = (
+            ManagedDBusMenu.new(item.menu.name, item.menu.object_path)
+            if item.menu
+            else None
+        )
         self.title = self._normalize_title(item)
+        self._icon = Widget.Icon(
+            image=self._normalize_icon(item.icon),
+            pixel_size=28,
+            css_classes=["system-tray-item-icon"],
+        )
+        self._label = Widget.Label(
+            label=self._normalize_title(item),
+            css_classes=["system-tray-item-label"],
+        )
 
         start_widget = Widget.Box(
             child=[
-                Widget.Icon(
-                    image=self.item.bind(
-                        "icon", lambda *_: self._normalize_icon(item.icon)
-                    ),
-                    pixel_size=28,
-                    css_classes=["system-tray-item-icon"],
-                ),
-                Widget.Label(
-                    label=self.item.bind_many(
-                        ["title", "tooltip", "id"],
-                        lambda *_: self._normalize_title(item),
-                    ),
-                    css_classes=["system-tray-item-label"],
-                ),
+                self._icon,
+                self._label,
             ]
         )
 
@@ -184,20 +249,47 @@ class SystemTrayApp(Widget.CenterBox):
                 css_classes=["system-tray-item-button"],
                 on_click=lambda _: self.menu.popup() if self.menu else None,
             )
-            self.menu.connect("notify::visible", on_menu_visibility)
+            self._menu_handler = self.menu.connect("notify::visible", on_menu_visibility)
             end_widget = Widget.Box(child=[self.menu, self.button])
         else:
             end_widget = Widget.Box(child=[])
 
-        def on_item_removed(_):
-            self.unparent()
-
         super().__init__(
             start_widget=start_widget,
             end_widget=end_widget,
-            setup=lambda _: self.item.connect("removed", on_item_removed),
             css_classes=["system-tray-item"],
         )
+        for prop in ("icon", "title", "tooltip", "id"):
+            self._item_handlers.append(
+                self.item.connect(f"notify::{prop}", self._sync_item)
+            )
+        self._item_handlers.append(self.item.connect("removed", self._on_item_removed))
+
+    def _sync_item(self, *_args) -> None:
+        self._icon.image = self._normalize_icon(self.item.icon)
+        self._label.label = self._normalize_title(self.item)
+
+    def _on_item_removed(self, *_args) -> None:
+        if self._disposed:
+            return
+        self._disposed = True
+        service_name = _item_service_name(self.item)
+        if service_name:
+            _PROCESS_NAME_CACHE.pop(service_name, None)
+        for handler in self._item_handlers:
+            if self.item.handler_is_connected(handler):
+                self.item.disconnect(handler)
+        self._item_handlers.clear()
+        self._icon.clear()
+        self._icon._image = None
+        if self.menu is not None:
+            if self._menu_handler and self.menu.handler_is_connected(self._menu_handler):
+                self.menu.disconnect(self._menu_handler)
+            self.menu.dispose_menu()
+            self.menu = None
+        if isinstance(self.item.menu, ManagedDBusMenu):
+            self.item.menu.dispose_menu()
+        self.unparent()
 
     def _normalize_icon(self, icon):
         if isinstance(icon, str) and "spotify" in icon.casefold():

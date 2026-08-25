@@ -19,6 +19,7 @@ import util
 
 POPUP_ANIMATION_MS = 220
 SCROLL_FADE_RAMP_PX = 48
+MAX_NOTIFICATION_HISTORY = 100
 NOTIFICATION_IMAGE_CACHE = Path(NOTIFICATIONS_IMAGE_DATA)
 
 notification_service = NotificationService.get_default()
@@ -137,6 +138,17 @@ class NotificationAssets:
 notification_assets = NotificationAssets()
 
 
+def _trim_notification_history(*_args) -> None:
+    """Keep notification objects and their cached assets bounded."""
+    overflow = len(notification_service.notifications) - MAX_NOTIFICATION_HISTORY
+    for notification in tuple(notification_service.notifications)[: max(0, overflow)]:
+        notification.close()
+
+
+notification_service.connect("notified", _trim_notification_history)
+_trim_notification_history()
+
+
 class NotificationCard(Widget.Box):
     """The shared card used by notification history and popup surfaces."""
 
@@ -154,7 +166,9 @@ class NotificationCard(Widget.Box):
         self._handlers: list[int] = []
         self._disposed = False
         self._image: Widget.Icon | None = None
-        self._age_timeout = 0
+        self._interactive_buttons: list[Widget.Button] = []
+        self._click_controller: Gtk.GestureClick | None = None
+        self._click_handler_ids: list[int] = []
         notification_assets.acquire(notification)
 
         icon = notification.icon or "application-x-executable-symbolic"
@@ -185,6 +199,7 @@ class NotificationCard(Widget.Box):
             valign="start",
             on_click=lambda *_: self._dismiss(),
         )
+        self._interactive_buttons.append(close_button)
         header = Widget.Box(
             spacing=7,
             valign="start",
@@ -235,39 +250,38 @@ class NotificationCard(Widget.Box):
         # Give the otherwise inert card a pressed state without claiming the
         # click or assigning it an action. Child action/dismiss buttons retain
         # their normal behavior.
-        click_controller = Gtk.GestureClick()
-        click_controller.connect(
+        self._click_controller = Gtk.GestureClick()
+        self._click_handler_ids.append(self._click_controller.connect(
             "pressed",
             lambda *_: self.set_state_flags(Gtk.StateFlags.ACTIVE, False),
-        )
-        click_controller.connect(
+        ))
+        self._click_handler_ids.append(self._click_controller.connect(
             "released",
             lambda *_: self.unset_state_flags(Gtk.StateFlags.ACTIVE),
-        )
-        click_controller.connect(
+        ))
+        self._click_handler_ids.append(self._click_controller.connect(
             "cancel",
             lambda *_: self.unset_state_flags(Gtk.StateFlags.ACTIVE),
-        )
-        self.add_controller(click_controller)
+        ))
+        self.add_controller(self._click_controller)
 
         self._handlers.append(notification.connect("closed", self._on_closed))
         if popup:
             self._handlers.append(notification.connect("dismissed", self._on_dismissed))
-        self._age_timeout = GLib.timeout_add_seconds(30, self._refresh_age)
 
     def _action_buttons(self, notification: Notification) -> Widget.Box | None:
         buttons: list[Gtk.Widget] = []
         for action in notification.actions:
             if action.id == "default":
                 continue
-            buttons.append(
-                Widget.Button(
+            button = Widget.Button(
                     label=action.label,
                     css_classes=["notification-action"],
                     hexpand=True,
                     on_click=lambda _, selected=action: selected.invoke(),
                 )
-            )
+            buttons.append(button)
+            self._interactive_buttons.append(button)
         if not buttons:
             return None
         return Widget.Box(
@@ -277,12 +291,11 @@ class NotificationCard(Widget.Box):
             child=buttons,
         )
 
-    def _refresh_age(self) -> bool:
+    def _refresh_age(self) -> None:
         notification = self._notification
         if notification is None:
-            return GLib.SOURCE_REMOVE
+            return
         self._age_label.label = _notification_age(notification.time)
-        return GLib.SOURCE_CONTINUE
 
     def _dismiss(self) -> None:
         notification = self._notification
@@ -316,14 +329,22 @@ class NotificationCard(Widget.Box):
                     notification.disconnect(handler)
         self._handlers.clear()
 
-        if self._age_timeout:
-            GLib.source_remove(self._age_timeout)
-            self._age_timeout = 0
+        for button in self._interactive_buttons:
+            button.on_click = None
+        self._interactive_buttons.clear()
+
+        if self._click_controller is not None:
+            for handler in self._click_handler_ids:
+                if self._click_controller.handler_is_connected(handler):
+                    self._click_controller.disconnect(handler)
+            self.remove_controller(self._click_controller)
+        self._click_handler_ids.clear()
+        self._click_controller = None
 
         if self._image is not None:
             self._image.clear()
             self._image._image = None
-        self.child = []
+        util.replace_box_children(self, [])
         self._image = None
         self._notification = None
         self._on_remove = None
@@ -381,7 +402,7 @@ class MediaPlayer(Widget.Box):
     def _render(self, *_args) -> None:
         player = self._player
         if player is None:
-            self.child = []
+            util.replace_box_children(self, [])
             self.visible = False
             return
 
@@ -427,7 +448,7 @@ class MediaPlayer(Widget.Box):
                 ),
             ],
         )
-        self.set_child([
+        util.replace_box_children(self, [
             Widget.Box(
                 spacing=12,
                 css_classes=["notification-media"],
@@ -559,7 +580,13 @@ class Notifications(Widget.Box):
             self._add(notification)
         notification_service.connect("notified", self._on_notified)
         self._media.connect("notify::visible", self._sync_empty_state)
+        self._age_timeout = GLib.timeout_add_seconds(30, self._refresh_ages)
         self._sync_empty_state()
+
+    def _refresh_ages(self) -> bool:
+        for card in tuple(self._cards.values()):
+            card._refresh_age()
+        return GLib.SOURCE_CONTINUE
 
     def _on_notified(self, _service, notification: Notification) -> None:
         self._add(notification, newest=True)

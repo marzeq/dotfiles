@@ -1,18 +1,18 @@
-import asyncio
 from ignis.services.bluetooth import BluetoothDevice, BluetoothService
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.device_list_popup import DeviceListPopup
 from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
+import util
 
 bluetooth = BluetoothService.get_default()
 
 
 def bt_connect(dev: BluetoothDevice) -> None:
-    asyncio.create_task(dev.connect_to())
+    util.create_task(dev.connect_to())
 
 
 def bt_disconnect(dev: BluetoothDevice) -> None:
-    asyncio.create_task(dev.disconnect_from())
+    util.create_task(dev.disconnect_from())
 
 
 class BluetoothPopup(DeviceListPopup[BluetoothDevice]):
@@ -21,15 +21,14 @@ class BluetoothPopup(DeviceListPopup[BluetoothDevice]):
             title="Bluetooth",
             device=bluetooth,
             item_key="devices",
-            icon_name_fn=lambda d: d.bind("icon_name"),
-            label_fn=lambda d: d.bind_many(
-                ["alias", "name"], lambda alias, name: alias or name
-            ),
+            icon_name_fn=lambda d: d.icon_name,
+            label_fn=lambda d: d.alias or d.name,
             connect_fn=bt_connect,
             disconnect_fn=bt_disconnect,
             header_icon="bluetooth-symbolic",
             connected_property="connected",
             connected_check=lambda connected: connected,
+            notify_properties=["icon_name", "alias", "name"],
         )
 
     def filter_items(self, items):

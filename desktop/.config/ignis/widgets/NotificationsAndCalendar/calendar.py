@@ -1,6 +1,7 @@
 import asyncio
 from ignis.widgets import Widget
 from datetime import datetime
+import util
 
 
 def get_month_days(month: int, year: int) -> int:
@@ -190,7 +191,18 @@ class Calendar(Widget.Box):
             ],
         )
 
-        asyncio.create_task(self.async_update_loop())
+        self._update_task: asyncio.Task[None] | None = None
+        self.connect("realize", self._start_update)
+        self.connect("unrealize", self._stop_update)
+
+    def _start_update(self, *_args) -> None:
+        if self._update_task is None or self._update_task.done():
+            self._update_task = util.create_task(self.async_update_loop())
+
+    def _stop_update(self, *_args) -> None:
+        if self._update_task is not None:
+            self._update_task.cancel()
+            self._update_task = None
 
     async def async_update_loop(self, *_):
         while True:

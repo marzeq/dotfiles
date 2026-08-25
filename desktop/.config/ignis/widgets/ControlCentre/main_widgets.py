@@ -1,6 +1,7 @@
 from ignis.services.bluetooth import BluetoothService
 from ignis.services.network import NetworkService
 from ignis.widgets import Widget
+import util
 
 from widgets.ControlCentre.bluetooth import BluetoothWidget
 from widgets.ControlCentre.dnd import DNDWidget
@@ -43,7 +44,7 @@ class MainWidgets(Widget.Box):
         self.update_widgets()
 
     def update_widgets(self):
-        self.set_child([])
+        util.replace_box_children(self, [])
         self.rows.clear()
 
         widgets = []
@@ -62,7 +63,9 @@ class MainWidgets(Widget.Box):
             for w in widgets[i : i + 2]:
                 parent = w.get_parent()
                 if parent:
-                    parent.remove(w)
+                    # Use Ignis' patched unparent wrapper so the old row does
+                    # not remain captured by this long-lived widget.
+                    w.unparent()
 
                 row.append(w)
             self.append(row)

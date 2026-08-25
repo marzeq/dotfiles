@@ -59,7 +59,7 @@ class StyleSettings(BindableSettings):
         self._save_accent_map()
         util.shell(
             f'{util.root_dir}/scripts/change_accent.sh "{colour}"',
-            after=self.post_accent_change(),
+            after=self.post_accent_change,
         )
 
     def restore_accent_colour(self, wallpaper: str):
@@ -69,7 +69,7 @@ class StyleSettings(BindableSettings):
             self._save_accent_map()
         util.shell(
             f"{util.root_dir}/scripts/restore_accent.sh",
-            after=self.post_accent_change(),
+            after=self.post_accent_change,
         )
 
     def handle_color_chosen(self, rgba, wallpaper: str):
@@ -126,10 +126,18 @@ class StyleSettings(BindableSettings):
 
     def remove_wallpaper(self, path: str):
         abs_path = os.path.realpath(os.path.expanduser(path))
+        file_hash = self._hash_file(abs_path) if os.path.isfile(abs_path) else None
         current_list = self._added_wallpapers_str_to_list(self.addedwallpapers)
         if abs_path in current_list:
             current_list.remove(abs_path)
             self.addedwallpapers = self._added_wallpapers_list_to_str(current_list)
+        if file_hash is not None:
+            if self._accent_map.pop(file_hash, None) is not None:
+                self._save_accent_map()
+            try:
+                os.remove(os.path.join(self._wallcache_dir, f"{file_hash}.cache"))
+            except FileNotFoundError:
+                pass
 
     def get_wallpapers(self):
         wallpapers: list[str] = []
@@ -163,12 +171,12 @@ class StyleSettings(BindableSettings):
         if saved:
             util.shell(
                 f'{util.root_dir}/scripts/change_accent.sh "{saved}"',
-                after=self.post_accent_change(),
+                after=self.post_accent_change,
             )
         else:
             util.shell(
                 f"{util.root_dir}/scripts/restore_accent.sh",
-                after=self.post_accent_change(),
+                after=self.post_accent_change,
             )
 
 

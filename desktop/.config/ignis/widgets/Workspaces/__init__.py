@@ -1,6 +1,7 @@
 from ignis.widgets import Widget
 from ignis.services.hyprland import HyprlandService, HyprlandWorkspace
 
+import util
 from util import JsonSettings, BindableSettings
 
 hyprland = HyprlandService.get_default()
@@ -40,22 +41,24 @@ class Workspace(Widget.Box):
 
 class Workspaces(Widget.Box):
     def __init__(self, monitor_name: str):
+        self._monitor_name = monitor_name
+        self._workspace_box = Widget.Box()
         super().__init__(
             child=[
                 Widget.Button(
-                    child=Widget.Box(
-                        child=hyprland.bind_many(
-                            ["workspaces", "active_workspace"],
-                            transform=lambda workspaces,
-                            *_: workspace_settings.bind_properties(
-                                lambda *_: [
-                                    Workspace(monitor_name, w) for w in workspaces
-                                ]
-                            ),
-                        )
-                    ),
+                    child=self._workspace_box,
                     css_classes=["box"],
                 ),
             ],
             css_classes=["workspaces"],
+        )
+        hyprland.connect("notify::workspaces", self._render)
+        hyprland.connect("notify::active-workspace", self._render)
+        workspace_settings.connect("notify::show-all-ws-on-monitor", self._render)
+        self._render()
+
+    def _render(self, *_args) -> None:
+        util.replace_box_children(
+            self._workspace_box,
+            [Workspace(self._monitor_name, workspace) for workspace in hyprland.workspaces],
         )

@@ -131,6 +131,9 @@ async def _get_rates(base: str) -> dict[str, float] | None:
     now = time.time()
 
     async with _cache_lock:
+        for key, entry in tuple(_rate_cache.items()):
+            if entry["expires_at"] <= now:
+                _rate_cache.pop(key, None)
         cached = _rate_cache.get(base)
         if cached and cached["expires_at"] > now:
             return cached["rates"]

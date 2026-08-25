@@ -167,7 +167,7 @@ class WallpaperButton(Widget.Overlay):
                     width=wallpaper_size * 16 // 9,
                     css_classes=["settings-wallpaper-image"],
                 ),
-                on_click=lambda _: asyncio.create_task(on_wallpaper_picked(path)),
+                on_click=lambda _: util.create_task(on_wallpaper_picked(path)),
                 css_classes=["settings-wallpaper"],
             ),
             overlays=[
@@ -384,20 +384,11 @@ class SettingsWindow(Widget.RegularWindow):
         )
         self.wallpapers_box = Widget.Box(
             vexpand=True,
-            child=style_settings.bind_many(
-                ["wallpaper", "addedwallpapers"],
-                lambda *_: [
-                    WallpaperButton(
-                        p,
-                        self.on_wallpaper_picked,
-                        self.on_wallpaper_removed,
-                        p == style_settings.wallpaper,
-                    )
-                    for p in style_settings.get_wallpapers()
-                ],
-            ),
             css_classes=["settings-wallpapers-box"],
         )
+        style_settings.connect("notify::wallpaper", self._render_wallpapers)
+        style_settings.connect("notify::addedwallpapers", self._render_wallpapers)
+        self._render_wallpapers()
         self.wallpapers_scroll = Widget.Scroll(
             child=self.wallpapers_box,
             css_classes=["settings-wallpapers-scroll"],
@@ -405,7 +396,7 @@ class SettingsWindow(Widget.RegularWindow):
 
         self.color_chooser = Gtk.ColorDialog()
 
-        asyncio.create_task(
+        util.create_task(
             self.update_suggested_accent_colours(style_settings.wallpaper)
         )
 
@@ -442,7 +433,7 @@ class SettingsWindow(Widget.RegularWindow):
                             child=[
                                 Widget.Button(
                                     label="Add new",
-                                    on_click=lambda _: asyncio.create_task(
+                                    on_click=lambda _: util.create_task(
                                         add_wallpaper_dialog.open_dialog()
                                     ),
                                     css_classes=["settings-wallpaper-button"],
@@ -688,9 +679,24 @@ Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindl
         except:
             return
 
+    def _render_wallpapers(self, *_args) -> None:
+        util.replace_box_children(
+            self.wallpapers_box,
+            [
+                WallpaperButton(
+                    path,
+                    self.on_wallpaper_picked,
+                    self.on_wallpaper_removed,
+                    path == style_settings.wallpaper,
+                )
+                for path in style_settings.get_wallpapers()
+            ],
+        )
+
     async def update_suggested_accent_colours(self, path: str):
         top_colours = await style_settings.get_cached_top_colours(path)
-        self.suggested_accent_colours.set_child(
+        util.replace_box_children(
+            self.suggested_accent_colours,
             [AccentColourButton(colour=c, wallpaper=path) for c in top_colours]
         )
 

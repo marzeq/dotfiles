@@ -1,8 +1,8 @@
-import asyncio
 from ignis.services.network import NetworkService, WifiAccessPoint, WifiDevice
 from widgets.ControlCentre.device_list_popup import DeviceListPopup
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.widget import CCWLabels, ControlCentreWidget
+import util
 
 network = NetworkService.get_default()
 
@@ -25,11 +25,11 @@ def pick_strongest_aps_for_each_ssid(
 
 
 def wifi_connect(ap: WifiAccessPoint) -> None:
-    asyncio.create_task(ap.connect_to_graphical())
+    util.create_task(ap.connect_to_graphical())
 
 
 def wifi_disconnect(ap: WifiAccessPoint) -> None:
-    asyncio.create_task(ap.disconnect_from())
+    util.create_task(ap.disconnect_from())
 
 
 class WiFiPopup(DeviceListPopup[WifiAccessPoint]):
@@ -42,13 +42,14 @@ class WiFiPopup(DeviceListPopup[WifiAccessPoint]):
             title="Wi-Fi",
             device=dev,
             item_key="access_points",
-            icon_name_fn=lambda ap: ap.bind("icon_name"),
-            label_fn=lambda ap: ap.bind("ssid"),
+            icon_name_fn=lambda ap: ap.icon_name,
+            label_fn=lambda ap: ap.ssid,
             connect_fn=wifi_connect,
             disconnect_fn=wifi_disconnect,
             header_icon="network-wireless-symbolic",
             connected_property="is_connected",
             connected_check=lambda is_connected: is_connected,
+            notify_properties=["icon_name", "ssid"],
         )
 
     def filter_items(self, items):

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Callable, Sequence
 from ignis.widgets import Widget
 from ignis.base_widget import BaseWidget
 from rapidfuzz import fuzz
+import util
 
 if TYPE_CHECKING:
     from . import Launcher
@@ -21,7 +22,7 @@ class LauncherMode:
 
     def set_results(self, results: Sequence[LauncherResult]) -> None:
         self.results = list(results)
-        self.section.set_child(self.results)
+        util.replace_box_children(self.section, self.results)
 
     def visible_results(self) -> list[LauncherResult]:
         return [result for result in self.results if result.visible]

@@ -58,7 +58,7 @@ class PowerOffMode(LauncherMode):
             result.visible = result.value.lower() in matched_names
 
         self.results = ordered_results
-        self.section.set_child(self.results)
+        util.replace_box_children(self.section, self.results)
         self.section.visible = bool(matched_results)
         refresh()
 

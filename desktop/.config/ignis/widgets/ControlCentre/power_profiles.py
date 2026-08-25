@@ -1,5 +1,6 @@
 from typing import Callable
 from ignis.widgets import Widget
+import util
 from services.power_profiles.service import PowerProfilesService
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.widget import (
@@ -59,6 +60,7 @@ class PowerProfileButton(Widget.Button):
 
 class PowerProfilesPopup(ControlCentrePopup):
     def __init__(self):
+        self._profiles_box = Widget.Box(vertical=True)
         super().__init__(
             Widget.Box(
                 vertical=True,
@@ -78,23 +80,23 @@ class PowerProfilesPopup(ControlCentrePopup):
                         css_classes=["cc-popup-header"],
                         halign="start",
                     ),
-                    Widget.Box(
-                        vertical=True,
-                        child=power_profiles.bind(
-                            "profiles",
-                            lambda ps: [
-                                ppb
-                                for ppb in [
-                                    PowerProfileButton(p, lambda: self.toggle())
-                                    for p in ps
-                                ]
-                                if ppb is not None
-                            ][::-1],
-                        ),
-                    ),
+                    self._profiles_box,
                 ],
             )
         )
+        power_profiles.connect("notify::profiles", self._render_profiles)
+        self._render_profiles()
+
+    def _render_profiles(self, *_args) -> None:
+        buttons = [
+            button
+            for button in (
+                PowerProfileButton(profile, self.toggle)
+                for profile in power_profiles.profiles
+            )
+            if button is not None
+        ][::-1]
+        util.replace_box_children(self._profiles_box, buttons)
 
 
 class PowerProfilesWidget(ControlCentreWidget):
