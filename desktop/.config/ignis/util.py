@@ -244,7 +244,7 @@ async def get_top_colours(image_path) -> list[str]:
     
     # use shell and await the result
     result = await shell(
-        f"{program_path} {image_path} --background '#36363a' --tweak --block-size 4",
+        f"{program_path} {image_path} --background '#36363a' --block-size 4 --tweak",
         background=False,
     )
 
