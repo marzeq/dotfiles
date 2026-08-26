@@ -65,6 +65,37 @@
   border-radius: 0.25rem;
 }
 
+.notification-media,
+.notification-media-text,
+.notification-media-marquee,
+.notification-media-marquee-scroll {
+  min-width: 0;
+}
+
+.notification-media-marquee-scroll {
+  background: transparent;
+}
+
+.notification-media-marquee-fade {
+  &.left {
+    background-image: linear-gradient(
+      to right,
+      $button-bg 0%,
+      rgba($button-bg, 0.72) 42%,
+      rgba($button-bg, 0) 100%
+    );
+  }
+
+  &.right {
+    background-image: linear-gradient(
+      to left,
+      $button-bg 0%,
+      rgba($button-bg, 0.72) 42%,
+      rgba($button-bg, 0) 100%
+    );
+  }
+}
+
 .notification-age,
 .notification-media-subtitle {
   color: $fg-inactive;

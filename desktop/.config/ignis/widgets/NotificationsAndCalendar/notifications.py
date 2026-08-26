@@ -20,6 +20,9 @@ import util
 POPUP_ANIMATION_MS = 220
 SCROLL_FADE_RAMP_PX = 48
 MAX_NOTIFICATION_HISTORY = 100
+MARQUEE_TICK_MS = 16
+MARQUEE_SPEED_PX_S = 28.0
+MARQUEE_PAUSE_S = 1.4
 NOTIFICATION_IMAGE_CACHE = Path(NOTIFICATIONS_IMAGE_DATA)
 
 notification_service = NotificationService.get_default()
@@ -351,6 +354,158 @@ class NotificationCard(Widget.Box):
         notification_assets.release(self._notification_id)
 
 
+class AutoScrollingLabel(Widget.Overlay):
+    """A fixed-width label viewport that gently pans overflowing text."""
+
+    def __init__(
+        self,
+        label: str,
+        css_classes: list[str],
+        *,
+        visible: bool = True,
+    ) -> None:
+        self._adjustment = None
+        self._timeout = 0
+        self._direction = 1
+        self._pause_until = 0.0
+        self._last_tick = 0.0
+        self._is_realized = False
+
+        text = Widget.Label(
+            label=label,
+            css_classes=css_classes,
+            halign="start",
+            xalign=0,
+            single_line_mode=True,
+        )
+        self._scroll = Widget.Scroll(
+            child=text,
+            hexpand=True,
+            # EXTERNAL keeps the scrollbar out of the widget while retaining
+            # a real horizontal viewport. NEVER disables horizontal scrolling
+            # and forces GTK to request the label's complete width.
+            hscrollbar_policy="external",
+            vscrollbar_policy="never",
+            css_classes=["notification-media-marquee-scroll"],
+        )
+        self._scroll.set_min_content_width(0)
+        self._scroll.set_propagate_natural_width(False)
+
+        self._left_fade = Widget.Box(
+            width_request=22,
+            hexpand=True,
+            halign="start",
+            can_target=False,
+            visible=False,
+            css_classes=["notification-media-marquee-fade", "left"],
+        )
+        self._right_fade = Widget.Box(
+            width_request=22,
+            hexpand=False,
+            halign="end",
+            can_target=False,
+            visible=False,
+            css_classes=["notification-media-marquee-fade", "right"],
+        )
+
+        super().__init__(
+            child=self._scroll,
+            overlays=[self._left_fade, self._right_fade],
+            hexpand=False,
+            visible=visible,
+            css_classes=["notification-media-marquee"],
+        )
+        self.set_overflow(Gtk.Overflow.HIDDEN)
+
+        self._adjustment = self._scroll.get_hadjustment()
+        self._adjustment.connect("changed", self._sync_overflow)
+        self.connect("realize", self._on_realize)
+        self.connect("unrealize", self._on_unrealize)
+
+    def do_measure(self, orientation, for_size):
+        if orientation == Gtk.Orientation.HORIZONTAL:
+            return (0, 0, -1, -1)
+        return super().do_measure(orientation, for_size)
+
+    def _overflow(self) -> float:
+        if self._adjustment is None:
+            return 0.0
+        return max(
+            0.0,
+            self._adjustment.get_upper() - self._adjustment.get_page_size(),
+        )
+
+    def _on_realize(self, *_args) -> None:
+        self._is_realized = True
+        self._sync_overflow()
+
+    def _on_unrealize(self, *_args) -> None:
+        self._is_realized = False
+        self._stop_animation()
+
+    def _sync_overflow(self, *_args) -> None:
+        overflow = self._overflow()
+        if overflow <= 0.5:
+            self._stop_animation()
+            if self._adjustment is not None:
+                self._adjustment.set_value(0)
+            self._left_fade.visible = False
+            self._right_fade.visible = False
+            return
+
+        self._sync_fades(overflow)
+        if self._is_realized and not self._timeout:
+            self._last_tick = GLib.get_monotonic_time() / 1_000_000
+            self._timeout = GLib.timeout_add(MARQUEE_TICK_MS, self._tick)
+
+    def _sync_fades(self, overflow: float | None = None) -> None:
+        if self._adjustment is None:
+            return
+        maximum = self._overflow() if overflow is None else overflow
+        value = self._adjustment.get_value()
+        self._left_fade.visible = maximum > 0.5 and value > 0.5
+        self._right_fade.visible = maximum > 0.5 and value < maximum - 0.5
+
+    def _tick(self) -> bool:
+        if not self._is_realized or self._adjustment is None:
+            self._timeout = 0
+            return GLib.SOURCE_REMOVE
+
+        maximum = self._overflow()
+        if maximum <= 0.5:
+            self._timeout = 0
+            self._sync_overflow()
+            return GLib.SOURCE_REMOVE
+
+        now = GLib.get_monotonic_time() / 1_000_000
+        delta = min(0.05, max(0.0, now - self._last_tick))
+        self._last_tick = now
+        if now < self._pause_until:
+            return GLib.SOURCE_CONTINUE
+
+        value = self._adjustment.get_value()
+        next_value = value + self._direction * MARQUEE_SPEED_PX_S * delta
+        if next_value >= maximum:
+            next_value = maximum
+            self._direction = -1
+            self._pause_until = now + MARQUEE_PAUSE_S
+        elif next_value <= 0:
+            next_value = 0
+            self._direction = 1
+            self._pause_until = now + MARQUEE_PAUSE_S
+
+        self._adjustment.set_value(next_value)
+        self._sync_fades(maximum)
+        return GLib.SOURCE_CONTINUE
+
+    def _stop_animation(self) -> None:
+        if self._timeout:
+            GLib.source_remove(self._timeout)
+            self._timeout = 0
+        self._direction = 1
+        self._pause_until = 0.0
+
+
 class MediaPlayer(Widget.Box):
     def __init__(self) -> None:
         self._player: MprisPlayer | None = None
@@ -459,20 +614,15 @@ class MediaPlayer(Widget.Box):
                         spacing=3,
                         hexpand=True,
                         valign="center",
+                        css_classes=["notification-media-text"],
                         child=[
-                            Widget.Label(
+                            AutoScrollingLabel(
                                 label=player.title or player.identity or "Unknown track",
                                 css_classes=["notification-media-title"],
-                                halign="start",
-                                ellipsize="end",
-                                max_width_chars=26,
                             ),
-                            Widget.Label(
+                            AutoScrollingLabel(
                                 label=subtitle,
                                 css_classes=["notification-media-subtitle"],
-                                halign="start",
-                                ellipsize="end",
-                                max_width_chars=29,
                                 visible=bool(subtitle),
                             ),
                         ],

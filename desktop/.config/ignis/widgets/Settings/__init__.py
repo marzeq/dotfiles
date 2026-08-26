@@ -149,6 +149,10 @@ class AccentColourButton(Widget.Button):
         super().__init__(
             style=f"background-color: {colour};",
             css_classes=["settings-suggested-accent-colour"],
+            width_request=32,
+            height_request=32,
+            valign="center",
+            vexpand=False,
             on_click=lambda _: style_settings.set_accent_colour(colour, wallpaper),
         )
 
@@ -171,6 +175,27 @@ class WallpaperButton(Widget.Overlay):
                 css_classes=["settings-wallpaper"],
             ),
             overlays=[
+                Widget.Box(
+                    child=[
+                        Widget.Icon(
+                            image="object-select-symbolic",
+                            pixel_size=16,
+                            halign="center",
+                            valign="center",
+                            hexpand=True,
+                            vexpand=True,
+                        )
+                    ],
+                    width_request=32,
+                    height_request=32,
+                    halign="end",
+                    valign="start",
+                    hexpand=False,
+                    vexpand=False,
+                    can_target=False,
+                    visible=iscurrent,
+                    css_classes=["settings-wallpaper-selected"],
+                ),
                 Widget.Button(
                     child=Widget.Icon(
                         icon_name="process-stop-symbolic",
@@ -199,35 +224,50 @@ class Setting(Widget.Box):
         self,
         widget: BaseWidget,
         label: str = "",
-        label_where: Literal["top", "bottom", "left", "right"] = "right",
+        subtitle: str = "",
+        icon: str | None = None,
     ):
-        super().__init__(
+        # Some Ignis widgets expose string-based alignment setters. Call GTK's
+        # base implementation here so this also works for raw GTK controls.
+        Gtk.Widget.set_valign(widget, Gtk.Align.CENTER)
+        Gtk.Widget.set_vexpand(widget, False)
+        labels = Widget.Box(
+            vertical=True,
+            spacing=2,
+            hexpand=True,
+            valign="center",
             child=[
-                widget,
                 Widget.Label(
                     label=label,
-                    css_classes=["settings-widget-label-right"]
-                    if label_where == "right"
-                    else ["settings-widget-label-bottom"],
+                    css_classes=["settings-row-title"],
                     halign="start",
-                    valign="center",
+                    wrap=True,
                 ),
-            ]
-            if label_where in ("right", "bottom")
-            else [
                 Widget.Label(
-                    label=label,
-                    css_classes=["settings-widget-label-left"]
-                    if label_where == "left"
-                    else ["settings-widget-label-top"],
+                    label=subtitle,
+                    css_classes=["settings-row-subtitle"],
                     halign="start",
-                    valign="center",
+                    wrap=True,
+                    visible=bool(subtitle),
                 ),
-                widget,
             ],
-            halign="start",
-            css_classes=["settings-widget-with-label"],
-            vertical=label_where in ("top", "bottom"),
+        )
+        children: list[BaseWidget] = []
+        if icon:
+            children.append(
+                Widget.Icon(
+                    image=icon,
+                    pixel_size=20,
+                    css_classes=["settings-row-icon"],
+                    valign="center",
+                )
+            )
+        children.extend([labels, widget])
+        super().__init__(
+            child=children,
+            spacing=14,
+            hexpand=True,
+            css_classes=["settings-row"],
         )
 
 
@@ -235,6 +275,8 @@ class SwitchWithLabel(Setting):
     def __init__(
         self,
         label: str,
+        subtitle: str = "",
+        icon: str | None = None,
         active: bool = True,
         on_change: Callable[[Widget.Switch, bool], Any] = lambda *_: None,
     ):
@@ -245,29 +287,86 @@ class SwitchWithLabel(Setting):
         )
         super().__init__(
             label=label,
+            subtitle=subtitle,
+            icon=icon,
             widget=switch,
         )
 
 
-class SettingsSection(Widget.Box):
+class SettingsGroup(Widget.Box):
     def __init__(self, title: str, description: str, child: list[BaseWidget | None]):
-        desc = Widget.Label(
-            css_classes=["settings-description"],
-            halign="start",
-        )
-        desc.set_markup(description)
+        rows = [item for item in child if item is not None]
+        grouped: list[BaseWidget] = []
+        for index, row in enumerate(rows):
+            if index:
+                grouped.append(
+                    Widget.Separator(css_classes=["settings-row-separator"])
+                )
+            grouped.append(row)
+
+        heading: list[BaseWidget] = [
+            Widget.Label(
+                label=title,
+                css_classes=["settings-group-title"],
+                halign="start",
+            )
+        ]
+        if description:
+            desc = Widget.Label(
+                css_classes=["settings-group-description"],
+                halign="start",
+                wrap=True,
+            )
+            desc.set_markup(description)
+            heading.append(desc)
+
         super().__init__(
             vertical=True,
+            spacing=8,
             child=[
-                Widget.Label(
-                    label=title,
-                    css_classes=["settings-subtitle"],
-                    halign="start",
+                *heading,
+                Widget.Box(
+                    vertical=True,
+                    child=grouped,
+                    css_classes=["settings-group-card"],
                 ),
-                desc,
+            ],
+            css_classes=["settings-group"],
+        )
+
+
+class SettingsPage(Widget.Box):
+    def __init__(
+        self,
+        title: str,
+        description: str,
+        child: list[BaseWidget],
+    ) -> None:
+        super().__init__(
+            vertical=True,
+            spacing=22,
+            child=[
+                Widget.Box(
+                    vertical=True,
+                    spacing=4,
+                    child=[
+                        Widget.Label(
+                            label=title,
+                            css_classes=["settings-page-title"],
+                            halign="start",
+                        ),
+                        Widget.Label(
+                            label=description,
+                            css_classes=["settings-page-description"],
+                            halign="start",
+                            wrap=True,
+                        ),
+                    ],
+                    css_classes=["settings-page-heading"],
+                ),
                 *child,
             ],
-            css_classes=["settings-section"],
+            css_classes=["settings-page"],
         )
 
 
@@ -380,7 +479,10 @@ def StringDropdown(
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
         self.suggested_accent_colours = Widget.Box(
-            css_classes=["settings-suggested-accent-colours"]
+            css_classes=["settings-suggested-accent-colours"],
+            spacing=10,
+            valign="center",
+            vexpand=False,
         )
         self.wallpapers_box = Widget.Box(
             vexpand=True,
@@ -391,6 +493,9 @@ class SettingsWindow(Widget.RegularWindow):
         self._render_wallpapers()
         self.wallpapers_scroll = Widget.Scroll(
             child=self.wallpapers_box,
+            hexpand=True,
+            hscrollbar_policy="automatic",
+            vscrollbar_policy="never",
             css_classes=["settings-wallpapers-scroll"],
         )
 
@@ -419,114 +524,150 @@ class SettingsWindow(Widget.RegularWindow):
         )
         self.post_accent_change_entry.set_text(style_settings.post_accent_change_cmd)
 
-        box = Widget.Box(
-            vertical=True,
-            vexpand=True,
+        appearance = SettingsPage(
+            title="Appearance",
+            description="Personalise the shell while keeping a calm, consistent desktop.",
             child=[
-                SettingsSection(
+                SettingsGroup(
                     title="Wallpaper",
-                    description="Select a wallpaper for your desktop or add your own images to the library.",
-                    child=[
-                        self.wallpapers_scroll,
-                        Widget.Box(
-                            halign="start",
-                            child=[
-                                Widget.Button(
-                                    label="Add new",
-                                    on_click=lambda _: util.create_task(
-                                        add_wallpaper_dialog.open_dialog()
-                                    ),
-                                    css_classes=["settings-wallpaper-button"],
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
-                SettingsSection(
-                    title="Accent colour",
-                    description="Choose the system accent colour, either suggested from your wallpaper or set manually.",
-                    child=[
-                        self.suggested_accent_colours,
-                        Widget.Box(
-                            child=[
-                                Widget.Button(
-                                    halign="start",
-                                    label="Set custom",
-                                    on_click=lambda _: self.color_chooser.choose_rgba(
-                                        parent=None,
-                                        cancellable=None,
-                                        callback=self.on_color_chosen,
-                                    ),  # type: ignore
-                                    css_classes=["change-accent-colour-button"],
-                                ),
-                                Widget.Button(
-                                    halign="start",
-                                    label="Restore default",
-                                    on_click=lambda _: style_settings.restore_accent_colour(
-                                        style_settings.wallpaper
-                                    ),
-                                    css_classes=["change-accent-colour-button"],
-                                ),
-                            ],
-                        ),
-                        Setting(
-                            widget=self.post_accent_change_entry,
-                            label="Post accent colour change command",
-                        ),
-                    ],
-                ),
-                SettingsSection(
-                    title="Bar",
-                    description="Control how the top bar and its clock, workspaces and tray area are displayed across monitors.",
+                    description="Choose a background from your library.",
                     child=[
                         Widget.Box(
                             vertical=True,
+                            spacing=12,
                             child=[
-                                SwitchWithLabel(
-                                    label="Show bar only on the primary monitor",
-                                    active=bar_settings.show_only_on_primary_monitor,
-                                    on_change=lambda _,
-                                    active: bar_settings.set_show_only_on_primary_monitor(active),
-                                ),
-                                SwitchWithLabel(
-                                    label="Use 24-hour format for clock",
-                                    active=clock_settings.use_24h,
-                                    on_change=lambda _,
-                                    active: clock_settings.set_use_24h(active),
-                                ),
-                                SwitchWithLabel(
-                                    label="Show day of week in clock",
-                                    active=clock_settings.show_dow,
-                                    on_change=lambda _,
-                                    active: clock_settings.set_show_dow(active),
-                                ),
-                                SwitchWithLabel(
-                                    label="Show seconds in clock",
-                                    active=clock_settings.show_seconds,
-                                    on_change=lambda _,
-                                    active: clock_settings.set_show_seconds(active),
-                                ),
-                                SwitchWithLabel(
-                                    label="Show all workspaces on each monitor",
-                                    active=workspace_settings.show_all_ws_on_monitor,
-                                    on_change=lambda _,
-                                    active: workspace_settings.set_show_all_ws_on_monitor(
-                                        active
-                                    ),
-                                ),
-                                SwitchWithLabel(
-                                    label="Show battery percentage",
-                                    active=tray_settings.show_batt_percent,
-                                    on_change=lambda _,
-                                    active: tray_settings.set_show_batt_percent(active),
+                                self.wallpapers_scroll,
+                                Widget.Box(
+                                    halign="start",
+                                    child=[
+                                        Widget.Button(
+                                            child=Widget.Box(
+                                                spacing=7,
+                                                child=[
+                                                    Widget.Icon(
+                                                        image="list-add-symbolic",
+                                                        pixel_size=16,
+                                                    ),
+                                                    Widget.Label(label="Add wallpaper"),
+                                                ],
+                                            ),
+                                            on_click=lambda _: util.create_task(
+                                                add_wallpaper_dialog.open_dialog()
+                                            ),
+                                            css_classes=[
+                                                "settings-secondary-button",
+                                                "settings-wallpaper-button",
+                                            ],
+                                        ),
+                                    ],
                                 ),
                             ],
+                            css_classes=["settings-feature-content"],
                         ),
                     ],
                 ),
-                SettingsSection(
+                SettingsGroup(
+                    title="Accent colour",
+                    description="Suggested colours are extracted from your current wallpaper.",
+                    child=[
+                        Setting(
+                            widget=self.suggested_accent_colours,
+                            label="Suggested colours",
+                            subtitle="Pick a colour that complements your background.",
+                            icon="applications-graphics-symbolic",
+                        ),
+                        Setting(
+                            widget=Widget.Box(
+                                spacing=8,
+                                child=[
+                                    Widget.Button(
+                                        label="Custom…",
+                                        on_click=lambda _: self.color_chooser.choose_rgba(
+                                            parent=None,
+                                            cancellable=None,
+                                            callback=self.on_color_chosen,
+                                        ),  # type: ignore
+                                        css_classes=["settings-secondary-button"],
+                                    ),
+                                    Widget.Button(
+                                        label="Reset",
+                                        on_click=lambda _: style_settings.restore_accent_colour(
+                                            style_settings.wallpaper
+                                        ),
+                                        css_classes=["settings-secondary-button"],
+                                    ),
+                                ],
+                            ),
+                            label="Custom accent",
+                            subtitle="Choose any colour or return to the generated default.",
+                            icon="color-select-symbolic",
+                        ),
+                        Setting(
+                            widget=self.post_accent_change_entry,
+                            label="After changing accent",
+                            subtitle="Optional command to run after the theme is updated.",
+                            icon="utilities-terminal-symbolic",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        shell = SettingsPage(
+            title="Shell",
+            description="Control the bar, clock, workspaces and launcher.",
+            child=[
+                SettingsGroup(
+                    title="Top bar",
+                    description="Choose what appears in the shell’s persistent status area.",
+                    child=[
+                        SwitchWithLabel(
+                            label="Primary monitor only",
+                            subtitle="Hide the bar on secondary displays.",
+                            icon="video-display-symbolic",
+                            active=bar_settings.show_only_on_primary_monitor,
+                            on_change=lambda _, active: bar_settings.set_show_only_on_primary_monitor(active),
+                        ),
+                        SwitchWithLabel(
+                            label="24-hour clock",
+                            subtitle="Use regional 24-hour time formatting.",
+                            icon="preferences-system-time-symbolic",
+                            active=clock_settings.use_24h,
+                            on_change=lambda _, active: clock_settings.set_use_24h(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Day of the week",
+                            subtitle="Show the abbreviated weekday beside the date.",
+                            icon="x-office-calendar-symbolic",
+                            active=clock_settings.show_dow,
+                            on_change=lambda _, active: clock_settings.set_show_dow(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Seconds",
+                            subtitle="Include seconds in the top-bar clock.",
+                            icon="preferences-system-time-symbolic",
+                            active=clock_settings.show_seconds,
+                            on_change=lambda _, active: clock_settings.set_show_seconds(active),
+                        ),
+                        SwitchWithLabel(
+                            label="All workspaces on every monitor",
+                            subtitle="Show workspaces even when they belong to another display.",
+                            icon="view-grid-symbolic",
+                            active=workspace_settings.show_all_ws_on_monitor,
+                            on_change=lambda _, active: workspace_settings.set_show_all_ws_on_monitor(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Battery percentage",
+                            subtitle="Place the remaining percentage beside the battery icon.",
+                            icon="battery-symbolic",
+                            active=tray_settings.show_batt_percent,
+                            on_change=lambda _, active: tray_settings.set_show_batt_percent(active),
+                        ),
+                    ],
+                ),
+                SettingsGroup(
                     title="Launcher",
-                    description="Adjust how the launcher behaves and configure its built-in features.",
+                    description="Defaults used by launcher utilities.",
                     child=[
                         Setting(
                             widget=StringDropdown(
@@ -537,140 +678,280 @@ class SettingsWindow(Widget.RegularWindow):
                                 settings_obj=launcher_settings,
                                 notify_props=["preferred-currency"],
                             ),
-                            label="Preferred target currency for conversion",
+                            label="Preferred currency",
+                            subtitle="Target currency used when a conversion omits one.",
+                            icon="accessories-calculator-symbolic",
                         ),
                     ],
                 ),
-                SettingsSection(
-                    title="Display settings",
-                    description="Manage monitor configuration, primary display selection, and related display options.",
+            ],
+        )
+
+        keyboard_layout = StringDropdown(
+            labels=get_keyboard_layouts(),
+            enable_search=True,
+            on_change=lambda value: (
+                hyprland_settings.set_keyboard_layout(value),
+                hyprland_settings.set_keyboard_variant(""),
+            ),
+            get_current=lambda: hyprland_settings.keyboard_layout,
+            settings_obj=hyprland_settings,
+            notify_props=["keyboard-layout"],
+        )
+        keyboard_variant = StringDropdown(
+            labels=[],
+            enable_search=True,
+            on_change=hyprland_settings.set_keyboard_variant,
+            get_current=lambda: hyprland_settings.keyboard_variant,
+            settings_obj=hyprland_settings,
+            notify_props=["keyboard-layout", "keyboard-variant"],
+            repopulate=lambda: get_keyboard_variants(
+                hyprland_settings.keyboard_layout
+            ),
+        )
+        devices = SettingsPage(
+            title="Devices",
+            description="Configure displays and input devices used by Hyprland.",
+            child=[
+                SettingsGroup(
+                    title="Displays",
+                    description="Select the display that owns primary shell surfaces.",
                     child=[
                         Setting(
-                            Widget.Button(
-                                child=Widget.Label(label="Launch nwg-displays"),
-                                on_click=lambda _: util.shell("nwg-displays"),
-                            )
-                        )
-                        if util.has_command("nwg-displays")
-                        else None,
-                        Setting(
                             widget=StringDropdown(
-                                labels=[m.name for m in util.hyprland.monitors],
+                                labels=[monitor.name for monitor in util.hyprland.monitors],
                                 on_change=hyprland_settings.set_primary_monitor,
                                 get_current=lambda: hyprland_settings.primary_monitor,
                                 settings_obj=hyprland_settings,
                                 notify_props=["primary-monitor"],
                             ),
-                            label="Primary monitor",
+                            label="Primary display",
+                            subtitle="Notifications and primary-only shell elements appear here.",
+                            icon="video-display-symbolic",
                         ),
-                    ],
-                ),
-                SettingsSection(
-                    title="Keyboard layout",
-                    description="Select the keyboard layout and optional variant used by Hyprland.\nLeave variant empty to use the default for the selected layout.",
-                    child=[
                         Setting(
-                            widget=Widget.Box(
-                                child=[
-                                    StringDropdown(
-                                        labels=get_keyboard_layouts(),
-                                        enable_search=True,
-                                        on_change=lambda v: (
-                                            hyprland_settings.set_keyboard_layout(v),
-                                            hyprland_settings.set_keyboard_variant(""),
-                                        ),
-                                        get_current=lambda: hyprland_settings.keyboard_layout,
-                                        settings_obj=hyprland_settings,
-                                        notify_props=["keyboard-layout"],
-                                    ),
-                                    StringDropdown(
-                                        labels=[],
-                                        enable_search=True,
-                                        on_change=hyprland_settings.set_keyboard_variant,
-                                        get_current=lambda: hyprland_settings.keyboard_variant,
-                                        settings_obj=hyprland_settings,
-                                        notify_props=[
-                                            "keyboard-layout",
-                                            "keyboard-variant",
-                                        ],
-                                        repopulate=lambda: get_keyboard_variants(
-                                            hyprland_settings.keyboard_layout
-                                        ),
-                                    ),
-                                ],
-                                spacing=8,
+                            widget=Widget.Button(
+                                child=Widget.Box(
+                                    spacing=7,
+                                    child=[
+                                        Widget.Label(label="Open Displays"),
+                                        Widget.Icon(image="go-next-symbolic", pixel_size=14),
+                                    ],
+                                ),
+                                on_click=lambda _: util.shell("nwg-displays"),
+                                css_classes=["settings-secondary-button"],
                             ),
+                            label="Display arrangement",
+                            subtitle="Configure resolution, scale, position and refresh rate.",
+                            icon="preferences-desktop-display-symbolic",
+                        )
+                        if util.has_command("nwg-displays")
+                        else None,
+                    ],
+                ),
+                SettingsGroup(
+                    title="Keyboard",
+                    description="Choose the layout and optional regional variant.",
+                    child=[
+                        Setting(
+                            widget=keyboard_layout,
+                            label="Layout",
+                            icon="input-keyboard-symbolic",
+                        ),
+                        Setting(
+                            widget=keyboard_variant,
+                            label="Variant",
+                            subtitle="Leave empty to use the layout default.",
+                            icon="input-keyboard-symbolic",
                         ),
                     ],
                 ),
-                SettingsSection(
-                    title="Mouse sensitivity",
-                    description="Adjust mouse sensitivity and acceleration in Hyprland.",
+                SettingsGroup(
+                    title="Pointer",
+                    description="Tune pointer movement without leaving the shell.",
                     child=[
                         Setting(
-                            Widget.Scale(
+                            widget=Widget.Scale(
                                 min=-1.0,
                                 max=1.0,
                                 step=0.1,
                                 value=hyprland_settings.bind("pointer_sensitivity"),
-                                on_change=lambda s: hyprland_settings.set_pointer_sensitivity(
-                                    s.get_value()
+                                on_change=lambda scale: hyprland_settings.set_pointer_sensitivity(
+                                    scale.get_value()
                                 ),
                                 css_classes=["settings-pointer-speed-scale"],
-                            )
+                            ),
+                            label="Pointer speed",
+                            subtitle="Slower to the left, faster to the right.",
+                            icon="input-mouse-symbolic",
                         ),
                         SwitchWithLabel(
                             label="Pointer acceleration",
+                            subtitle="Adapt movement speed to how quickly the pointer moves.",
+                            icon="input-mouse-symbolic",
                             active=hyprland_settings.bind("acceleration_enabled"),  # type: ignore
-                            on_change=lambda _,
-                            active: hyprland_settings.set_acceleration_enabled(active),
+                            on_change=lambda _, active: hyprland_settings.set_acceleration_enabled(active),
                         ),
                     ],  # type: ignore
                 ),
-                SettingsSection(
-                    title="Tiling layout",
-                    description="""Select the window tiling algorithm used by Hyprland and how windows are arranged.
-Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindle-Layout/\">here</a> and <a href=\"https://wiki.hypr.land/Configuring/Master-Layout/\">here</a>.""",
+            ],
+        )
+
+        windows = SettingsPage(
+            title="Windows",
+            description="Choose how windows are arranged and managed.",
+            child=[
+                SettingsGroup(
+                    title="Tiling",
+                    description="Hyprland provides two distinct automatic tiling strategies.",
                     child=[
                         Setting(
-                            StringDropdown(
-                                labels=[l.capitalize() for l in hyprland_layouts],
-                                on_change=lambda v: hyprland_settings.set_layout_type(
-                                    v.lower()
+                            widget=StringDropdown(
+                                labels=[layout.capitalize() for layout in hyprland_layouts],
+                                on_change=lambda value: hyprland_settings.set_layout_type(
+                                    value.lower()
                                 ),
                                 get_current=lambda: hyprland_settings.layout_type.capitalize(),
                                 settings_obj=hyprland_settings,
                                 notify_props=["layout-type"],
                             ),
+                            label="Layout algorithm",
+                            subtitle="Dwindle recursively splits space; Master reserves a primary area.",
+                            icon="view-grid-symbolic",
                         ),
-                    ],
-                ),
-                Widget.Box(
-                    child=[
-                        Widget.Button(
-                            child=Widget.Label(label="Reload shell"),
-                            on_click=lambda _: util.shell("goignis reload"),
-                            hexpand=True,
+                        Setting(
+                            widget=Widget.Button(
+                                label="Open documentation",
+                                on_click=lambda _: util.shell(
+                                    "xdg-open https://wiki.hypr.land/Configuring/Layouts/"
+                                ),
+                                css_classes=["settings-secondary-button"],
+                            ),
+                            label="Learn about layouts",
+                            subtitle="Read Hyprland’s layout configuration guide.",
+                            icon="help-browser-symbolic",
                         ),
                     ],
                 ),
             ],
-            css_classes=["settings"],
         )
 
-        lc = box.get_last_child()
-        if lc is not None:
-            lc.add_css_class("last")
+        page_specs = [
+            ("Appearance", "preferences-desktop-wallpaper-symbolic", appearance),
+            ("Shell", "preferences-system-symbolic", shell),
+            ("Devices", "input-keyboard-symbolic", devices),
+            ("Windows", "focus-windows-symbolic", windows),
+        ]
+        self._page_widgets = [
+            Widget.Scroll(
+                child=page,
+                hexpand=True,
+                vexpand=True,
+                hscrollbar_policy="never",
+                vscrollbar_policy="automatic",
+                css_classes=["settings-page-scroll"],
+            )
+            for _, _, page in page_specs
+        ]
+        self._settings_stack = Widget.Stack(
+            child=[
+                Widget.StackPage(title=title, child=page)
+                for (title, _, _), page in zip(page_specs, self._page_widgets)
+            ],
+            transition_type="crossfade",
+            transition_duration=180,
+            hexpand=True,
+            vexpand=True,
+            css_classes=["settings-stack"],
+        )
+        self._page_buttons: list[Widget.Button] = []
+        navigation: list[BaseWidget] = []
+        for index, (title, icon, _) in enumerate(page_specs):
+            button = Widget.Button(
+                child=Widget.Box(
+                    spacing=12,
+                    child=[
+                        Widget.Icon(image=icon, pixel_size=18),
+                        Widget.Label(label=title, halign="start", hexpand=True),
+                    ],
+                ),
+                on_click=lambda _, selected=index: self._select_page(selected),
+                css_classes=["settings-sidebar-button"],
+            )
+            self._page_buttons.append(button)
+            navigation.append(button)
 
+        sidebar = Widget.Box(
+            vertical=True,
+            spacing=4,
+            child=[
+                Widget.Box(
+                    vertical=True,
+                    spacing=2,
+                    child=[
+                        Widget.Label(
+                            label="Ignis",
+                            halign="start",
+                            css_classes=["settings-sidebar-title"],
+                        ),
+                        Widget.Label(
+                            label="Shell Settings",
+                            halign="start",
+                            css_classes=["settings-sidebar-subtitle"],
+                        ),
+                    ],
+                    css_classes=["settings-sidebar-heading"],
+                ),
+                *navigation,
+                Widget.Box(vexpand=True),
+                Widget.Separator(css_classes=["settings-sidebar-separator"]),
+                Widget.Button(
+                    child=Widget.Box(
+                        spacing=10,
+                        child=[
+                            Widget.Icon(image="view-refresh-symbolic", pixel_size=17),
+                            Widget.Label(label="Reload shell"),
+                        ],
+                    ),
+                    on_click=lambda _: util.shell("goignis reload"),
+                    css_classes=["settings-reload-button"],
+                ),
+            ],
+            css_classes=["settings-sidebar"],
+        )
+
+        self._select_page(0)
         super().__init__(
-            child=Widget.Scroll(
-                child=box,
+            child=Widget.Box(
+                child=[sidebar, self._settings_stack],
+                css_classes=["settings"],
             ),
+            titlebar=Widget.HeaderBar(
+                title_widget=Widget.Label(
+                    label="Settings",
+                    css_classes=["settings-header-title"],
+                ),
+                show_title_buttons=True,
+                css_classes=["settings-headerbar"],
+            ),
+            title="Ignis Settings",
+            default_width=980,
+            default_height=720,
             namespace="ignis_settings",
-            css_classes=["window"],
+            css_classes=["window", "settings-window"],
             visible=False,
             hide_on_close=True,
         )
+
+    def _select_page(self, index: int) -> None:
+        if not 0 <= index < len(self._page_widgets):
+            return
+        self._settings_stack.set_visible_child(self._page_widgets[index])
+        for button_index, button in enumerate(self._page_buttons):
+            classes = ["settings-sidebar-button"]
+            if button_index == index:
+                classes.append("active")
+            button.css_classes = classes
 
     def on_color_chosen(self, source, result):
         try:
@@ -703,7 +984,7 @@ Learn more about each layout <a href=\"https://wiki.hypr.land/Configuring/Dwindl
     async def on_wallpaper_picked(self, file):
         await style_settings.pick_wallpaper(file)
         await self.update_suggested_accent_colours(file)
-        self.wallpapers_scroll.get_vadjustment().set_value(0)
+        self.wallpapers_scroll.get_hadjustment().set_value(0)
 
     def on_wallpaper_removed(self, path):
         style_settings.remove_wallpaper(path)
