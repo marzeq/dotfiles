@@ -5,6 +5,7 @@ import subprocess
 import asyncio
 import os
 import signal
+import platform
 from typing import (
     Any,
     Awaitable,
@@ -22,10 +23,6 @@ from ignis.services.audio import AudioService
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 from ignis.widgets import Widget
-
-from PIL import Image
-import numpy as np
-from sklearn.cluster import KMeans
 
 # workaround for IgnisApp being initialised multiple times from different files, fixed in ignis-git, waiting for tagged release
 
@@ -234,67 +231,38 @@ def has_command(cmd: str) -> bool:
     )
 
 
-def relative_luminance(rgb):
-    # convert sRGB from 0–255 to linear
-    def channel(c):
-        c = c / 255
-        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
 
-    r, g, b = map(channel, rgb)
-    # WCAG weights
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+async def get_top_colours(image_path) -> list[str]:
+    program_path: str
+    if platform.machine() == "x86_64":
+        program_path = os.path.join(root_dir, "scripts/accent-extract-amd64")
+    elif platform.machine() == "aarch64":
+        program_path = os.path.join(root_dir, "scripts/accent-extract-arm64")
+    else:
+        print(f"Unsupported architecture: {platform.machine()}")
+        return []
+    
+    # use shell and await the result
+    result = await shell(
+        f"{program_path} {image_path} --background '#36363a' --tweak",
+        background=False,
+    )
 
+    if result is None:
+        print(f"Failed to extract colours from {image_path}")
+        return []
 
-def contrast_ratio(c1, c2):
-    L1 = relative_luminance(c1)
-    L2 = relative_luminance(c2)
-    lighter, darker = max(L1, L2), min(L1, L2)
-    return (lighter + 0.05) / (darker + 0.05)
+    colours = []
+    for line in result.splitlines():
+        print(line)
+        try:
+            colour = line.strip().split(" ")[0]
+            print(f"Extracted colour: {colour}")
+            colours.append(colour)
+        except ValueError:
+            continue
 
-
-async def get_top_colours(
-    image_path, num_colours=50, top_n=10, min_distance=50, contrast_threshold=3
-):
-    """
-    Extracts the top N dominant colours from an image, ensuring a minimum distance between selected colours.
-    """
-
-    def extract() -> list[str]:
-        def rgb_distance(c1, c2):
-            return np.linalg.norm(np.array(c1) - np.array(c2))
-
-        with Image.open(image_path) as source:
-            img = source.convert("RGB").resize((200, 200))
-            pixels = np.asarray(img, dtype=np.float64).reshape(-1, 3)
-
-        kmeans = KMeans(n_clusters=num_colours, random_state=0)
-        kmeans.fit(pixels)
-        colours = kmeans.cluster_centers_
-
-        def saturation(rgb):
-            r, g, b = [x / 255.0 for x in rgb]
-            mx = max(r, g, b)
-            mn = min(r, g, b)
-            return 0 if mx == 0 else (mx - mn) / mx
-
-        diverse_colours = []
-        for colour in sorted(colours, key=saturation, reverse=True):
-            if contrast_ratio(colour, (255, 255, 255)) < contrast_threshold:
-                continue
-            if all(
-                rgb_distance(colour, selected) >= min_distance
-                for selected in diverse_colours
-            ):
-                diverse_colours.append(colour)
-            if len(diverse_colours) >= top_n:
-                break
-
-        return [
-            f"#{int(c[0]):02X}{int(c[1]):02X}{int(c[2]):02X}"
-            for c in diverse_colours
-        ]
-
-    return await asyncio.to_thread(extract)
+    return colours
 
 
 class PopupManager:
