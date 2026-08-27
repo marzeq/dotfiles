@@ -1,5 +1,6 @@
 import os
 import hashlib
+import json
 import util
 from util import JsonSettings, BindableSettings
 
@@ -8,6 +9,7 @@ from util import JsonSettings, BindableSettings
 class StyleSettings(BindableSettings):
     wallpaper: str = os.path.expanduser("~/.config/ignis/default_wallpaper.jpg")
     addedwallpapers: str = ""
+    custom_accent_colours: str = ""
 
     def __init__(self):
         super().__init__()
@@ -48,6 +50,65 @@ class StyleSettings(BindableSettings):
             for h, colour in self._accent_map.items():
                 f.write(f"{h} {colour}\n")
 
+    def get_accent_colour(self, wallpaper: str) -> str | None:
+        return self._accent_map.get(self._hash_file(wallpaper))
+
+    def _get_custom_accent_map(self) -> dict[str, list[str]]:
+        raw = self.custom_accent_colours.strip()
+        if not raw:
+            return {}
+        try:
+            loaded = json.loads(raw)
+            if isinstance(loaded, dict):
+                return {
+                    str(wallpaper_hash): [
+                        str(colour).lower() for colour in colours
+                    ]
+                    for wallpaper_hash, colours in loaded.items()
+                    if isinstance(colours, list)
+                }
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # Migrate the previous global semicolon-delimited list to the wallpaper
+        # that was active when this version first reads it.
+        legacy_colours = [colour.lower() for colour in raw.split(";") if colour]
+        migrated = {self._hash_file(self.wallpaper): legacy_colours}
+        self._save_custom_accent_map(migrated)
+        return migrated
+
+    def _save_custom_accent_map(self, accent_map: dict[str, list[str]]) -> None:
+        self.custom_accent_colours = json.dumps(
+            accent_map, separators=(",", ":"), sort_keys=True
+        )
+
+    def list_custom_accent_colours(self, wallpaper: str) -> list[str]:
+        return list(self._get_custom_accent_map().get(self._hash_file(wallpaper), []))
+
+    def add_custom_accent_colour(self, colour: str, wallpaper: str) -> None:
+        colour = colour.lower()
+        accent_map = self._get_custom_accent_map()
+        wallpaper_hash = self._hash_file(wallpaper)
+        colours = accent_map.setdefault(wallpaper_hash, [])
+        if colour not in colours:
+            colours.append(colour)
+            self._save_custom_accent_map(accent_map)
+
+    def remove_custom_accent_colour(self, colour: str, wallpaper: str) -> None:
+        colour = colour.lower()
+        accent_map = self._get_custom_accent_map()
+        wallpaper_hash = self._hash_file(wallpaper)
+        colours = [
+            saved_colour
+            for saved_colour in accent_map.get(wallpaper_hash, [])
+            if saved_colour.lower() != colour
+        ]
+        if colours:
+            accent_map[wallpaper_hash] = colours
+        else:
+            accent_map.pop(wallpaper_hash, None)
+        self._save_custom_accent_map(accent_map)
+
     async def post_accent_change(self):
         util.get_app().reload_css()
         if self.post_accent_change_cmd:
@@ -72,13 +133,13 @@ class StyleSettings(BindableSettings):
             after=self.post_accent_change,
         )
 
-    def handle_color_chosen(self, rgba, wallpaper: str):
-        hex_colour = (
+    def add_custom_accent_colour_from_rgba(self, rgba, wallpaper: str) -> None:
+        self.add_custom_accent_colour(
             f"#{int(rgba.red * 255):02x}"
             f"{int(rgba.green * 255):02x}"
-            f"{int(rgba.blue * 255):02x}"
+            f"{int(rgba.blue * 255):02x}",
+            wallpaper,
         )
-        self.set_accent_colour(hex_colour, wallpaper)
 
     def _added_wallpapers_str_to_list(self, s: str):
         parts = []

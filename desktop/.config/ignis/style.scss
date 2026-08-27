@@ -43,6 +43,35 @@ levelbar block.filled {
   background-color: $accent;
 }
 
+/* Keep overlay scrollbars at GTK's compact idle geometry while interacting.
+ * GTK normally removes these trough margins and grows the slider on hover,
+ * which makes horizontal bars move up and vertical bars move left. */
+scrollbar.overlay-indicator.horizontal > range > trough,
+scrollbar.overlay-indicator.horizontal.hovering > range > trough,
+scrollbar.overlay-indicator.horizontal.dragging > range > trough {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+scrollbar.overlay-indicator.horizontal > range > trough > slider,
+scrollbar.overlay-indicator.horizontal.hovering > range > trough > slider,
+scrollbar.overlay-indicator.horizontal.dragging > range > trough > slider {
+  min-height: 5px;
+}
+
+scrollbar.overlay-indicator.vertical > range > trough,
+scrollbar.overlay-indicator.vertical.hovering > range > trough,
+scrollbar.overlay-indicator.vertical.dragging > range > trough {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+scrollbar.overlay-indicator.vertical > range > trough > slider,
+scrollbar.overlay-indicator.vertical.hovering > range > trough > slider,
+scrollbar.overlay-indicator.vertical.dragging > range > trough > slider {
+  min-width: 5px;
+}
+
 /* Tabs */
 tabview tab:selected,
 notebook tab:checked {

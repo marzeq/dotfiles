@@ -11,6 +11,7 @@ from .calc_mode import CalcMode
 from .base_mode import LauncherMode
 from .poweroff_mode import PowerOffMode
 from .currency_mode import CurrencyMode
+from .settings import launcher_settings
 
 
 class Launcher(Widget.RevealerWindow):
@@ -105,7 +106,7 @@ class Launcher(Widget.RevealerWindow):
             PowerOffMode(),
             CurrencyMode(),
         ]
-        self._displayed_modes: list[LauncherMode] = list(self.modes)
+        self._displayed_modes: list[LauncherMode] = self._enabled_modes()
 
         self._build_result_tree()
 
@@ -136,9 +137,34 @@ class Launcher(Widget.RevealerWindow):
                 break
 
     def _build_result_tree(self):
-        sections = [mode.build(self) for mode in self.modes]
-        util.replace_box_children(self.result_list, sections)
+        for mode in self.modes:
+            mode.build(self)
+        self._sync_enabled_mode_sections()
         self.refresh_results_layout()
+
+    def _mode_enabled(self, mode: LauncherMode) -> bool:
+        if isinstance(mode, AppMode):
+            return True
+        if isinstance(mode, CalcMode):
+            return launcher_settings.calculator_enabled
+        if isinstance(mode, CurrencyMode):
+            return launcher_settings.currency_enabled
+        if isinstance(mode, PowerOffMode):
+            return launcher_settings.power_actions_enabled
+        return True
+
+    def _enabled_modes(self) -> list[LauncherMode]:
+        return [mode for mode in self.modes if self._mode_enabled(mode)]
+
+    def _sync_enabled_mode_sections(self) -> None:
+        enabled_modes = self._enabled_modes()
+        for mode in self.modes:
+            if mode not in enabled_modes:
+                mode.section.visible = False
+        self._displayed_modes = enabled_modes
+        util.replace_box_children(
+            self.result_list, [mode.section for mode in enabled_modes]
+        )
 
     def _cancel_search_task(self):
         if self._search_task and not self._search_task.done():
@@ -176,6 +202,8 @@ class Launcher(Widget.RevealerWindow):
     def update_mode_and_list(self, no_scroll_reset: bool = False):
         query = self.entry.text.strip()
 
+        self._sync_enabled_mode_sections()
+
         if query == "":
             self.entry.css_classes = ["launcher-entry-input", "launcher-entry-empty"]
         else:
@@ -203,21 +231,28 @@ class Launcher(Widget.RevealerWindow):
         self._search_task = util.create_task(delayed())
 
     async def _run_search(self, query: str):
-        await asyncio.gather(*(mode.update(query, self.refresh_results_layout) for mode in self.modes))
+        enabled_modes = self._enabled_modes()
+        await asyncio.gather(
+            *(
+                mode.update(query, self.refresh_results_layout)
+                for mode in enabled_modes
+            )
+        )
         self._reorganize_results_by_quality(query)
         self.refresh_results_layout()
 
     def _reorganize_results_by_quality(self, query: str):
         """Reorganize mode sections by best match quality in query"""
+        enabled_modes = self._enabled_modes()
         if not query.strip():
-            self._displayed_modes = list(self.modes)
+            self._displayed_modes = enabled_modes
             util.replace_box_children(
                 self.result_list, [mode.section for mode in self._displayed_modes]
             )
             return
 
         mode_scores = []
-        for mode in self.modes:
+        for mode in enabled_modes:
             visible_results = mode.visible_results()
             if visible_results:
                 best_score = max(
@@ -238,7 +273,7 @@ class Launcher(Widget.RevealerWindow):
         )
 
         new_modes = [score_mode[1] for score_mode in mode_scores]
-        for mode in self.modes:
+        for mode in enabled_modes:
             if mode not in new_modes:
                 new_modes.append(mode)
 

@@ -12,6 +12,7 @@ from widgets.Workspaces import workspace_settings
 from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
 from widgets.Tray import tray_settings
+import os
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -145,16 +146,50 @@ def get_keyboard_variants(layout: str) -> list[str]:
 
 
 class AccentColourButton(Widget.Button):
-    def __init__(self, colour: str, wallpaper: str):
+    def __init__(
+        self,
+        colour: str,
+        wallpaper: str,
+        selected: bool,
+        on_selected,
+        on_removed=None,
+    ):
         super().__init__(
+            child=(
+                Widget.Icon(
+                    image="object-select-symbolic",
+                    pixel_size=16,
+                    css_classes=["settings-suggested-accent-colour-check"],
+                )
+                if selected
+                else None
+            ),
             style=f"background-color: {colour};",
-            css_classes=["settings-suggested-accent-colour"],
+            css_classes=[
+                "settings-suggested-accent-colour",
+                *(["selected"] if selected else []),
+            ],
             width_request=32,
             height_request=32,
             valign="center",
             vexpand=False,
-            on_click=lambda _: style_settings.set_accent_colour(colour, wallpaper),
+            can_target=not selected or on_removed is not None,
+            focusable=not selected,
+            on_click=lambda _: (
+                None if selected else on_selected(colour, wallpaper)
+            ),
         )
+        self._remove_controller: Gtk.GestureClick | None = None
+        if on_removed is not None:
+            self._remove_controller = Gtk.GestureClick()
+            self._remove_controller.set_button(3)
+            self._remove_controller.connect(
+                "pressed",
+                lambda *_: GLib.idle_add(
+                    lambda: (on_removed(colour), False)[1]
+                ),
+            )
+            self.add_controller(self._remove_controller)
 
 
 class WallpaperButton(Widget.Overlay):
@@ -226,6 +261,8 @@ class Setting(Widget.Box):
         label: str = "",
         subtitle: str = "",
         icon: str | None = None,
+        label_hexpand: bool = True,
+        sensitive=True,
     ):
         # Some Ignis widgets expose string-based alignment setters. Call GTK's
         # base implementation here so this also works for raw GTK controls.
@@ -234,7 +271,7 @@ class Setting(Widget.Box):
         labels = Widget.Box(
             vertical=True,
             spacing=2,
-            hexpand=True,
+            hexpand=label_hexpand,
             valign="center",
             child=[
                 Widget.Label(
@@ -267,6 +304,7 @@ class Setting(Widget.Box):
             child=children,
             spacing=14,
             hexpand=True,
+            sensitive=sensitive,
             css_classes=["settings-row"],
         )
 
@@ -279,11 +317,13 @@ class SwitchWithLabel(Setting):
         icon: str | None = None,
         active: bool = True,
         on_change: Callable[[Widget.Switch, bool], Any] = lambda *_: None,
+        sensitive=True,
     ):
         switch = Widget.Switch(
             active=active,
             on_change=on_change,
             valign="center",
+            sensitive=sensitive,
         )
         super().__init__(
             label=label,
@@ -478,12 +518,75 @@ def StringDropdown(
 
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
+        self.color_chooser = Gtk.ColorDialog()
         self.suggested_accent_colours = Widget.Box(
             css_classes=["settings-suggested-accent-colours"],
             spacing=10,
+            halign="start",
             valign="center",
             vexpand=False,
+            margin_top=10,
+            margin_bottom=14,
         )
+        self.suggested_accent_colours_content = Widget.Box(
+            vertical=True,
+            child=[self.suggested_accent_colours],
+            height_request=52,
+            hexpand=True,
+        )
+        self.suggested_accent_colours_scroll = Widget.Scroll(
+            child=self.suggested_accent_colours_content,
+            hexpand=True,
+            halign="fill",
+            hscrollbar_policy="automatic",
+            vscrollbar_policy="never",
+        )
+        accent_adjustment = self.suggested_accent_colours_scroll.get_hadjustment()
+        accent_adjustment.connect("changed", self._sync_accent_colours_alignment)
+        GLib.idle_add(
+            lambda: (
+                self._sync_accent_colours_alignment(accent_adjustment),
+                False,
+            )[1]
+        )
+        self.custom_accent_colours = Widget.Box(
+            css_classes=["settings-custom-accent-colours"],
+            spacing=10,
+            halign="start",
+            valign="center",
+            vexpand=False,
+            margin_top=10,
+            margin_bottom=14,
+        )
+        self.custom_accent_colours_content = Widget.Box(
+            vertical=True,
+            child=[self.custom_accent_colours],
+            height_request=52,
+            hexpand=True,
+        )
+        self.custom_accent_colours_scroll = Widget.Scroll(
+            child=self.custom_accent_colours_content,
+            hexpand=True,
+            halign="fill",
+            hscrollbar_policy="automatic",
+            vscrollbar_policy="never",
+        )
+        custom_accent_adjustment = self.custom_accent_colours_scroll.get_hadjustment()
+        custom_accent_adjustment.connect(
+            "changed",
+            lambda adjustment, *_: self._sync_colour_row_alignment(
+                adjustment, self.custom_accent_colours
+            ),
+        )
+        GLib.idle_add(
+            lambda: (
+                self._sync_colour_row_alignment(
+                    custom_accent_adjustment, self.custom_accent_colours
+                ),
+                False,
+            )[1]
+        )
+        self._render_custom_accent_colours()
         self.wallpapers_box = Widget.Box(
             vexpand=True,
             css_classes=["settings-wallpapers-box"],
@@ -498,8 +601,6 @@ class SettingsWindow(Widget.RegularWindow):
             vscrollbar_policy="never",
             css_classes=["settings-wallpapers-scroll"],
         )
-
-        self.color_chooser = Gtk.ColorDialog()
 
         util.create_task(
             self.update_suggested_accent_colours(style_settings.wallpaper)
@@ -571,36 +672,28 @@ class SettingsWindow(Widget.RegularWindow):
                     description="Suggested colours are extracted from your current wallpaper.",
                     child=[
                         Setting(
-                            widget=self.suggested_accent_colours,
+                            widget=self.suggested_accent_colours_scroll,
                             label="Suggested colours",
                             subtitle="Pick a colour that complements your background.",
                             icon="applications-graphics-symbolic",
+                            label_hexpand=False,
                         ),
                         Setting(
-                            widget=Widget.Box(
-                                spacing=8,
-                                child=[
-                                    Widget.Button(
-                                        label="Custom…",
-                                        on_click=lambda _: self.color_chooser.choose_rgba(
-                                            parent=None,
-                                            cancellable=None,
-                                            callback=self.on_color_chosen,
-                                        ),  # type: ignore
-                                        css_classes=["settings-secondary-button"],
-                                    ),
-                                    Widget.Button(
-                                        label="Reset",
-                                        on_click=lambda _: style_settings.restore_accent_colour(
-                                            style_settings.wallpaper
-                                        ),
-                                        css_classes=["settings-secondary-button"],
-                                    ),
-                                ],
-                            ),
-                            label="Custom accent",
-                            subtitle="Choose any colour or return to the generated default.",
+                            widget=self.custom_accent_colours_scroll,
+                            label="Custom colours",
+                            subtitle="Use + to add a colour. Right-click one to remove it.",
                             icon="color-select-symbolic",
+                            label_hexpand=False,
+                        ),
+                        Setting(
+                            widget=Widget.Button(
+                                label="Reset",
+                                on_click=lambda _: self._reset_accent_colour(),
+                                css_classes=["settings-secondary-button"],
+                            ),
+                            label="Reset accent colour",
+                            subtitle="Return to the shell default.",
+                            icon="edit-undo-symbolic",
                         ),
                         Setting(
                             widget=self.post_accent_change_entry,
@@ -666,8 +759,42 @@ class SettingsWindow(Widget.RegularWindow):
                     ],
                 ),
                 SettingsGroup(
-                    title="Launcher",
-                    description="Defaults used by launcher utilities.",
+                    title="Launcher components",
+                    description="Choose which features are available in the launcher.",
+                    child=[
+                        SwitchWithLabel(
+                            label="Applications",
+                            subtitle="Search for installed applications.",
+                            icon="system-search-symbolic",
+                            active=True,
+                            sensitive=False,
+                        ),
+                        SwitchWithLabel(
+                            label="Calculator",
+                            subtitle="Evaluate mathematical expressions.",
+                            icon="accessories-calculator-symbolic",
+                            active=launcher_settings.calculator_enabled,
+                            on_change=lambda _, active: launcher_settings.set_calculator_enabled(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Currency conversion",
+                            subtitle="Convert amounts between currencies.",
+                            icon="accessories-calculator-symbolic",
+                            active=launcher_settings.currency_enabled,
+                            on_change=lambda _, active: launcher_settings.set_currency_enabled(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Power actions",
+                            subtitle="Show shutdown, restart, logout and suspend actions.",
+                            icon="system-shutdown-symbolic",
+                            active=launcher_settings.power_actions_enabled,
+                            on_change=lambda _, active: launcher_settings.set_power_actions_enabled(active),
+                        ),
+                    ],
+                ),
+                SettingsGroup(
+                    title="Launcher component settings",
+                    description="Configure the enabled launcher components.",
                     child=[
                         Setting(
                             widget=StringDropdown(
@@ -681,6 +808,7 @@ class SettingsWindow(Widget.RegularWindow):
                             label="Preferred currency",
                             subtitle="Target currency used when a conversion omits one.",
                             icon="accessories-calculator-symbolic",
+                            sensitive=launcher_settings.bind("currency_enabled"),
                         ),
                     ],
                 ),
@@ -709,9 +837,9 @@ class SettingsWindow(Widget.RegularWindow):
                 hyprland_settings.keyboard_layout
             ),
         )
-        devices = SettingsPage(
-            title="Devices",
-            description="Configure displays and input devices used by Hyprland.",
+        displays = SettingsPage(
+            title="Displays",
+            description="Configure displays and choose where primary shell surfaces appear.",
             child=[
                 SettingsGroup(
                     title="Displays",
@@ -749,6 +877,13 @@ class SettingsWindow(Widget.RegularWindow):
                         else None,
                     ],
                 ),
+            ],
+        )
+
+        devices = SettingsPage(
+            title="Devices",
+            description="Configure keyboard and pointer input used by Hyprland.",
+            child=[
                 SettingsGroup(
                     title="Keyboard",
                     description="Choose the layout and optional regional variant.",
@@ -839,6 +974,7 @@ class SettingsWindow(Widget.RegularWindow):
         page_specs = [
             ("Appearance", "preferences-desktop-wallpaper-symbolic", appearance),
             ("Shell", "preferences-system-symbolic", shell),
+            ("Displays", "preferences-desktop-display-symbolic", displays),
             ("Devices", "input-keyboard-symbolic", devices),
             ("Windows", "focus-windows-symbolic", windows),
         ]
@@ -890,12 +1026,12 @@ class SettingsWindow(Widget.RegularWindow):
                     spacing=2,
                     child=[
                         Widget.Label(
-                            label="Ignis",
+                            label=f"Hello {os.environ.get('USER', 'User')}!",
                             halign="start",
                             css_classes=["settings-sidebar-title"],
                         ),
                         Widget.Label(
-                            label="Shell Settings",
+                            label="Customise the shell here",
                             halign="start",
                             css_classes=["settings-sidebar-subtitle"],
                         ),
@@ -953,12 +1089,25 @@ class SettingsWindow(Widget.RegularWindow):
                 classes.append("active")
             button.css_classes = classes
 
-    def on_color_chosen(self, source, result):
+    def _sync_colour_row_alignment(self, adjustment, row) -> None:
+        has_overflow = adjustment.get_upper() > adjustment.get_page_size() + 0.5
+        Gtk.Widget.set_halign(row, Gtk.Align.START if has_overflow else Gtk.Align.END)
+
+    def _sync_accent_colours_alignment(self, adjustment, *_args) -> None:
+        self._sync_colour_row_alignment(adjustment, self.suggested_accent_colours)
+
+    def on_color_chosen(self, source, result, *_args) -> None:
         try:
             rgba = source.choose_rgba_finish(result)
-            style_settings.handle_color_chosen(rgba, style_settings.wallpaper)
-        except:
+            style_settings.add_custom_accent_colour_from_rgba(
+                rgba, style_settings.wallpaper
+            )
+            self._render_custom_accent_colours()
+        except GLib.Error:
+            # Closing the dialog without choosing a colour is not an error.
             return
+        except Exception:
+            util.logger.exception("Failed to save custom accent colour")
 
     def _render_wallpapers(self, *_args) -> None:
         util.replace_box_children(
@@ -976,14 +1125,90 @@ class SettingsWindow(Widget.RegularWindow):
 
     async def update_suggested_accent_colours(self, path: str):
         top_colours = await style_settings.get_cached_top_colours(path)
+        selected_colour = style_settings.get_accent_colour(path)
         util.replace_box_children(
             self.suggested_accent_colours,
-            [AccentColourButton(colour=c, wallpaper=path) for c in top_colours]
+            [
+                AccentColourButton(
+                    colour=colour,
+                    wallpaper=path,
+                    selected=(
+                        selected_colour is not None
+                        and colour.lower() == selected_colour.lower()
+                    ),
+                    on_selected=self.on_suggested_accent_colour_selected,
+                )
+                for colour in top_colours
+            ],
         )
+
+    def on_suggested_accent_colour_selected(
+        self, colour: str, wallpaper: str
+    ) -> None:
+        style_settings.set_accent_colour(colour, wallpaper)
+        util.create_task(self.update_suggested_accent_colours(wallpaper))
+        self._render_custom_accent_colours()
+
+    def _render_custom_accent_colours(self, *_args) -> None:
+        selected_colour = style_settings.get_accent_colour(style_settings.wallpaper)
+        custom_buttons = [
+            AccentColourButton(
+                colour=colour,
+                wallpaper=style_settings.wallpaper,
+                selected=(
+                    selected_colour is not None
+                    and colour.lower() == selected_colour.lower()
+                ),
+                on_selected=self.on_suggested_accent_colour_selected,
+                on_removed=self._remove_custom_accent_colour,
+            )
+            for colour in style_settings.list_custom_accent_colours(
+                style_settings.wallpaper
+            )
+        ]
+        custom_buttons.append(
+            Widget.Button(
+                child=Widget.Icon(image="list-add-symbolic", pixel_size=16),
+                width_request=32,
+                height_request=32,
+                valign="center",
+                vexpand=False,
+                on_click=lambda _: self.color_chooser.choose_rgba(
+                    parent=None,
+                    cancellable=None,
+                    callback=self.on_color_chosen,
+                ),  # type: ignore
+                tooltip_text="Add custom colour",
+                css_classes=[
+                    "settings-suggested-accent-colour",
+                    "settings-add-custom-accent-colour",
+                ],
+            )
+        )
+        util.replace_box_children(self.custom_accent_colours, custom_buttons)
+
+    def _remove_custom_accent_colour(self, colour: str) -> None:
+        wallpaper = style_settings.wallpaper
+        selected_colour = style_settings.get_accent_colour(wallpaper)
+        style_settings.remove_custom_accent_colour(colour, wallpaper)
+        if (
+            selected_colour is not None
+            and selected_colour.lower() == colour.lower()
+        ):
+            style_settings.restore_accent_colour(wallpaper)
+            util.create_task(self.update_suggested_accent_colours(wallpaper))
+        self._render_custom_accent_colours()
+
+    def _reset_accent_colour(self) -> None:
+        wallpaper = style_settings.wallpaper
+        style_settings.restore_accent_colour(wallpaper)
+        util.create_task(self.update_suggested_accent_colours(wallpaper))
+        self._render_custom_accent_colours()
 
     async def on_wallpaper_picked(self, file):
         await style_settings.pick_wallpaper(file)
         await self.update_suggested_accent_colours(file)
+        self._render_custom_accent_colours()
         self.wallpapers_scroll.get_hadjustment().set_value(0)
 
     def on_wallpaper_removed(self, path):

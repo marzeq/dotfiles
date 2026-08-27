@@ -232,23 +232,27 @@
   background-color: $button-bg;
 }
 
-.settings-suggested-accent-colours {
-  margin-left: 0.5rem;
-}
-
 .settings-suggested-accent-colour {
   min-width: 2rem;
   min-height: 2rem;
   padding: 0;
   border-radius: 100%;
-  transition: 0.15s ease-in-out;
+}
+
+.settings-suggested-accent-colour-check {
+  color: white;
+}
+
+.settings-add-custom-accent-colour {
+  background-color: $button-bg;
+  color: $fg;
 
   &:hover {
-    outline: 3px solid $accent;
+    background-color: $button-bg-hover;
   }
 
   &:active {
-    outline: 3px solid $accent-hover;
+    background-color: $button-bg-active;
   }
 }
 
