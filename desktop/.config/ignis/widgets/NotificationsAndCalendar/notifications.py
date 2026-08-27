@@ -22,7 +22,8 @@ SCROLL_FADE_RAMP_PX = 48
 MAX_NOTIFICATION_HISTORY = 100
 MARQUEE_TICK_MS = 16
 MARQUEE_SPEED_PX_S = 28.0
-MARQUEE_PAUSE_S = 1.4
+MARQUEE_START_PAUSE_S = 4.0
+MARQUEE_END_PAUSE_S = 1.4
 NOTIFICATION_IMAGE_CACHE = Path(NOTIFICATIONS_IMAGE_DATA)
 
 notification_service = NotificationService.get_default()
@@ -455,7 +456,11 @@ class AutoScrollingLabel(Widget.Overlay):
 
         self._sync_fades(overflow)
         if self._is_realized and not self._timeout:
-            self._last_tick = GLib.get_monotonic_time() / 1_000_000
+            now = GLib.get_monotonic_time() / 1_000_000
+            self._last_tick = now
+            if self._adjustment is not None and self._adjustment.get_value() <= 0.5:
+                self._direction = 1
+                self._pause_until = now + MARQUEE_START_PAUSE_S
             self._timeout = GLib.timeout_add(MARQUEE_TICK_MS, self._tick)
 
     def _sync_fades(self, overflow: float | None = None) -> None:
@@ -488,11 +493,11 @@ class AutoScrollingLabel(Widget.Overlay):
         if next_value >= maximum:
             next_value = maximum
             self._direction = -1
-            self._pause_until = now + MARQUEE_PAUSE_S
+            self._pause_until = now + MARQUEE_END_PAUSE_S
         elif next_value <= 0:
             next_value = 0
             self._direction = 1
-            self._pause_until = now + MARQUEE_PAUSE_S
+            self._pause_until = now + MARQUEE_START_PAUSE_S
 
         self._adjustment.set_value(next_value)
         self._sync_fades(maximum)
@@ -505,12 +510,25 @@ class AutoScrollingLabel(Widget.Overlay):
         self._direction = 1
         self._pause_until = 0.0
 
+    def reset_scroll_state(self) -> None:
+        if self._adjustment is None:
+            return
+        now = GLib.get_monotonic_time() / 1_000_000
+        self._adjustment.set_value(0)
+        self._direction = 1
+        self._last_tick = now
+        self._pause_until = now + MARQUEE_START_PAUSE_S
+        self._sync_fades()
+        if self._is_realized and self._overflow() > 0.5 and not self._timeout:
+            self._timeout = GLib.timeout_add(MARQUEE_TICK_MS, self._tick)
+
 
 class MediaPlayer(Widget.Box):
     def __init__(self) -> None:
         self._player: MprisPlayer | None = None
         self._player_handlers: list[int] = []
         self._art: Widget.Icon | None = None
+        self._marquees: list[AutoScrollingLabel] = []
         super().__init__(
             vertical=True,
             css_classes=["notification-media-slot"],
@@ -558,6 +576,7 @@ class MediaPlayer(Widget.Box):
         player = self._player
         if player is None:
             util.replace_box_children(self, [])
+            self._marquees.clear()
             self.visible = False
             return
 
@@ -603,6 +622,16 @@ class MediaPlayer(Widget.Box):
                 ),
             ],
         )
+        title_marquee = AutoScrollingLabel(
+            label=player.title or player.identity or "Unknown track",
+            css_classes=["notification-media-title"],
+        )
+        subtitle_marquee = AutoScrollingLabel(
+            label=subtitle,
+            css_classes=["notification-media-subtitle"],
+            visible=bool(subtitle),
+        )
+        self._marquees = [title_marquee, subtitle_marquee]
         util.replace_box_children(self, [
             Widget.Box(
                 spacing=12,
@@ -616,15 +645,8 @@ class MediaPlayer(Widget.Box):
                         valign="center",
                         css_classes=["notification-media-text"],
                         child=[
-                            AutoScrollingLabel(
-                                label=player.title or player.identity or "Unknown track",
-                                css_classes=["notification-media-title"],
-                            ),
-                            AutoScrollingLabel(
-                                label=subtitle,
-                                css_classes=["notification-media-subtitle"],
-                                visible=bool(subtitle),
-                            ),
+                            title_marquee,
+                            subtitle_marquee,
                         ],
                     ),
                     controls,
@@ -632,6 +654,10 @@ class MediaPlayer(Widget.Box):
             )
         ])
         self.visible = True
+
+    def reset_scroll_state(self) -> None:
+        for marquee in self._marquees:
+            marquee.reset_scroll_state()
 
 
 class Notifications(Widget.Box):
@@ -737,6 +763,9 @@ class Notifications(Widget.Box):
         for card in tuple(self._cards.values()):
             card._refresh_age()
         return GLib.SOURCE_CONTINUE
+
+    def reset_media_scroll_state(self) -> None:
+        self._media.reset_scroll_state()
 
     def _on_notified(self, _service, notification: Notification) -> None:
         self._add(notification, newest=True)

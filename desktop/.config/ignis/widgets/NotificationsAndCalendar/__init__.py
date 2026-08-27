@@ -9,6 +9,7 @@ app = util.get_app()
 
 class NotificationsAndCalendar(Widget.RevealerWindow):
     def __init__(self, monitor: int):
+        self._notifications = Notifications()
         revealer = Widget.Revealer(
             transition_type="slide_down",
             child=Widget.Box(
@@ -19,7 +20,7 @@ class NotificationsAndCalendar(Widget.RevealerWindow):
                         column_num=2,
                         css_classes=["notifs-calendar"],
                         child=[
-                            Notifications(),
+                            self._notifications,
                             Calendar(),
                         ],
                     )
@@ -65,3 +66,9 @@ class NotificationsAndCalendar(Widget.RevealerWindow):
             if x[1] == 65307
             else None,
         )  # 65307 = ESC
+
+        self.connect("notify::visible", self._on_visible_changed)
+
+    def _on_visible_changed(self, *_args) -> None:
+        if self.visible:
+            self._notifications.reset_media_scroll_state()
