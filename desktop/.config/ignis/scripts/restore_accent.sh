@@ -23,5 +23,7 @@ unlink "$HOME/.config/gtk-4.0/assets" 2>/dev/null
 
 restore_backup "$gtk3_file"
 restore_backup "$gtk4_file"
+mkdir -p ~/.local/share/ignis
 echo "" > ~/.local/share/ignis/accent.scss
+echo ":root { --accent-bg-color: var(--accent-blue); }" > ~/.local/share/ignis/gtk-accent.css
 echo "" > ~/.local/share/ignis/accent.txt

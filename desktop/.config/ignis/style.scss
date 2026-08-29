@@ -5,44 +5,6 @@
   font-family: Adwaita Sans, Cantarell, sans-serif;
 }
 
-entry {
-  outline-color: $accent;
-
-  > text selection {
-    background-color: rgba($accent, 0.3);
-  }
-}
-
-button, menubutton, splitbutton {
-  &.suggested-action {
-    &, &:checked {
-      background-color: $accent;
-    }
-  }
-}
-
-switch:checked:not(:disabled) {
-  background-color: $accent;
-}
-
-checkbutton:checked > check,
-radiobutton:checked > radio {
-  background-color: $accent;
-  border-color: $accent;
-}
-
-scale highlight {
-  background-color: $accent;
-}
-
-progressbar progress {
-  background-color: $accent;
-}
-
-levelbar block.filled {
-  background-color: $accent;
-}
-
 /* Keep overlay scrollbars at GTK's compact idle geometry while interacting.
  * GTK normally removes these trough margins and grows the slider on hover,
  * which makes horizontal bars move up and vertical bars move left. */

@@ -30,12 +30,29 @@ accent_file = os.path.expanduser("~/.local/share/ignis/accent.scss")
 if not os.path.exists(accent_file):
     with open(accent_file, "w") as f:
         f.write("")
+gtk_accent_file = os.path.expanduser("~/.local/share/ignis/gtk-accent.css")
+if not os.path.exists(gtk_accent_file):
+    accent_text_file = os.path.expanduser("~/.local/share/ignis/accent.txt")
+    try:
+        with open(accent_text_file) as f:
+            accent_text = f.read().strip()
+    except OSError:
+        accent_text = ""
+    accent_value = (
+        f"#{accent_text}"
+        if len(accent_text) == 6
+        and all(character in "0123456789abcdefABCDEF" for character in accent_text)
+        else "var(--accent-blue)"
+    )
+    with open(gtk_accent_file, "w") as f:
+        f.write(f":root {{ --accent-bg-color: {accent_value}; }}\n")
 theme_file = os.path.expanduser("~/.local/share/ignis/theme.scss")
 if not os.path.exists(theme_file):
     with open(theme_file, "w") as f:
         f.write("")
 
 app.apply_css(f"{dir}/style.scss")
+app.apply_css(gtk_accent_file, style_priority="user")
 app.add_icons(f"{dir}/icons")
 
 util.shell("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")

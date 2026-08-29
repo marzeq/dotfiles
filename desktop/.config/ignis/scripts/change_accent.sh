@@ -35,6 +35,7 @@ EOF
 
 mkdir -p ~/.local/share/ignis
 echo "\$accent: $hex_colour;" > ~/.local/share/ignis/accent.scss
+echo ":root { --accent-bg-color: $hex_colour; }" > ~/.local/share/ignis/gtk-accent.css
 
 no_hash_colour="${hex_colour#\#}"
 echo "$no_hash_colour" > ~/.local/share/ignis/accent.txt
