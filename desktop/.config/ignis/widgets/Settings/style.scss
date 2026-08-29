@@ -258,7 +258,7 @@
 }
 
 .settings-display-layout {
-  min-height: 17.5rem;
+  min-height: 24rem;
   border-radius: 0.7rem;
   background-color: rgba($window-bg, 0.62);
   color: $accent;
@@ -282,18 +282,45 @@
   min-width: 5.5rem;
 }
 
-.settings-display-confirm {
-  padding: 0.8rem 1rem;
-  border-radius: 0.75rem;
-  background-color: rgba($accent, 0.14);
-  color: $fg;
-}
-
 .settings-display-error {
   padding: 0.8rem 1rem;
   border-radius: 0.7rem;
   background-color: rgba(#e01b24, 0.14);
   color: #ff7b81;
+}
+
+.settings-display-confirm-dialog {
+  background-color: transparent;
+}
+
+.settings-display-confirm-content {
+  min-width: 22rem;
+  padding: 1.4rem;
+  border: $popup-border;
+  border-radius: 1rem;
+  background-color: $bg;
+  box-shadow: $popup-shadow;
+}
+
+.settings-display-confirm-icon {
+  padding: 0.65rem;
+  border-radius: 100%;
+  background-color: rgba($accent, 0.14);
+  color: $accent;
+}
+
+.settings-display-confirm-title {
+  color: $fg;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.settings-display-confirm-countdown {
+  color: $fg-subtle;
+}
+
+.settings-display-confirm-actions {
+  margin-top: 0.25rem;
 }
 
 .settings-suggested-accent-colour {

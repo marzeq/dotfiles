@@ -23,6 +23,9 @@ import util
 
 
 MONITORS_PATH = Path(os.path.expanduser("~/.config/hypr/monitors.lua"))
+ROLLBACK_DIR = Path(os.path.expanduser("~/.local/share/ignis/display-rollback"))
+ROLLBACK_CONFIG_PATH = ROLLBACK_DIR / "monitors.lua"
+ROLLBACK_META_PATH = ROLLBACK_DIR / "snapshot.json"
 TRANSFORMS = [
     "Normal",
     "90° clockwise",
@@ -146,7 +149,10 @@ class DisplayLayout(Gtk.DrawingArea):
         self._needs_recenter = True
         self._last_pointer = (340.0, 140.0)
         self._drag_name = ""
-        self._drag_origin = (0, 0)
+        self._drag_pointer_origin = (0.0, 0.0)
+        self._drag_last_pointer = (0.0, 0.0)
+        self._drag_world_position = (0.0, 0.0)
+        self._drag_paused = False
         self._pan_origin = (0.0, 0.0)
         self.set_draw_func(self._draw)
 
@@ -289,7 +295,10 @@ class DisplayLayout(Gtk.DrawingArea):
         config = next((item for item in self._configs if item.name == self._drag_name), None)
         if config:
             self._selected = config.name
-            self._drag_origin = config.x, config.y
+            self._drag_pointer_origin = x, y
+            self._drag_last_pointer = x, y
+            self._drag_world_position = float(config.x), float(config.y)
+            self._drag_paused = False
             # Selection is delivered through the same callback without moving.
             self._changed(config.name, config.x, config.y)
         else:
@@ -318,13 +327,35 @@ class DisplayLayout(Gtk.DrawingArea):
     def _on_drag_update(self, _gesture, dx, dy) -> None:
         if not self._drag_name:
             return
-        x = round(self._drag_origin[0] + dx / self._draw_scale)
-        y = round(self._drag_origin[1] + dy / self._draw_scale)
+        pointer_x = self._drag_pointer_origin[0] + dx
+        pointer_y = self._drag_pointer_origin[1] + dy
+        inside = (
+            0 <= pointer_x < self.get_allocated_width()
+            and 0 <= pointer_y < self.get_allocated_height()
+        )
+        if not inside:
+            self._drag_paused = True
+            return
+        if self._drag_paused:
+            # Discard all pointer travel made outside the canvas. The next
+            # in-bounds movement continues from the re-entry point.
+            self._drag_last_pointer = pointer_x, pointer_y
+            self._drag_paused = False
+            return
+        delta_x = pointer_x - self._drag_last_pointer[0]
+        delta_y = pointer_y - self._drag_last_pointer[1]
+        self._drag_last_pointer = pointer_x, pointer_y
+        world_x = self._drag_world_position[0] + delta_x / self._draw_scale
+        world_y = self._drag_world_position[1] + delta_y / self._draw_scale
+        self._drag_world_position = world_x, world_y
+        x = round(world_x)
+        y = round(world_y)
         x, y = self._snap(self._drag_name, x, y)
         self._changed(self._drag_name, x, y)
 
     def _on_drag_end(self, *_args) -> None:
         self._drag_name = ""
+        self._drag_paused = False
 
     def _on_pan_begin(self, *_args) -> None:
         self._pan_origin = self._offset_x, self._offset_y
@@ -368,6 +399,9 @@ class DisplaySettings(Widget.Box):
         self._rollback_seconds = 0
         self._old_file: bytes | None = None
         self._old_primary = ""
+        self._snapshot_taken = False
+        self._confirmation_dialog: Gtk.Window | None = None
+        self._confirmation_label: Widget.Label | None = None
         self._baseline_primary = primary_settings.primary_monitor
         self._draft_primary = primary_settings.primary_monitor
         self._signal_handlers: list[tuple[Any, int]] = []
@@ -383,29 +417,6 @@ class DisplaySettings(Widget.Box):
         self._error = Widget.Label(
             halign="start", wrap=True, visible=False, css_classes=["settings-display-error"]
         )
-        self._rollback_label = Widget.Label(label="", halign="start", hexpand=True)
-        self._rollback = Widget.Revealer(
-            reveal_child=False,
-            transition_type="slide_down",
-            child=Widget.Box(
-                spacing=10,
-                child=[
-                    Widget.Icon(image="dialog-warning-symbolic", pixel_size=18),
-                    self._rollback_label,
-                    Widget.Button(
-                        label="Revert",
-                        css_classes=["settings-secondary-button"],
-                        on_click=lambda *_: self._revert(),
-                    ),
-                    Widget.Button(
-                        label="Keep changes",
-                        css_classes=["settings-primary-button"],
-                        on_click=lambda *_: self._keep(),
-                    ),
-                ],
-                css_classes=["settings-display-confirm"],
-            ),
-        )
         self._apply_button = Widget.Button(
             label="Apply",
             sensitive=False,
@@ -417,7 +428,6 @@ class DisplaySettings(Widget.Box):
             vertical=True,
             spacing=14,
             child=[
-                self._rollback,
                 Widget.Box(
                     vertical=True,
                     spacing=10,
@@ -502,6 +512,7 @@ class DisplaySettings(Widget.Box):
         except (AttributeError, TypeError):
             # A manual Refresh remains available on older Ignis versions.
             pass
+        self._recover_pending_snapshot()
         self.refresh()
 
     def _watch_monitor(self, monitor) -> None:
@@ -609,7 +620,7 @@ class DisplaySettings(Widget.Box):
         ]
 
     def refresh(self) -> None:
-        if self._rollback_source:
+        if self._snapshot_taken:
             self._revert()
         configs = self._query()
         if not configs:
@@ -932,7 +943,62 @@ class DisplaySettings(Widget.Box):
         except Exception:
             return False
 
+    def _capture_snapshot(self) -> None:
+        existed = MONITORS_PATH.exists()
+        old_file = MONITORS_PATH.read_bytes() if existed else None
+        ROLLBACK_DIR.mkdir(parents=True, exist_ok=True)
+        if old_file is not None:
+            self._write_atomic(ROLLBACK_CONFIG_PATH, old_file)
+        elif ROLLBACK_CONFIG_PATH.exists():
+            ROLLBACK_CONFIG_PATH.unlink()
+        metadata = {
+            "config_existed": existed,
+            "primary_monitor": self._baseline_primary,
+        }
+        # Metadata is the commit marker and is therefore written last.
+        self._write_atomic(
+            ROLLBACK_META_PATH,
+            (json.dumps(metadata, indent=2) + "\n").encode(),
+        )
+        self._old_file = old_file
+        self._old_primary = self._baseline_primary
+        self._snapshot_taken = True
+
+    def _load_persisted_snapshot(self) -> bool:
+        if not ROLLBACK_META_PATH.exists():
+            return False
+        metadata = json.loads(ROLLBACK_META_PATH.read_text())
+        existed = bool(metadata.get("config_existed", False))
+        if existed and not ROLLBACK_CONFIG_PATH.exists():
+            raise OSError("display rollback snapshot is incomplete")
+        self._old_file = ROLLBACK_CONFIG_PATH.read_bytes() if existed else None
+        self._old_primary = str(metadata.get("primary_monitor") or "")
+        self._snapshot_taken = True
+        return True
+
+    def _clear_snapshot(self) -> None:
+        self._snapshot_taken = False
+        self._old_file = None
+        self._old_primary = ""
+        for path in (ROLLBACK_META_PATH, ROLLBACK_CONFIG_PATH):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+
+    def _recover_pending_snapshot(self) -> None:
+        try:
+            if not self._load_persisted_snapshot():
+                return
+            self._restore_snapshot()
+            self._reload_hyprland()
+            self._clear_snapshot()
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            self._show_error(f"Could not recover pending display settings: {exc}")
+
     def _restore_snapshot(self) -> None:
+        if not self._snapshot_taken and not self._load_persisted_snapshot():
+            raise OSError("no previous display configuration snapshot exists")
         if self._old_file is None:
             if MONITORS_PATH.exists():
                 MONITORS_PATH.unlink()
@@ -948,8 +1014,7 @@ class DisplaySettings(Widget.Box):
             self._show_error(error)
             return
         try:
-            self._old_file = MONITORS_PATH.read_bytes() if MONITORS_PATH.exists() else None
-            self._old_primary = self._baseline_primary
+            self._capture_snapshot()
             self._write_atomic(MONITORS_PATH, self._generate().encode())
             self._primary_settings.set_primary_monitor(self._draft_primary)
             self._primary_settings.sync()
@@ -959,24 +1024,113 @@ class DisplaySettings(Widget.Box):
             try:
                 self._restore_snapshot()
                 self._reload_hyprland()
+                self._clear_snapshot()
             except OSError:
                 pass
             self._show_error(f"Could not save display configuration: {exc}")
             return
         self._dirty = False
         self._apply_button.set_sensitive(False)
-        self._rollback_seconds = 15
-        self._rollback.set_reveal_child(True)
+        self._rollback_seconds = 30
+        if not self._show_confirmation():
+            return
         self._tick_rollback()
         self._rollback_source = GLib.timeout_add_seconds(1, self._tick_rollback)
+
+    def _show_confirmation(self) -> bool:
+        root = self.get_root()
+        if not isinstance(root, Gtk.Window):
+            self._revert()
+            self._show_error("Could not show display confirmation; changes were reverted.")
+            return False
+        countdown = Widget.Label(
+            halign="center",
+            css_classes=["settings-display-confirm-countdown"],
+        )
+        dialog = Gtk.Window()
+        dialog.set_title("Confirm display settings")
+        dialog.set_application(root.get_application())
+        dialog.set_transient_for(root)
+        dialog.set_modal(True)
+        dialog.set_resizable(False)
+        dialog.set_decorated(False)
+        dialog.add_css_class("settings-display-confirm-dialog")
+        dialog.set_child(
+            Widget.Box(
+                vertical=True,
+                spacing=12,
+                css_classes=["settings-display-confirm-content"],
+                child=[
+                    Widget.Icon(
+                        image="video-display-symbolic",
+                        pixel_size=32,
+                        halign="center",
+                        css_classes=["settings-display-confirm-icon"],
+                    ),
+                    Widget.Label(
+                        label="Keep these display settings?",
+                        halign="center",
+                        css_classes=["settings-display-confirm-title"],
+                    ),
+                    countdown,
+                    Widget.Box(
+                        spacing=8,
+                        halign="center",
+                        css_classes=["settings-display-confirm-actions"],
+                        child=[
+                            Widget.Button(
+                                label="Revert",
+                                css_classes=["settings-secondary-button"],
+                                on_click=lambda *_: self._revert(),
+                            ),
+                            Widget.Button(
+                                label="Keep Changes",
+                                css_classes=["settings-primary-button"],
+                                on_click=lambda *_: self._keep(),
+                            ),
+                        ],
+                    ),
+                ],
+            )
+        )
+        self._confirmation_dialog = dialog
+        self._confirmation_label = countdown
+        dialog.connect("close-request", self._confirmation_close_requested)
+        self._update_confirmation_detail()
+        dialog.present()
+        return True
+
+    def _confirmation_close_requested(self, dialog) -> bool:
+        if dialog is not self._confirmation_dialog:
+            return False
+        self._confirmation_dialog = None
+        self._confirmation_label = None
+        # Let GTK finish closing the window before the rollback refreshes the
+        # settings page. Closing the dialog is deliberately equivalent to
+        # choosing Revert.
+        GLib.idle_add(self._revert)
+        return False
+
+    def _update_confirmation_detail(self) -> None:
+        if self._confirmation_label is not None:
+            unit = "second" if self._rollback_seconds == 1 else "seconds"
+            self._confirmation_label.set_label(
+                f"Reverting to the previous configuration in "
+                f"{self._rollback_seconds} {unit}."
+            )
+
+    def _close_confirmation(self) -> None:
+        dialog = self._confirmation_dialog
+        self._confirmation_dialog = None
+        self._confirmation_label = None
+        if dialog is not None:
+            dialog.destroy()
 
     def _tick_rollback(self) -> bool:
         if self._rollback_seconds <= 0:
             self._revert()
             return False
-        self._rollback_label.set_label(
-            f"Keep these display settings? Reverting in {self._rollback_seconds} seconds."
-        )
+        self._update_confirmation_detail()
         self._rollback_seconds -= 1
         return True
 
@@ -984,22 +1138,22 @@ class DisplaySettings(Widget.Box):
         if self._rollback_source:
             GLib.source_remove(self._rollback_source)
             self._rollback_source = 0
-        self._old_file = None
+        self._close_confirmation()
+        self._clear_snapshot()
         self._baseline_primary = self._draft_primary
-        self._rollback.set_reveal_child(False)
         self._schedule_refresh()
 
     def _revert(self, schedule_refresh: bool = True) -> None:
         if self._rollback_source:
             GLib.source_remove(self._rollback_source)
             self._rollback_source = 0
+        self._close_confirmation()
         try:
             self._restore_snapshot()
             self._reload_hyprland()
+            self._clear_snapshot()
         except OSError as exc:
             self._show_error(f"Could not restore the previous display configuration: {exc}")
-        self._old_file = None
-        self._rollback.set_reveal_child(False)
         if schedule_refresh:
             self._schedule_refresh()
 
@@ -1010,7 +1164,7 @@ class DisplaySettings(Widget.Box):
     def _cleanup(self, *_args) -> None:
         # Closing Settings during confirmation must never silently accept a
         # potentially unusable monitor arrangement.
-        if self._rollback_source:
+        if self._snapshot_taken:
             self._revert(schedule_refresh=False)
         if self._refresh_source:
             GLib.source_remove(self._refresh_source)
