@@ -11,6 +11,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -38,6 +39,21 @@ TRANSFORMS = [
 ]
 SCALES = [1.0, 1.25, 1.333333, 1.5, 1.6, 1.75, 2.0, 2.5, 3.0]
 MODE_RE = re.compile(r"^(\d+)x(\d+)@([0-9.]+)(?:Hz)?$")
+COLOR_MODE_LABELS = {
+    "auto": "Automatic",
+    "srgb": "sRGB",
+    "dcip3": "DCI-P3",
+    "dp3": "Display P3",
+    "adobe": "Adobe RGB",
+    "wide": "Wide gamut (BT.2020)",
+    "edid": "EDID primaries",
+    "hdr": "HDR (BT.2020)",
+    "hdredid": "HDR (EDID primaries)",
+    "icc": "Custom ICC profile",
+}
+COLOR_MODES = list(COLOR_MODE_LABELS)
+HDR_COLOR_MODES = {"hdr", "hdredid"}
+TEN_BIT_COLOR_MODES = {"dcip3", "dp3", "adobe", "wide", *HDR_COLOR_MODES}
 
 
 def _number(value: Any, default: float = 0) -> float:
@@ -58,6 +74,37 @@ def _normalise_mode(mode: str) -> str:
     return mode.removesuffix("Hz")
 
 
+def _query_color_capabilities(name: str) -> tuple[bool | None, bool | None, int | None]:
+    """Read the connected DRM connector's EDID for WCG, HDR PQ and bit depth."""
+    drm_root = Path("/sys/class/drm")
+    for connector in sorted(drm_root.glob(f"card*-{name}")):
+        try:
+            if (connector / "status").read_text().strip() != "connected":
+                continue
+            result = subprocess.run(
+                ["edid-decode", str(connector / "edid")],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if not result.stdout:
+            continue
+        report = result.stdout
+        depth_match = re.search(r"Bits per primary color channel:\s*(\d+)", report)
+        depth = int(depth_match[1]) if depth_match else None
+        supports_wide = bool(
+            re.search(r"BT2020|DCI[- ]P3|Display P3|Adobe RGB", report, re.I)
+        )
+        # Hyprland's HDR presets use the PQ transfer function, so merely
+        # advertising traditional HDR gamma is not sufficient.
+        supports_hdr = "SMPTE ST2084" in report
+        return supports_wide, supports_hdr, depth
+    return None, None, None
+
+
 @dataclass
 class MonitorConfig:
     name: str
@@ -75,9 +122,13 @@ class MonitorConfig:
     mirror: str = ""
     vrr: int = 0
     bit_depth: int = 8
-    wide_color: int = 0
-    hdr: int = 0
+    color_mode: str = "auto"
     sdr_brightness: float = 1.0
+    sdr_saturation: float = 1.0
+    icc_profile: str = ""
+    supports_wide_color: bool | None = None
+    supports_hdr: bool | None = None
+    max_bit_depth: int | None = None
 
     @property
     def logical_size(self) -> tuple[int, int]:
@@ -88,6 +139,8 @@ class MonitorConfig:
 
     @classmethod
     def from_json(cls, item: dict[str, Any]) -> "MonitorConfig":
+        name = str(item.get("name", "Unknown"))
+        supports_wide, supports_hdr, max_bit_depth = _query_color_capabilities(name)
         width = int(item.get("width") or 1920)
         height = int(item.get("height") or 1080)
         refresh = _number(item.get("refreshRate"), 60)
@@ -103,7 +156,7 @@ class MonitorConfig:
             )
         fmt = str(item.get("currentFormat", ""))
         return cls(
-            name=str(item.get("name", "Unknown")),
+            name=name,
             description=str(item.get("description") or item.get("name") or "Display"),
             make=str(item.get("make", "")),
             model=str(item.get("model", "")),
@@ -122,12 +175,17 @@ class MonitorConfig:
             ),
             vrr=int(item.get("vrr") or 0),
             bit_depth=10 if "10" in fmt else 8,
-            # These JSON keys describe detected capabilities, not the current
-            # EDID override. New drafts therefore retain Hyprland's safe auto
-            # setting instead of forcing capability detection on or off.
-            wide_color=0,
-            hdr=0,
+            color_mode=(
+                str(item.get("colorManagementPreset") or "auto").lower()
+                if str(item.get("colorManagementPreset") or "auto").lower()
+                in COLOR_MODES
+                else "auto"
+            ),
             sdr_brightness=_number(item.get("sdrBrightness"), 1),
+            sdr_saturation=_number(item.get("sdrSaturation"), 1),
+            supports_wide_color=supports_wide,
+            supports_hdr=supports_hdr,
+            max_bit_depth=max_bit_depth,
         )
 
 class DisplayLayout(Gtk.DrawingArea):
@@ -402,6 +460,7 @@ class DisplaySettings(Widget.Box):
         self._snapshot_taken = False
         self._confirmation_dialog: Gtk.Window | None = None
         self._confirmation_label: Widget.Label | None = None
+        self._icc_dialog: Widget.FileDialog | None = None
         self._baseline_primary = primary_settings.primary_monitor
         self._draft_primary = primary_settings.primary_monitor
         self._signal_handlers: list[tuple[Any, int]] = []
@@ -596,24 +655,51 @@ class DisplaySettings(Widget.Box):
 
     @staticmethod
     def _merge_saved_overrides(configs: list[MonitorConfig]) -> list[MonitorConfig]:
-        """Recover fields that monitor JSON reports as capabilities, not rules."""
+        """Recover color rules for disabled outputs and migrate old drafts."""
         try:
             contents = MONITORS_PATH.read_text()
         except OSError:
             return configs
         blocks = re.findall(r"hl\.monitor\s*\(\s*\{(.*?)\}\s*\)", contents, re.S)
-        overrides: dict[str, tuple[int, int]] = {}
+        overrides: dict[str, tuple[str, float, float, str]] = {}
         for block in blocks:
             output = re.search(r'output\s*=\s*"([^"]+)"', block)
+            cm = re.search(r'cm\s*=\s*"([^"]+)"', block)
             wide = re.search(r"supports_wide_color\s*=\s*(-?\d+)", block)
             hdr = re.search(r"supports_hdr\s*=\s*(-?\d+)", block)
-            if output:
+            brightness = re.search(r"sdrbrightness\s*=\s*([0-9.]+)", block)
+            saturation = re.search(r"sdrsaturation\s*=\s*([0-9.]+)", block)
+            icc = re.search(r'icc\s*=\s*"([^"]+)"', block)
+            if output and (cm or wide or hdr or brightness or saturation or icc):
+                color_mode = cm[1].lower() if cm and cm[1].lower() in COLOR_MODES else "auto"
+                if icc:
+                    color_mode = "icc"
+                # Older versions of this editor incorrectly wrote capability
+                # overrides. Preserve the user's intent while migrating to
+                # Hyprland's actual color-management preset.
+                if not cm and hdr and int(hdr[1]) == 1:
+                    color_mode = "hdr"
+                elif not cm and wide and int(wide[1]) == 1:
+                    color_mode = "wide"
+                elif not cm and (
+                    (hdr and int(hdr[1]) == -1)
+                    or (wide and int(wide[1]) == -1)
+                ):
+                    color_mode = "srgb"
                 overrides[output[1]] = (
-                    int(wide[1]) if wide else 0,
-                    int(hdr[1]) if hdr else 0,
+                    color_mode,
+                    float(brightness[1]) if brightness else 1.0,
+                    float(saturation[1]) if saturation else 1.0,
+                    icc[1] if icc else "",
                 )
         return [
-            replace(config, wide_color=overrides[config.name][0], hdr=overrides[config.name][1])
+            replace(
+                config,
+                color_mode=overrides[config.name][0],
+                sdr_brightness=overrides[config.name][1],
+                sdr_saturation=overrides[config.name][2],
+                icc_profile=overrides[config.name][3],
+            )
             if config.name in overrides
             else config
             for config in configs
@@ -660,12 +746,61 @@ class DisplaySettings(Widget.Box):
     def _set(self, **changes) -> None:
         index = next(i for i, config in enumerate(self._configs) if config.name == self._selected)
         self._configs[index] = replace(self._configs[index], **changes)
-        if changes.get("hdr") == 1:
+        if changes.get("color_mode") in TEN_BIT_COLOR_MODES:
             self._configs[index] = replace(
-                self._configs[index], wide_color=1, bit_depth=10
+                self._configs[index], bit_depth=10
             )
         self._mark_dirty()
         self._render()
+
+    def _set_sdr_brightness(self, scale: Gtk.Scale) -> None:
+        index = next(i for i, config in enumerate(self._configs) if config.name == self._selected)
+        self._configs[index] = replace(
+            self._configs[index],
+            sdr_brightness=round(scale.get_value(), 2),
+        )
+        self._mark_dirty()
+
+    def _set_sdr_saturation(self, scale: Gtk.Scale) -> None:
+        index = next(i for i, config in enumerate(self._configs) if config.name == self._selected)
+        self._configs[index] = replace(
+            self._configs[index],
+            sdr_saturation=round(scale.get_value(), 2),
+        )
+        self._mark_dirty()
+
+    def _set_icc_profile(self, _dialog, file) -> None:
+        path = file.get_path()
+        if not path:
+            return
+        self._set(color_mode="icc", icc_profile=os.path.abspath(path))
+
+    @staticmethod
+    def _color_capability_description(config: MonitorConfig) -> str:
+        if config.supports_wide_color is None and config.supports_hdr is None:
+            return "EDID capabilities unavailable; Automatic is recommended."
+        capabilities = []
+        if config.max_bit_depth:
+            capabilities.append(f"{config.max_bit_depth}-bit")
+        capabilities.append(
+            "wide gamut" if config.supports_wide_color else "standard gamut"
+        )
+        capabilities.append("HDR PQ" if config.supports_hdr else "SDR")
+        return "EDID reports " + ", ".join(capabilities) + "."
+
+    @staticmethod
+    def _available_color_modes(config: MonitorConfig) -> list[str]:
+        modes = ["auto", "srgb", "dcip3", "dp3", "adobe", "edid"]
+        if config.supports_wide_color is not False:
+            modes.append("wide")
+        if config.supports_hdr is not False:
+            modes.extend(["hdr", "hdredid"])
+        modes.append("icc")
+        # Keep a saved option visible if EDID support disappeared or could not
+        # be read, so opening Settings never silently changes the draft.
+        if config.color_mode not in modes:
+            modes.insert(-1, config.color_mode)
+        return modes
 
     def _mark_dirty(self) -> None:
         self._dirty = True
@@ -825,29 +960,113 @@ class DisplaySettings(Widget.Box):
         bit_depth = self._dropdown(
             ["8 bit", "10 bit"],
             1 if config.bit_depth == 10 else 0,
-            lambda index: self._set(bit_depth=10 if index else 8, hdr=-1 if not index else config.hdr),
+            lambda index: self._set(
+                bit_depth=10 if index else 8,
+                color_mode=(
+                    "srgb"
+                    if not index and config.color_mode in TEN_BIT_COLOR_MODES
+                    else config.color_mode
+                ),
+            ),
         )
         bit_depth.set_sensitive(config.enabled)
         rows.append(self._row("Colour depth", "10-bit output is required for HDR.", bit_depth, "applications-graphics-symbolic"))
 
-        override_values = ["Off", "Automatic", "On"]
-        wide = self._dropdown(
-            override_values,
-            config.wide_color + 1,
-            lambda index: self._set(
-                wide_color=index - 1,
-                hdr=config.hdr if index else -1,
-            ),
+        available_color_modes = self._available_color_modes(config)
+        color_mode = self._dropdown(
+            [COLOR_MODE_LABELS[value] for value in available_color_modes],
+            available_color_modes.index(config.color_mode),
+            lambda index: self._set(color_mode=available_color_modes[index]),
         )
-        wide.set_sensitive(config.enabled)
-        rows.append(self._row("Wide colour gamut", "Use the display’s wider colour space when supported.", wide, "color-select-symbolic"))
-        hdr = self._dropdown(
-            override_values,
-            config.hdr + 1,
-            lambda index: self._set(hdr=index - 1),
+        color_mode.set_sensitive(config.enabled)
+        rows.append(
+            self._row(
+                "Colour mode",
+                self._color_capability_description(config),
+                color_mode,
+                "color-select-symbolic",
+            )
         )
-        hdr.set_sensitive(config.enabled)
-        rows.append(self._row("HDR", "Enable high dynamic range output (experimental in Hyprland).", hdr, "display-brightness-symbolic"))
+
+        if config.color_mode in HDR_COLOR_MODES:
+            sdr_brightness = Gtk.Scale.new_with_range(
+                Gtk.Orientation.HORIZONTAL,
+                0.1,
+                4.0,
+                0.05,
+            )
+            sdr_brightness.set_value(config.sdr_brightness)
+            sdr_brightness.set_digits(2)
+            sdr_brightness.set_value_pos(Gtk.PositionType.RIGHT)
+            sdr_brightness.set_sensitive(config.enabled)
+            sdr_brightness.set_hexpand(False)
+            sdr_brightness.add_mark(1.0, Gtk.PositionType.BOTTOM, "1×")
+            sdr_brightness.add_css_class("settings-sdr-brightness-scale")
+            sdr_brightness.connect("value-changed", self._set_sdr_brightness)
+            rows.append(
+                self._row(
+                    "SDR brightness",
+                    "Adjust the brightness of SDR content while HDR is active.",
+                    sdr_brightness,
+                    "display-brightness-symbolic",
+                )
+            )
+
+            sdr_saturation = Gtk.Scale.new_with_range(
+                Gtk.Orientation.HORIZONTAL,
+                0.05,
+                4.0,
+                0.05,
+            )
+            sdr_saturation.set_value(config.sdr_saturation)
+            sdr_saturation.set_digits(2)
+            sdr_saturation.set_value_pos(Gtk.PositionType.RIGHT)
+            sdr_saturation.set_sensitive(config.enabled)
+            sdr_saturation.set_hexpand(False)
+            sdr_saturation.add_mark(1.0, Gtk.PositionType.BOTTOM, "1×")
+            sdr_saturation.add_css_class("settings-sdr-brightness-scale")
+            sdr_saturation.connect("value-changed", self._set_sdr_saturation)
+            rows.append(
+                self._row(
+                    "SDR saturation",
+                    "Adjust the saturation of SDR content while HDR is active.",
+                    sdr_saturation,
+                    "applications-graphics-symbolic",
+                )
+            )
+
+        if config.color_mode == "icc":
+            profile_filter = Widget.FileFilter(
+                mime_types=["application/vnd.iccprofile"],
+                default=True,
+                name="ICC colour profiles",
+            )
+            profile_filter.add_pattern("*.icc")
+            profile_filter.add_pattern("*.icm")
+            self._icc_dialog = Widget.FileDialog(
+                initial_path=(
+                    str(Path(config.icc_profile).parent)
+                    if config.icc_profile
+                    else os.path.expanduser("~")
+                ),
+                on_file_set=self._set_icc_profile,
+                select_folder=False,
+                filters=[profile_filter],
+            )
+            profile_name = Path(config.icc_profile).name if config.icc_profile else "No profile selected"
+            rows.append(
+                self._row(
+                    "ICC profile",
+                    config.icc_profile or "Choose an .icc or .icm profile file.",
+                    Widget.Button(
+                        label=profile_name,
+                        tooltip_text=config.icc_profile or "Choose ICC profile",
+                        css_classes=["settings-secondary-button", "settings-icc-profile-button"],
+                        on_click=lambda *_: util.create_task(self._icc_dialog.open_dialog()),
+                    ),
+                    "document-open-symbolic",
+                )
+            )
 
         children: list[Gtk.Widget] = []
         for index, row in enumerate(rows):
@@ -871,6 +1090,19 @@ class DisplaySettings(Widget.Box):
         for config in enabled:
             if config.scale < 0.5 or config.scale > 4:
                 return f"{config.name} has an unsupported scale."
+            if config.color_mode not in COLOR_MODES:
+                return f"{config.name} has an unsupported colour mode."
+            if not 0.1 <= config.sdr_brightness <= 4.0:
+                return f"{config.name} has an unsupported SDR brightness."
+            if not 0.05 <= config.sdr_saturation <= 4.0:
+                return f"{config.name} has an unsupported SDR saturation."
+            if config.color_mode == "icc":
+                if not config.icc_profile:
+                    return f"Choose an ICC profile for {config.name}."
+                if not os.path.isabs(config.icc_profile):
+                    return f"{config.name}’s ICC profile path must be absolute."
+                if not Path(config.icc_profile).is_file():
+                    return f"{config.name}’s ICC profile could not be found."
             mode_width, mode_height, _ = _mode_parts(config.mode)
             if (
                 abs(mode_width / config.scale - round(mode_width / config.scale)) > 0.01
@@ -911,11 +1143,19 @@ class DisplaySettings(Widget.Box):
                         f"    transform = {config.transform},",
                         f"    vrr = {config.vrr},",
                         f"    bitdepth = {config.bit_depth},",
-                        f"    supports_wide_color = {config.wide_color},",
-                        f"    supports_hdr = {config.hdr},",
-                        f"    sdrbrightness = {config.sdr_brightness:g},",
                     ]
                 )
+                if config.color_mode == "icc":
+                    lines.append(f"    icc = {json.dumps(config.icc_profile)},")
+                else:
+                    lines.append(f'    cm = "{config.color_mode}",')
+                if config.color_mode in HDR_COLOR_MODES:
+                    lines.extend(
+                        [
+                            f"    sdrbrightness = {config.sdr_brightness:g},",
+                            f"    sdrsaturation = {config.sdr_saturation:g},",
+                        ]
+                    )
                 if config.mirror:
                     lines.append(f'    mirror = "{config.mirror}",')
             lines.extend(["})", ""])
