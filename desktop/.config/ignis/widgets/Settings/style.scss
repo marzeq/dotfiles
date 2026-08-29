@@ -243,6 +243,40 @@
   color: white;
 }
 
+.settings-connection-list {
+  padding: 0.35rem;
+}
+
+.settings-connection-row {
+  @include custom-button;
+
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.7rem;
+  background-color: transparent;
+
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+
+  &:active {
+    background-color: $button-bg-active;
+  }
+}
+
+.settings-connection-icon {
+  color: $fg;
+}
+
+.settings-connection-subtitle,
+.settings-connection-empty {
+  color: $fg-subtle;
+  font-size: 0.85rem;
+}
+
+.settings-connection-empty {
+  padding: 1rem;
+}
+
 .settings-add-custom-accent-colour {
   background-color: $button-bg;
   color: $fg;

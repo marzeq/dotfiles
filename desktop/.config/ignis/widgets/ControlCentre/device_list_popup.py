@@ -18,7 +18,9 @@ class DeviceListPopup[T](ControlCentrePopup):
         header_icon: str,
         connected_property: str,
         connected_check: Callable[[Any], bool],
+        empty_label: str = "No devices found",
         notify_properties: list[str] | None = None,
+        reorder_properties: list[str] | None = None,
     ) -> None:
         self.device: Any = device
         self.item_key: str = item_key
@@ -29,7 +31,9 @@ class DeviceListPopup[T](ControlCentrePopup):
         self.wants_see_more: bool = False
         self.connected_property = connected_property
         self.connected_check = connected_check
+        self.empty_label = empty_label
         self.notify_properties = notify_properties or []
+        self.reorder_properties = set(reorder_properties or [])
         self._row_handlers: list[tuple[T, int]] = []
 
         if self.device is None:
@@ -80,6 +84,7 @@ class DeviceListPopup[T](ControlCentrePopup):
 
     def render_items(self, items: list[T]) -> list[BaseWidget]:
         items_filtered: list[T] = self.filter_items(items)
+        has_overflow = len(items_filtered) > 5
         if not self.wants_see_more:
             items_filtered = items_filtered[:5]
 
@@ -124,7 +129,8 @@ class DeviceListPopup[T](ControlCentrePopup):
             properties.add(self.connected_property)
             for prop in properties:
                 handler = item.connect(
-                    f"notify::{prop.replace('_', '-')}", update_row
+                    f"notify::{prop.replace('_', '-')}",
+                    self._render if prop in self.reorder_properties else update_row,
                 )
                 self._row_handlers.append((item, handler))
             children: list[BaseWidget] = (
@@ -146,7 +152,7 @@ class DeviceListPopup[T](ControlCentrePopup):
                 )
             )
 
-        if len(items_filtered) < len(items):
+        if has_overflow:
             widgets.append(
                 Widget.Button(
                     label="See more" if not self.wants_see_more else "See fewer",
@@ -157,7 +163,7 @@ class DeviceListPopup[T](ControlCentrePopup):
             )
 
         return widgets or [
-            Widget.Label(label="None found", css_classes=["cc-popup-no-wifi"])
+            Widget.Label(label=self.empty_label, css_classes=["cc-popup-empty"])
         ]
 
     def filter_items(self, items: list[T]) -> list[T]:

@@ -28,11 +28,19 @@ class BluetoothPopup(DeviceListPopup[BluetoothDevice]):
             header_icon="bluetooth-symbolic",
             connected_property="connected",
             connected_check=lambda connected: connected,
-            notify_properties=["icon_name", "alias", "name"],
+            empty_label="No paired devices found",
+            notify_properties=["icon_name", "alias", "name", "paired"],
+            reorder_properties=["paired", "connected", "alias", "name"],
         )
 
     def filter_items(self, items):
-        return sorted(items, key=lambda d: (not d.connected, d.alias or d.name))
+        return sorted(
+            (device for device in items if device.paired),
+            key=lambda device: (
+                not device.connected,
+                (device.alias or device.name).casefold(),
+            ),
+        )
 
 
 class BluetoothWidget(ControlCentreWidget):

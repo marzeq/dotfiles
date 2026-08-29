@@ -24,6 +24,12 @@ def pick_strongest_aps_for_each_ssid(
     return sorted(strongest, key=lambda ap: ap.strength, reverse=True)
 
 
+def is_saved_ap(ap: WifiAccessPoint) -> bool:
+    # Ignis keeps NetworkManager's matching saved connections on each AP but
+    # does not currently expose them as a public property.
+    return bool(getattr(ap, "_connections", ()))
+
+
 def wifi_connect(ap: WifiAccessPoint) -> None:
     util.create_task(ap.connect_to_graphical())
 
@@ -49,11 +55,17 @@ class WiFiPopup(DeviceListPopup[WifiAccessPoint]):
             header_icon="network-wireless-symbolic",
             connected_property="is_connected",
             connected_check=lambda is_connected: is_connected,
-            notify_properties=["icon_name", "ssid"],
+            empty_label="No saved networks found",
+            notify_properties=["icon_name", "ssid", "psk"],
+            reorder_properties=["psk", "is_connected", "ssid"],
         )
 
     def filter_items(self, items):
-        return pick_strongest_aps_for_each_ssid(items)
+        return [
+            ap
+            for ap in pick_strongest_aps_for_each_ssid(items)
+            if is_saved_ap(ap)
+        ]
 
 
 class WiFiWidget(ControlCentreWidget):

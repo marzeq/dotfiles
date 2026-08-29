@@ -3,6 +3,8 @@ import os
 from typing import Any, Callable, Literal, cast
 from gi.repository import GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.base_widget import BaseWidget
+from ignis.services.bluetooth import BluetoothDevice, BluetoothService
+from ignis.services.network import NetworkService, WifiAccessPoint, WifiDevice
 from ignis.widgets import Widget
 from util import BindableSettings, JsonSettings
 import util
@@ -12,7 +14,9 @@ from widgets.Workspaces import workspace_settings
 from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
 from widgets.Tray import tray_settings
-import os
+
+network_service = NetworkService.get_default()
+bluetooth_service = BluetoothService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -407,6 +411,196 @@ class SettingsPage(Widget.Box):
                 *child,
             ],
             css_classes=["settings-page"],
+        )
+
+
+def _new_connection_row(
+    *, icon: str, label: str, subtitle: str = "", on_click: Callable
+) -> Widget.Button:
+    return Widget.Button(
+        child=Widget.Box(
+            spacing=12,
+            child=[
+                Widget.Icon(
+                    image=icon,
+                    pixel_size=20,
+                    css_classes=["settings-connection-icon"],
+                ),
+                Widget.Box(
+                    vertical=True,
+                    spacing=2,
+                    hexpand=True,
+                    child=[
+                        Widget.Label(label=label, halign="start"),
+                        Widget.Label(
+                            label=subtitle,
+                            halign="start",
+                            visible=bool(subtitle),
+                            css_classes=["settings-connection-subtitle"],
+                        ),
+                    ],
+                ),
+                Widget.Icon(image="go-next-symbolic", pixel_size=14),
+            ],
+        ),
+        on_click=on_click,
+        hexpand=True,
+        css_classes=["settings-connection-row"],
+    )
+
+
+class NewWifiConnections(Widget.Box):
+    def __init__(self) -> None:
+        self._device: WifiDevice | None = None
+        self._device_handler: int | None = None
+        self._ap_handlers: list[tuple[WifiAccessPoint, int]] = []
+        super().__init__(
+            vertical=True,
+            spacing=6,
+            css_classes=["settings-connection-list"],
+        )
+        network_service.wifi.connect("notify::devices", self._sync_device)
+        network_service.wifi.connect("notify::enabled", self._render)
+        self._sync_device()
+
+    @staticmethod
+    def _is_saved(ap: WifiAccessPoint) -> bool:
+        return bool(getattr(ap, "_connections", ()))
+
+    def _disconnect_access_points(self) -> None:
+        for ap, handler in self._ap_handlers:
+            if ap.handler_is_connected(handler):
+                ap.disconnect(handler)
+        self._ap_handlers.clear()
+
+    def _sync_device(self, *_args) -> None:
+        if (
+            self._device is not None
+            and self._device_handler is not None
+            and self._device.handler_is_connected(self._device_handler)
+        ):
+            self._device.disconnect(self._device_handler)
+        devices = network_service.wifi.devices
+        self._device = devices[0] if devices else None
+        self._device_handler = (
+            self._device.connect("notify::access-points", self._render)
+            if self._device is not None
+            else None
+        )
+        self._render()
+
+    def scan(self) -> None:
+        if self._device is not None:
+            util.create_task(self._device.scan())
+
+    def _render(self, *_args) -> None:
+        self._disconnect_access_points()
+        if not network_service.wifi.enabled:
+            util.replace_box_children(
+                self,
+                [Widget.Label(label="Wi-Fi is turned off", css_classes=["settings-connection-empty"])],
+            )
+            return
+
+        grouped: dict[str, list[WifiAccessPoint]] = {}
+        for ap in self._device.access_points if self._device is not None else []:
+            if ap.ssid and not self._is_saved(ap):
+                grouped.setdefault(ap.ssid, []).append(ap)
+        access_points = sorted(
+            (max(group, key=lambda ap: ap.strength) for group in grouped.values()),
+            key=lambda ap: ap.strength,
+            reverse=True,
+        )
+        rows: list[BaseWidget] = []
+        for ap in access_points:
+            for prop in ("strength", "icon-name", "ssid", "psk"):
+                self._ap_handlers.append(
+                    (ap, ap.connect(f"notify::{prop}", self._render))
+                )
+            security = ap.security or "Open network"
+            rows.append(
+                _new_connection_row(
+                    icon=ap.icon_name,
+                    label=ap.ssid or "Hidden network",
+                    subtitle=security,
+                    on_click=lambda _, access_point=ap: util.create_task(
+                        access_point.connect_to_graphical()
+                    ),
+                )
+            )
+        util.replace_box_children(
+            self,
+            rows
+            or [
+                Widget.Label(
+                    label="No new networks found",
+                    css_classes=["settings-connection-empty"],
+                )
+            ],
+        )
+
+
+class NewBluetoothConnections(Widget.Box):
+    def __init__(self) -> None:
+        self._device_handlers: list[tuple[BluetoothDevice, int]] = []
+        super().__init__(
+            vertical=True,
+            spacing=6,
+            visible=bluetooth_service.bind("setup_mode"),
+            css_classes=["settings-connection-list"],
+        )
+        bluetooth_service.connect("notify::devices", self._render)
+        bluetooth_service.connect("notify::powered", self._render)
+        bluetooth_service.connect("notify::setup-mode", self._render)
+        self._render()
+
+    def _disconnect_devices(self) -> None:
+        for device, handler in self._device_handlers:
+            if device.handler_is_connected(handler):
+                device.disconnect(handler)
+        self._device_handlers.clear()
+
+    def _render(self, *_args) -> None:
+        self._disconnect_devices()
+        if not bluetooth_service.setup_mode:
+            util.replace_box_children(self, [])
+            return
+
+        if not bluetooth_service.powered:
+            util.replace_box_children(
+                self,
+                [Widget.Label(label="Bluetooth is turned off", css_classes=["settings-connection-empty"])],
+            )
+            return
+
+        devices = sorted(
+            (device for device in bluetooth_service.devices if not device.paired),
+            key=lambda device: (device.alias or device.name).casefold(),
+        )
+        rows: list[BaseWidget] = []
+        for device in devices:
+            for prop in ("paired", "connected", "alias", "name", "icon-name"):
+                self._device_handlers.append(
+                    (device, device.connect(f"notify::{prop}", self._render))
+                )
+            rows.append(
+                _new_connection_row(
+                    icon=device.icon_name,
+                    label=device.alias or device.name,
+                    on_click=lambda _, bluetooth_device=device: util.create_task(
+                        bluetooth_device.connect_to()
+                    ),
+                )
+            )
+        util.replace_box_children(
+            self,
+            rows
+            or [
+                Widget.Label(
+                    label="No unpaired devices found",
+                    css_classes=["settings-connection-empty"],
+                )
+            ],
         )
 
 
@@ -880,6 +1074,80 @@ class SettingsWindow(Widget.RegularWindow):
             ],
         )
 
+        self._new_wifi_connections = NewWifiConnections()
+        self._new_bluetooth_connections = NewBluetoothConnections()
+        self._new_wifi_connections_scroll = Widget.Scroll(
+            child=self._new_wifi_connections,
+            hexpand=True,
+            propagate_natural_height=True,
+            max_content_height=440,
+            hscrollbar_policy="never",
+            vscrollbar_policy="automatic",
+        )
+        self._new_bluetooth_connections_scroll = Widget.Scroll(
+            child=self._new_bluetooth_connections,
+            hexpand=True,
+            visible=bluetooth_service.bind("setup_mode"),
+            propagate_natural_height=True,
+            max_content_height=440,
+            hscrollbar_policy="never",
+            vscrollbar_policy="automatic",
+        )
+        wireless = SettingsPage(
+            title="Wi-Fi and Bluetooth",
+            description="Discover and connect to new wireless networks and devices.",
+            child=[
+                SettingsGroup(
+                    title="Wi-Fi",
+                    description="Connect to networks that are not yet saved on this computer.",
+                    child=[
+                        SwitchWithLabel(
+                            label="Wi-Fi",
+                            subtitle="Enable wireless networking.",
+                            icon="network-wireless-symbolic",
+                            active=network_service.wifi.bind("enabled"),
+                            on_change=lambda _, active: network_service.wifi.set_enabled(active),
+                        ),
+                        Setting(
+                            widget=Widget.Button(
+                                label="Scan",
+                                on_click=lambda _: self._new_wifi_connections.scan(),
+                                sensitive=network_service.wifi.bind("enabled"),
+                                css_classes=["settings-secondary-button"],
+                            ),
+                            label="Find networks",
+                            subtitle="Refresh the list of nearby Wi-Fi networks.",
+                            icon="view-refresh-symbolic",
+                            sensitive=network_service.wifi.bind("enabled"),
+                        ),
+                        self._new_wifi_connections_scroll,
+                    ],
+                ),
+                SettingsGroup(
+                    title="Bluetooth",
+                    description="Pair nearby devices that are not yet known to this computer.",
+                    child=[
+                        SwitchWithLabel(
+                            label="Bluetooth",
+                            subtitle="Enable the Bluetooth adapter.",
+                            icon="bluetooth-symbolic",
+                            active=bluetooth_service.bind("powered"),
+                            on_change=lambda _, active: bluetooth_service.set_powered(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Pair new devices",
+                            subtitle="Make this computer discoverable and scan nearby devices.",
+                            icon="list-add-symbolic",
+                            active=bluetooth_service.bind("setup_mode"),
+                            sensitive=bluetooth_service.bind("powered"),
+                            on_change=lambda _, active: bluetooth_service.set_setup_mode(active),
+                        ),
+                        self._new_bluetooth_connections_scroll,
+                    ],
+                ),
+            ],
+        )
+
         devices = SettingsPage(
             title="Devices",
             description="Configure keyboard and pointer input used by Hyprland.",
@@ -975,6 +1243,7 @@ class SettingsWindow(Widget.RegularWindow):
             ("Appearance", "preferences-desktop-wallpaper-symbolic", appearance),
             ("Shell", "preferences-system-symbolic", shell),
             ("Displays", "preferences-desktop-display-symbolic", displays),
+            ("Wi-Fi and Bluetooth", "network-wireless-symbolic", wireless),
             ("Devices", "input-keyboard-symbolic", devices),
             ("Windows", "focus-windows-symbolic", windows),
         ]

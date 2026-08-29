@@ -29,6 +29,7 @@ class EthernetPopup(DeviceListPopup[EthernetDevice]):
             header_icon="network-wired-symbolic",
             connected_property="is_connected",
             connected_check=lambda is_connected: is_connected,
+            empty_label="No wired connections found",
             notify_properties=["name", "perm_hw_address"],
         )
 

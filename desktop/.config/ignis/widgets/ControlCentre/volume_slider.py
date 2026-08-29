@@ -28,6 +28,7 @@ class SpeakerPopup(DeviceListPopup[Stream]):
             header_icon="audio-headphones-symbolic",
             connected_property="is_default",
             connected_check=lambda is_default: is_default,
+            empty_label="No audio outputs found",
             notify_properties=["icon_name", "description"],
         )
 
