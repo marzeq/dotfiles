@@ -29,6 +29,8 @@ class BluetoothPopup(DeviceListPopup[BluetoothDevice]):
             connected_property="connected",
             connected_check=lambda connected: connected,
             empty_label="No paired devices found",
+            settings_label="Bluetooth Settings",
+            settings_page="Wi-Fi and Bluetooth",
             notify_properties=["icon_name", "alias", "name", "paired"],
             reorder_properties=["paired", "connected", "alias", "name"],
         )

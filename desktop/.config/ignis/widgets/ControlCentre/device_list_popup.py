@@ -19,6 +19,8 @@ class DeviceListPopup[T](ControlCentrePopup):
         connected_property: str,
         connected_check: Callable[[Any], bool],
         empty_label: str = "No devices found",
+        settings_label: str | None = None,
+        settings_page: str | None = None,
         notify_properties: list[str] | None = None,
         reorder_properties: list[str] | None = None,
     ) -> None:
@@ -32,40 +34,72 @@ class DeviceListPopup[T](ControlCentrePopup):
         self.connected_property = connected_property
         self.connected_check = connected_check
         self.empty_label = empty_label
+        self.settings_label = settings_label
+        self.settings_page = settings_page
         self.notify_properties = notify_properties or []
         self.reorder_properties = set(reorder_properties or [])
         self._row_handlers: list[tuple[T, int]] = []
 
-        if self.device is None:
-            super().__init__(Widget.Box())
-            return
-
         self.items_box = Widget.Box(vertical=True)
+        popup_children: list[BaseWidget] = [
+            Widget.Box(
+                child=[
+                    Widget.Icon(
+                        image=header_icon,
+                        css_classes=["cc-popup-icon"],
+                        pixel_size=24,
+                    ),
+                    Widget.Label(
+                        label=title,
+                        css_classes=["cc-popup-label"],
+                    ),
+                ],
+                css_classes=["cc-popup-header"],
+                halign="start",
+            ),
+            self.items_box,
+        ]
+        if self.settings_label is not None and self.settings_page is not None:
+            popup_children.append(
+                Widget.Separator(css_classes=["cc-popup-settings-separator"])
+            )
+            popup_children.append(
+                Widget.Button(
+                    child=Widget.Box(
+                        child=[
+                            Widget.Label(
+                                label=self.settings_label,
+                                halign="start",
+                                hexpand=True,
+                            ),
+                            Widget.Icon(image="go-next-symbolic", pixel_size=14),
+                        ],
+                    ),
+                    on_click=lambda _: util.open_settings_page(self.settings_page),
+                    hexpand=True,
+                    css_classes=["cc-popup-option", "cc-popup-settings-link"],
+                )
+            )
 
         super().__init__(
             Widget.Box(
                 vertical=True,
                 hexpand=True,
-                child=[
-                    Widget.Box(
-                        child=[
-                            Widget.Icon(
-                                image=header_icon,
-                                css_classes=["cc-popup-icon"],
-                                pixel_size=24,
-                            ),
-                            Widget.Label(
-                                label=title,
-                                css_classes=["cc-popup-label"],
-                            ),
-                        ],
-                        css_classes=["cc-popup-header"],
-                        halign="start",
-                    ),
-                    self.items_box,
-                ],
+                child=popup_children,
             )
         )
+        if self.device is None:
+            util.replace_box_children(
+                self.items_box,
+                [
+                    Widget.Label(
+                        label=self.empty_label,
+                        halign="start",
+                        css_classes=["cc-popup-empty"],
+                    )
+                ],
+            )
+            return
         self.device.connect(f"notify::{self.item_key.replace('_', '-')}", self._render)
         self._render()
 
@@ -163,7 +197,11 @@ class DeviceListPopup[T](ControlCentrePopup):
             )
 
         return widgets or [
-            Widget.Label(label=self.empty_label, css_classes=["cc-popup-empty"])
+            Widget.Label(
+                label=self.empty_label,
+                halign="start",
+                css_classes=["cc-popup-empty"],
+            )
         ]
 
     def filter_items(self, items: list[T]) -> list[T]:

@@ -348,6 +348,15 @@ class PopupManager:
 
 popup_manager = PopupManager.instance()
 
+
+def open_settings_page(page_title: str) -> None:
+    settings_window = app.get_window("ignis_settings")
+    select_page = getattr(settings_window, "select_page", None)
+    if callable(select_page):
+        select_page(page_title)
+    app.open_window("ignis_settings")
+    popup_manager.close_curr_popup()
+
 DBUS_DIR = os.path.dirname(__file__) + "/services/dbus"
 
 

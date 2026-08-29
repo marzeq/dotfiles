@@ -712,7 +712,7 @@ def StringDropdown(
 
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
-        self.color_chooser = Gtk.ColorDialog()
+        self.color_chooser: Gtk.ColorChooserDialog | None = None
         self.suggested_accent_colours = Widget.Box(
             css_classes=["settings-suggested-accent-colours"],
             spacing=10,
@@ -1080,6 +1080,7 @@ class SettingsWindow(Widget.RegularWindow):
             child=self._new_wifi_connections,
             hexpand=True,
             propagate_natural_height=True,
+            min_content_height=240,
             max_content_height=440,
             hscrollbar_policy="never",
             vscrollbar_policy="automatic",
@@ -1089,6 +1090,7 @@ class SettingsWindow(Widget.RegularWindow):
             hexpand=True,
             visible=bluetooth_service.bind("setup_mode"),
             propagate_natural_height=True,
+            min_content_height=240,
             max_content_height=440,
             hscrollbar_policy="never",
             vscrollbar_policy="automatic",
@@ -1247,6 +1249,7 @@ class SettingsWindow(Widget.RegularWindow):
             ("Devices", "input-keyboard-symbolic", devices),
             ("Windows", "focus-windows-symbolic", windows),
         ]
+        self._page_titles = [title for title, _, _ in page_specs]
         self._page_widgets = [
             Widget.Scroll(
                 child=page,
@@ -1358,6 +1361,13 @@ class SettingsWindow(Widget.RegularWindow):
                 classes.append("active")
             button.css_classes = classes
 
+    def select_page(self, title: str) -> None:
+        try:
+            index = self._page_titles.index(title)
+        except ValueError:
+            return
+        self._select_page(index)
+
     def _sync_colour_row_alignment(self, adjustment, row) -> None:
         has_overflow = adjustment.get_upper() > adjustment.get_page_size() + 0.5
         Gtk.Widget.set_halign(row, Gtk.Align.START if has_overflow else Gtk.Align.END)
@@ -1365,18 +1375,34 @@ class SettingsWindow(Widget.RegularWindow):
     def _sync_accent_colours_alignment(self, adjustment, *_args) -> None:
         self._sync_colour_row_alignment(adjustment, self.suggested_accent_colours)
 
-    def on_color_chosen(self, source, result, *_args) -> None:
-        try:
-            rgba = source.choose_rgba_finish(result)
-            style_settings.add_custom_accent_colour_from_rgba(
-                rgba, style_settings.wallpaper
-            )
-            self._render_custom_accent_colours()
-        except GLib.Error:
-            # Closing the dialog without choosing a colour is not an error.
+    def _open_color_chooser(self, *_args) -> None:
+        if self.color_chooser is not None:
+            self.color_chooser.present()
             return
+
+        self.color_chooser = Gtk.ColorChooserDialog(
+            title="Pick a Colour",
+            transient_for=self,
+            modal=True,
+            resizable=False,
+        )
+        self.color_chooser.set_use_alpha(False)
+        self.color_chooser.connect("response", self._on_color_chooser_response)
+        self.color_chooser.present()
+
+    def _on_color_chooser_response(self, dialog, response, *_args) -> None:
+        try:
+            if response == Gtk.ResponseType.OK:
+                style_settings.add_custom_accent_colour_from_rgba(
+                    dialog.get_rgba(), style_settings.wallpaper
+                )
+                self._render_custom_accent_colours()
         except Exception:
             util.logger.exception("Failed to save custom accent colour")
+        finally:
+            dialog.destroy()
+            if dialog is self.color_chooser:
+                self.color_chooser = None
 
     def _render_wallpapers(self, *_args) -> None:
         util.replace_box_children(
@@ -1442,11 +1468,7 @@ class SettingsWindow(Widget.RegularWindow):
                 height_request=32,
                 valign="center",
                 vexpand=False,
-                on_click=lambda _: self.color_chooser.choose_rgba(
-                    parent=None,
-                    cancellable=None,
-                    callback=self.on_color_chosen,
-                ),  # type: ignore
+                on_click=self._open_color_chooser,
                 tooltip_text="Add custom colour",
                 css_classes=[
                     "settings-suggested-accent-colour",

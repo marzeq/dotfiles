@@ -56,6 +56,8 @@ class WiFiPopup(DeviceListPopup[WifiAccessPoint]):
             connected_property="is_connected",
             connected_check=lambda is_connected: is_connected,
             empty_label="No saved networks found",
+            settings_label="Wi-Fi Settings",
+            settings_page="Wi-Fi and Bluetooth",
             notify_properties=["icon_name", "ssid", "psk"],
             reorder_properties=["psk", "is_connected", "ssid"],
         )
