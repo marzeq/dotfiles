@@ -1031,48 +1031,9 @@ class SettingsWindow(Widget.RegularWindow):
                 hyprland_settings.keyboard_layout
             ),
         )
-        displays = SettingsPage(
-            title="Displays",
-            description="Configure displays and choose where primary shell surfaces appear.",
-            child=[
-                SettingsGroup(
-                    title="Displays",
-                    description="Select the display that owns primary shell surfaces.",
-                    child=[
-                        Setting(
-                            widget=StringDropdown(
-                                labels=[monitor.name for monitor in util.hyprland.monitors],
-                                on_change=hyprland_settings.set_primary_monitor,
-                                get_current=lambda: hyprland_settings.primary_monitor,
-                                settings_obj=hyprland_settings,
-                                notify_props=["primary-monitor"],
-                            ),
-                            label="Primary display",
-                            subtitle="Notifications and primary-only shell elements appear here.",
-                            icon="video-display-symbolic",
-                        ),
-                        Setting(
-                            widget=Widget.Button(
-                                child=Widget.Box(
-                                    spacing=7,
-                                    child=[
-                                        Widget.Label(label="Open Displays"),
-                                        Widget.Icon(image="go-next-symbolic", pixel_size=14),
-                                    ],
-                                ),
-                                on_click=lambda _: util.shell("nwg-displays"),
-                                css_classes=["settings-secondary-button"],
-                            ),
-                            label="Display arrangement",
-                            subtitle="Configure resolution, scale, position and refresh rate.",
-                            icon="preferences-desktop-display-symbolic",
-                        )
-                        if util.has_command("nwg-displays")
-                        else None,
-                    ],
-                ),
-            ],
-        )
+        from widgets.Settings.displays import build_displays_page
+
+        displays = build_displays_page(SettingsPage, hyprland_settings)
 
         self._new_wifi_connections = NewWifiConnections()
         self._new_bluetooth_connections = NewBluetoothConnections()

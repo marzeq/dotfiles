@@ -232,6 +232,70 @@
   background-color: $button-bg;
 }
 
+.settings-primary-button {
+  @include custom-button;
+
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.6rem;
+  background-color: $accent;
+  color: $fg-on-accent;
+
+  &:hover { background-color: mix(white, $accent, 8%); }
+  &:active { background-color: mix(black, $accent, 8%); }
+  &:disabled { opacity: 0.45; }
+}
+
+.settings-displays {
+  min-width: 43rem;
+}
+
+.settings-display-layout-card,
+.settings-display-details-card {
+  padding: 1rem;
+  background-color: $bg;
+  border: $popup-border;
+  border-radius: 0.9rem;
+}
+
+.settings-display-layout {
+  min-height: 17.5rem;
+  border-radius: 0.7rem;
+  background-color: rgba($window-bg, 0.62);
+  color: $accent;
+}
+
+.settings-display-card-title {
+  color: $fg;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-display-details-card {
+  padding: 0;
+}
+
+.settings-display-details-heading {
+  padding: 0.9rem 1rem;
+}
+
+.settings-display-position {
+  min-width: 5.5rem;
+}
+
+.settings-display-confirm {
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+  background-color: rgba($accent, 0.14);
+  color: $fg;
+}
+
+.settings-display-error {
+  padding: 0.8rem 1rem;
+  border-radius: 0.7rem;
+  background-color: rgba(#e01b24, 0.14);
+  color: #ff7b81;
+}
+
 .settings-suggested-accent-colour {
   min-width: 2rem;
   min-height: 2rem;
