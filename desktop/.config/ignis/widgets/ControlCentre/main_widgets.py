@@ -44,6 +44,25 @@ class MainWidgets(Widget.Box):
         self.update_widgets()
 
     def update_widgets(self):
+        # These controls and popups are long-lived and get moved between newly
+        # constructed layout rows. Detach them before disposing the old row
+        # containers; otherwise recursive teardown correctly treats them as
+        # discarded children and permanently disposes their GTK objects.
+        reusable_widgets = (
+            self.ethernet_widget,
+            self.ethernet_widget.popup,
+            self.wifi_widget,
+            self.wifi_widget.popup,
+            self.bluetooth_widget,
+            self.bluetooth_widget.popup,
+            self.power_profiles_widget,
+            self.power_profiles_widget.popup,
+            self.dnd_widget,
+        )
+        for widget in reusable_widgets:
+            if widget.get_parent() is not None:
+                widget.unparent()
+
         util.replace_box_children(self, [])
         self.rows.clear()
 
@@ -61,12 +80,6 @@ class MainWidgets(Widget.Box):
         for i in range(0, len(widgets), 2):
             row = Widget.Box()
             for w in widgets[i : i + 2]:
-                parent = w.get_parent()
-                if parent:
-                    # Use Ignis' patched unparent wrapper so the old row does
-                    # not remain captured by this long-lived widget.
-                    w.unparent()
-
                 row.append(w)
             self.append(row)
 
