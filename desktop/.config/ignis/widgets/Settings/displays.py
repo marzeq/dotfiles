@@ -661,16 +661,17 @@ class DisplaySettings(Widget.Box):
         except OSError:
             return configs
         blocks = re.findall(r"hl\.monitor\s*\(\s*\{(.*?)\}\s*\)", contents, re.S)
-        overrides: dict[str, tuple[str, float, float, str]] = {}
+        overrides: dict[str, tuple[str, float, float, str, int | None]] = {}
         for block in blocks:
             output = re.search(r'output\s*=\s*"([^"]+)"', block)
             cm = re.search(r'cm\s*=\s*"([^"]+)"', block)
             wide = re.search(r"supports_wide_color\s*=\s*(-?\d+)", block)
             hdr = re.search(r"supports_hdr\s*=\s*(-?\d+)", block)
+            vrr = re.search(r"vrr\s*=\s*(\d+)", block)
             brightness = re.search(r"sdrbrightness\s*=\s*([0-9.]+)", block)
             saturation = re.search(r"sdrsaturation\s*=\s*([0-9.]+)", block)
             icc = re.search(r'icc\s*=\s*"([^"]+)"', block)
-            if output and (cm or wide or hdr or brightness or saturation or icc):
+            if output and (cm or wide or hdr or vrr or brightness or saturation or icc):
                 color_mode = cm[1].lower() if cm and cm[1].lower() in COLOR_MODES else "auto"
                 if icc:
                     color_mode = "icc"
@@ -691,6 +692,7 @@ class DisplaySettings(Widget.Box):
                     float(brightness[1]) if brightness else 1.0,
                     float(saturation[1]) if saturation else 1.0,
                     icc[1] if icc else "",
+                    int(vrr[1]) if vrr else None,
                 )
         return [
             replace(
@@ -699,6 +701,13 @@ class DisplaySettings(Widget.Box):
                 sdr_brightness=overrides[config.name][1],
                 sdr_saturation=overrides[config.name][2],
                 icc_profile=overrides[config.name][3],
+                # `hyprctl monitors` exposes whether VRR is active at this
+                # instant as a boolean, not the configured 0–3 policy.
+                vrr=(
+                    overrides[config.name][4]
+                    if overrides[config.name][4] is not None
+                    else config.vrr
+                ),
             )
             if config.name in overrides
             else config
@@ -948,14 +957,26 @@ class DisplaySettings(Widget.Box):
         mirror.set_sensitive(config.enabled)
         rows.append(self._row("Mirror", "Show another display’s contents on this output.", mirror, "view-mirror-symbolic"))
 
-        vrr_values = ["Off", "Always", "Fullscreen", "Fullscreen games and video"]
+        vrr_values = [
+            "Off",
+            "Always",
+            "All fullscreen apps",
+            "Reported games and video",
+        ]
         vrr = self._dropdown(
             vrr_values,
             max(0, min(config.vrr, 3)),
             lambda index: self._set(vrr=index),
         )
         vrr.set_sensitive(config.enabled)
-        rows.append(self._row("Variable refresh rate", "Choose when adaptive sync is allowed.", vrr, "view-refresh-symbolic"))
+        rows.append(
+            self._row(
+                "Variable refresh rate",
+                "Enable VRR in different scenarios. You may need to log out and back in for changes to take effect.",
+                vrr,
+                "view-refresh-symbolic",
+            )
+        )
 
         bit_depth = self._dropdown(
             ["8 bit", "10 bit"],

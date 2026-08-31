@@ -2,6 +2,7 @@ import os
 import util
 import gc
 import asyncio
+import memory_profiler
 
 from gi.repository import Gtk  # type: ignore[reportMissingModuleSource]
 
@@ -18,6 +19,10 @@ from widgets.OSD import OSD
 from widgets.Settings import SettingsWindow
 
 app = util.get_app()
+
+# Opt in with IGNIS_MEMORY_PROFILE=1. Keep this near startup so the baseline
+# includes allocations made while constructing all widgets below.
+profiler_task = memory_profiler.start(os.path.dirname(os.path.abspath(__file__)))
 
 settings = Gtk.Settings.get_default()
 if settings is not None:

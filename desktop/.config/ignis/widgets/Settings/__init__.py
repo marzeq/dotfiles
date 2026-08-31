@@ -414,9 +414,61 @@ class SettingsPage(Widget.Box):
         )
 
 
+class WifiConnectionRow(Widget.Button):
+    """A Wi-Fi row whose contents can be updated without rebuilding GTK widgets."""
+
+    def __init__(self, access_point: WifiAccessPoint) -> None:
+        self._access_point = access_point
+        self._icon = Widget.Icon(
+            image=access_point.icon_name,
+            pixel_size=20,
+            css_classes=["settings-connection-icon"],
+        )
+        self._label = Widget.Label(
+            label=access_point.ssid or "Hidden network", halign="start"
+        )
+        security = access_point.security or "Open network"
+        self._subtitle = Widget.Label(
+            label=security,
+            halign="start",
+            visible=bool(security),
+            css_classes=["settings-connection-subtitle"],
+        )
+        super().__init__(
+            child=Widget.Box(
+                spacing=12,
+                child=[
+                    self._icon,
+                    Widget.Box(
+                        vertical=True,
+                        spacing=2,
+                        hexpand=True,
+                        child=[self._label, self._subtitle],
+                    ),
+                    Widget.Icon(image="go-next-symbolic", pixel_size=14),
+                ],
+            ),
+            on_click=self._connect,
+            hexpand=True,
+            css_classes=["settings-connection-row"],
+        )
+
+    def update(self, access_point: WifiAccessPoint) -> None:
+        self._access_point = access_point
+        self._icon.image = access_point.icon_name
+        self._label.label = access_point.ssid or "Hidden network"
+        security = access_point.security or "Open network"
+        self._subtitle.label = security
+        self._subtitle.visible = bool(security)
+
+    def _connect(self, *_args) -> None:
+        util.create_task(self._access_point.connect_to_graphical())
+
+
 def _new_connection_row(
     *, icon: str, label: str, subtitle: str = "", on_click: Callable
 ) -> Widget.Button:
+    """Build a row for low-frequency connection lists such as Bluetooth."""
     return Widget.Button(
         child=Widget.Box(
             spacing=12,
@@ -454,6 +506,8 @@ class NewWifiConnections(Widget.Box):
         self._device: WifiDevice | None = None
         self._device_handler: int | None = None
         self._ap_handlers: list[tuple[WifiAccessPoint, int]] = []
+        self._rows: dict[str, WifiConnectionRow] = {}
+        self._status_label = Widget.Label(css_classes=["settings-connection-empty"])
         super().__init__(
             vertical=True,
             spacing=6,
@@ -496,10 +550,9 @@ class NewWifiConnections(Widget.Box):
     def _render(self, *_args) -> None:
         self._disconnect_access_points()
         if not network_service.wifi.enabled:
-            util.replace_box_children(
-                self,
-                [Widget.Label(label="Wi-Fi is turned off", css_classes=["settings-connection-empty"])],
-            )
+            self._rows.clear()
+            self._status_label.label = "Wi-Fi is turned off"
+            self._replace_children_if_changed([self._status_label])
             return
 
         grouped: dict[str, list[WifiAccessPoint]] = {}
@@ -511,33 +564,45 @@ class NewWifiConnections(Widget.Box):
             key=lambda ap: ap.strength,
             reverse=True,
         )
+        previous_rows = self._rows
+        current_rows: dict[str, WifiConnectionRow] = {}
         rows: list[BaseWidget] = []
         for ap in access_points:
-            for prop in ("strength", "icon-name", "ssid", "psk"):
+            # Reuse the row for this SSID. Signal strength changes frequently;
+            # updating its contents in place avoids constructing thousands
+            # of short-lived GTK widget trees while the settings window is idle.
+            key = ap.ssid or ""
+            row = previous_rows.get(key)
+            if row is None:
+                row = WifiConnectionRow(ap)
+            else:
+                row.update(ap)
+            current_rows[key] = row
+            rows.append(row)
+
+            for prop in ("strength", "icon-name"):
+                self._ap_handlers.append(
+                    (ap, ap.connect(f"notify::{prop}", self._update_row, row))
+                )
+            for prop in ("ssid", "psk"):
                 self._ap_handlers.append(
                     (ap, ap.connect(f"notify::{prop}", self._render))
                 )
-            security = ap.security or "Open network"
-            rows.append(
-                _new_connection_row(
-                    icon=ap.icon_name,
-                    label=ap.ssid or "Hidden network",
-                    subtitle=security,
-                    on_click=lambda _, access_point=ap: util.create_task(
-                        access_point.connect_to_graphical()
-                    ),
-                )
-            )
-        util.replace_box_children(
-            self,
-            rows
-            or [
-                Widget.Label(
-                    label="No new networks found",
-                    css_classes=["settings-connection-empty"],
-                )
-            ],
-        )
+
+        self._rows = current_rows
+        if not rows:
+            self._status_label.label = "No new networks found"
+            rows = [self._status_label]
+        self._replace_children_if_changed(rows)
+
+    def _update_row(
+        self, access_point: WifiAccessPoint, _param: object, row: WifiConnectionRow
+    ) -> None:
+        row.update(access_point)
+
+    def _replace_children_if_changed(self, children: list[BaseWidget]) -> None:
+        if list(self.child) != children:
+            util.replace_box_children(self, children)
 
 
 class NewBluetoothConnections(Widget.Box):

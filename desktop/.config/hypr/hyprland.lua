@@ -175,7 +175,6 @@ hl.config {
 	},
 
 	render = {
-		direct_scanout = 1,
 		cm_enabled = true,
 	},
 }

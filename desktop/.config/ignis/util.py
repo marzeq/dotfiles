@@ -85,18 +85,58 @@ def cancel_background_tasks() -> None:
                 pass
 
 
-def replace_box_children(box: Widget.Box, children: list[Gtk.Widget | None]) -> None:
-    """Replace Box children while honoring Ignis' unparent cleanup wrapper.
+def dispose_widget_tree(widget: Gtk.Widget) -> None:
+    """Deterministically detach and dispose a discarded GTK widget subtree.
 
-    Ignis patches each appended child's ``unparent`` method. Calling that
-    wrapper is important: GTK removal alone leaves a closure retaining both
-    the old child and its former parent.
+    Ignis ``Box.append`` installs Python closures on every direct child's
+    ``unparent`` method. Removing only the subtree root leaves those closures
+    intact on descendants and PyGObject's native references can keep the whole
+    cycle alive. Post-order teardown invokes every wrapper before asking GTK to
+    release the native object.
     """
-    for child in tuple(box.child):
-        child.unparent()
-    for child in children:
-        if child is not None:
-            box.append(child)
+    descendants: list[Gtk.Widget] = []
+    child = widget.get_first_child()
+    while child is not None:
+        descendants.append(child)
+        child = child.get_next_sibling()
+
+    for descendant in descendants:
+        dispose_widget_tree(descendant)
+
+    if widget.get_parent() is not None:
+        widget.unparent()
+
+    # Ignis buttons store callbacks as Python properties. Clear them explicitly
+    # so a removed row cannot retain an access point or owning view until GC.
+    if isinstance(widget, Widget.Button):
+        if widget.on_click is not None:
+            widget.on_click = None
+        if widget.on_right_click is not None:
+            widget.on_right_click = None
+        if widget.on_middle_click is not None:
+            widget.on_middle_click = None
+
+    widget.run_dispose()
+
+
+def replace_box_children(box: Widget.Box, children: list[Gtk.Widget | None]) -> None:
+    """Replace children, preserving reused widgets and disposing discarded ones."""
+    replacements = [child for child in children if child is not None]
+    current = list(box.child)
+    if current == replacements:
+        return
+
+    retained = {id(child) for child in replacements}
+    for child in current:
+        if id(child) in retained:
+            # A retained child may need to move. Invoke Ignis' wrapper to keep
+            # the Box's private child list in sync, but do not dispose it.
+            child.unparent()
+        else:
+            dispose_widget_tree(child)
+
+    for child in replacements:
+        box.append(child)
 
 
 def active_monitor() -> int:
