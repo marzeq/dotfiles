@@ -30,6 +30,17 @@ notification_service = NotificationService.get_default()
 mpris_service = MprisService.get_default()
 
 
+def _scaled_icon_source(image: str | None, size: int, fallback: str) -> str | GdkPixbuf.Pixbuf:
+    """Return a display-sized icon source without retaining a full-size pixbuf."""
+    source: str | GdkPixbuf.Pixbuf = image or fallback
+    if image and Path(image).is_file():
+        try:
+            source = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, size, size, True)
+        except GLib.Error:
+            source = fallback
+    return source
+
+
 def _scaled_icon(
     image: str | None,
     size: int,
@@ -37,12 +48,7 @@ def _scaled_icon(
     fallback: str,
 ) -> Widget.Icon:
     """Decode file-backed images at display size instead of retaining full-size pixbufs."""
-    source: str | GdkPixbuf.Pixbuf = image or fallback
-    if image and Path(image).is_file():
-        try:
-            source = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, size, size, True)
-        except GLib.Error:
-            source = fallback
+    source = _scaled_icon_source(image, size, fallback)
     return Widget.Icon(image=source, pixel_size=size, css_classes=css_classes)
 
 
@@ -379,6 +385,7 @@ class AutoScrollingLabel(Widget.Overlay):
             xalign=0,
             single_line_mode=True,
         )
+        self._text = text
         self._scroll = Widget.Scroll(
             child=text,
             hexpand=True,
@@ -522,17 +529,81 @@ class AutoScrollingLabel(Widget.Overlay):
         if self._is_realized and self._overflow() > 0.5 and not self._timeout:
             self._timeout = GLib.timeout_add(MARQUEE_TICK_MS, self._tick)
 
+    def set_label(self, label: str) -> None:
+        if self._text.label == label:
+            return
+        self._text.label = label
+        self.reset_scroll_state()
+
 
 class MediaPlayer(Widget.Box):
     def __init__(self) -> None:
         self._player: MprisPlayer | None = None
         self._player_handlers: list[int] = []
-        self._art: Widget.Icon | None = None
-        self._marquees: list[AutoScrollingLabel] = []
+        self._art_url: str | None = None
         super().__init__(
             vertical=True,
             css_classes=["notification-media-slot"],
             visible=False,
+        )
+
+        self._art = _scaled_icon(
+            None, 58, ["notification-media-art"], "audio-x-generic-symbolic"
+        )
+        art_frame = Widget.Box(
+            css_classes=["notification-media-art-frame"], child=[self._art]
+        )
+        art_frame.set_overflow(Gtk.Overflow.HIDDEN)
+
+        self._previous_button = Widget.Button(
+            child=Widget.Icon(image="media-skip-backward-symbolic", pixel_size=16),
+            on_click=self._previous,
+        )
+        self._play_pause_icon = Widget.Icon(
+            image="media-playback-start-symbolic", pixel_size=17
+        )
+        self._play_pause_button = Widget.Button(
+            child=self._play_pause_icon, on_click=self._play_pause
+        )
+        self._next_button = Widget.Button(
+            child=Widget.Icon(image="media-skip-forward-symbolic", pixel_size=16),
+            on_click=self._next,
+        )
+        controls = Widget.Box(
+            spacing=8,
+            valign="center",
+            css_classes=["notification-media-controls"],
+            child=[
+                self._previous_button,
+                self._play_pause_button,
+                self._next_button,
+            ],
+        )
+
+        self._title_marquee = AutoScrollingLabel(
+            label="Unknown track", css_classes=["notification-media-title"]
+        )
+        self._subtitle_marquee = AutoScrollingLabel(
+            label="", css_classes=["notification-media-subtitle"], visible=False
+        )
+        self._marquees = [self._title_marquee, self._subtitle_marquee]
+        self.append(
+            Widget.Box(
+                spacing=12,
+                css_classes=["notification-media"],
+                child=[
+                    art_frame,
+                    Widget.Box(
+                        vertical=True,
+                        spacing=3,
+                        hexpand=True,
+                        valign="center",
+                        css_classes=["notification-media-text"],
+                        child=[self._title_marquee, self._subtitle_marquee],
+                    ),
+                    controls,
+                ],
+            )
         )
         mpris_service.connect("notify::players", self._select_player)
         self._select_player()
@@ -555,6 +626,8 @@ class MediaPlayer(Widget.Box):
                 "artist",
                 "title",
                 "playback-status",
+                "can-pause",
+                "can-play",
                 "can-go-next",
                 "can-go-previous",
             ):
@@ -562,10 +635,6 @@ class MediaPlayer(Widget.Box):
         self._render()
 
     def _disconnect_player(self) -> None:
-        if self._art is not None:
-            self._art.clear()
-            self._art._image = None
-            self._art = None
         if self._player is not None:
             for handler in self._player_handlers:
                 if self._player.handler_is_connected(handler):
@@ -575,85 +644,43 @@ class MediaPlayer(Widget.Box):
     def _render(self, *_args) -> None:
         player = self._player
         if player is None:
-            util.replace_box_children(self, [])
-            self._marquees.clear()
             self.visible = False
             return
 
-        if self._art is not None:
+        if player.art_url != self._art_url:
             self._art.clear()
-            self._art._image = None
-        self._art = _scaled_icon(
-            player.art_url,
-            58,
-            ["notification-media-art"],
-            "audio-x-generic-symbolic",
-        )
-        art_frame = Widget.Box(
-            css_classes=["notification-media-art-frame"],
-            child=[self._art],
-        )
-        art_frame.set_overflow(Gtk.Overflow.HIDDEN)
-        subtitle = player.artist or ""
-        controls = Widget.Box(
-            spacing=8,
-            valign="center",
-            css_classes=["notification-media-controls"],
-            child=[
-                Widget.Button(
-                    child=Widget.Icon(image="media-skip-backward-symbolic", pixel_size=16),
-                    sensitive=player.can_go_previous,
-                    on_click=lambda *_: player.previous(),
-                ),
-                Widget.Button(
-                    child=Widget.Icon(
-                        image="media-playback-pause-symbolic"
-                        if player.playback_status == "Playing"
-                        else "media-playback-start-symbolic",
-                        pixel_size=17,
-                    ),
-                    sensitive=player.can_pause or player.can_play,
-                    on_click=lambda *_: player.play_pause(),
-                ),
-                Widget.Button(
-                    child=Widget.Icon(image="media-skip-forward-symbolic", pixel_size=16),
-                    sensitive=player.can_go_next,
-                    on_click=lambda *_: player.next(),
-                ),
-            ],
-        )
-        title_marquee = AutoScrollingLabel(
-            label=player.title or player.identity or "Unknown track",
-            css_classes=["notification-media-title"],
-        )
-        subtitle_marquee = AutoScrollingLabel(
-            label=subtitle,
-            css_classes=["notification-media-subtitle"],
-            visible=bool(subtitle),
-        )
-        self._marquees = [title_marquee, subtitle_marquee]
-        util.replace_box_children(self, [
-            Widget.Box(
-                spacing=12,
-                css_classes=["notification-media"],
-                child=[
-                    art_frame,
-                    Widget.Box(
-                        vertical=True,
-                        spacing=3,
-                        hexpand=True,
-                        valign="center",
-                        css_classes=["notification-media-text"],
-                        child=[
-                            title_marquee,
-                            subtitle_marquee,
-                        ],
-                    ),
-                    controls,
-                ],
+            self._art.image = _scaled_icon_source(
+                player.art_url, 58, "audio-x-generic-symbolic"
             )
-        ])
+            self._art_url = player.art_url
+
+        subtitle = player.artist or ""
+        self._title_marquee.set_label(
+            player.title or player.identity or "Unknown track"
+        )
+        self._subtitle_marquee.set_label(subtitle)
+        self._subtitle_marquee.visible = bool(subtitle)
+        self._previous_button.sensitive = player.can_go_previous
+        self._next_button.sensitive = player.can_go_next
+        self._play_pause_button.sensitive = player.can_pause or player.can_play
+        self._play_pause_icon.image = (
+            "media-playback-pause-symbolic"
+            if player.playback_status == "Playing"
+            else "media-playback-start-symbolic"
+        )
         self.visible = True
+
+    def _previous(self, *_args) -> None:
+        if self._player is not None:
+            self._player.previous()
+
+    def _play_pause(self, *_args) -> None:
+        if self._player is not None:
+            self._player.play_pause()
+
+    def _next(self, *_args) -> None:
+        if self._player is not None:
+            self._player.next()
 
     def reset_scroll_state(self) -> None:
         for marquee in self._marquees:

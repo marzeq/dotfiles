@@ -85,38 +85,75 @@ def cancel_background_tasks() -> None:
                 pass
 
 
+def _restore_unparent_method(widget: Gtk.Widget, patched_unparent: object) -> None:
+    """Break an Ignis Box wrapper closure without invoking it."""
+    code = getattr(patched_unparent, "__code__", None)
+    closure = getattr(patched_unparent, "__closure__", None)
+    if code is None or closure is None:
+        return
+    captured = dict(zip(code.co_freevars, closure))
+    original_cell = captured.get("_orig_unparent")
+    if original_cell is None:
+        return
+    original = original_cell.cell_contents
+    if callable(original):
+        widget.unparent = original
+
+
+def detach_widget(widget: Gtk.Widget) -> None:
+    """Detach a widget exactly once and remove Ignis' capturing wrapper.
+
+    The Ignis version currently installed patches children of ``Widget.Box``
+    with an ``unparent`` wrapper that calls both ``Box.remove`` and the original
+    GTK method. ``Box.remove`` already unparents the widget, so invoking that
+    wrapper performs an invalid second unparent. Remove through the parent and
+    recover the original bound method from the wrapper closure instead.
+    """
+    parent = widget.get_parent()
+    if parent is None:
+        return
+
+    if isinstance(parent, Widget.Box) and widget in parent.child:
+        patched_unparent = widget.unparent
+        parent.remove(widget)
+        _restore_unparent_method(widget, patched_unparent)
+        return
+
+    widget.unparent()
+
+
 def dispose_widget_tree(widget: Gtk.Widget) -> None:
-    """Deterministically detach and dispose a discarded GTK widget subtree.
+    """Deterministically detach a discarded GTK widget subtree.
 
     Ignis ``Box.append`` installs Python closures on every direct child's
     ``unparent`` method. Removing only the subtree root leaves those closures
     intact on descendants and PyGObject's native references can keep the whole
-    cycle alive. Post-order teardown invokes every wrapper before asking GTK to
-    release the native object.
+    cycle alive. Only the visible root is detached; GTK owns the descendant
+    hierarchy and must finalize it itself. Descendant Python closures and
+    callbacks are cleared without manually unparenting internal widgets.
     """
-    descendants: list[Gtk.Widget] = []
-    child = widget.get_first_child()
-    while child is not None:
-        descendants.append(child)
-        child = child.get_next_sibling()
-
-    for descendant in descendants:
-        dispose_widget_tree(descendant)
-
     if widget.get_parent() is not None:
-        widget.unparent()
+        detach_widget(widget)
 
-    # Ignis buttons store callbacks as Python properties. Clear them explicitly
-    # so a removed row cannot retain an access point or owning view until GC.
-    if isinstance(widget, Widget.Button):
-        if widget.on_click is not None:
-            widget.on_click = None
-        if widget.on_right_click is not None:
-            widget.on_right_click = None
-        if widget.on_middle_click is not None:
-            widget.on_middle_click = None
+    pending = [widget]
+    while pending:
+        current = pending.pop()
+        _restore_unparent_method(current, current.unparent)
 
-    widget.run_dispose()
+        # Ignis buttons store callbacks as Python properties. Clear them so a
+        # discarded row cannot retain a service object or owning view until GC.
+        if isinstance(current, Widget.Button):
+            if current.on_click is not None:
+                current.on_click = None
+            if current.on_right_click is not None:
+                current.on_right_click = None
+            if current.on_middle_click is not None:
+                current.on_middle_click = None
+
+        child = current.get_first_child()
+        while child is not None:
+            pending.append(child)
+            child = child.get_next_sibling()
 
 
 def replace_box_children(box: Widget.Box, children: list[Gtk.Widget | None]) -> None:
@@ -131,7 +168,7 @@ def replace_box_children(box: Widget.Box, children: list[Gtk.Widget | None]) -> 
         if id(child) in retained:
             # A retained child may need to move. Invoke Ignis' wrapper to keep
             # the Box's private child list in sync, but do not dispose it.
-            child.unparent()
+            detach_widget(child)
         else:
             dispose_widget_tree(child)
 

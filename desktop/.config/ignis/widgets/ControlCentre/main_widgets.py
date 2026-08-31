@@ -61,7 +61,7 @@ class MainWidgets(Widget.Box):
         )
         for widget in reusable_widgets:
             if widget.get_parent() is not None:
-                widget.unparent()
+                util.detach_widget(widget)
 
         util.replace_box_children(self, [])
         self.rows.clear()
