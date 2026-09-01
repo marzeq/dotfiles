@@ -117,6 +117,20 @@ class DeviceListPopup[T](ControlCentrePopup):
         )
 
     def render_items(self, items: list[T]) -> list[BaseWidget]:
+        # Structural properties must be observed on filtered-out items too.
+        # For Bluetooth, an unpaired device is absent from the rendered list;
+        # its transition to paired must still cause the list to rebuild.
+        for item in items:
+            for prop in self.reorder_properties:
+                self._row_handlers.append(
+                    (
+                        item,
+                        item.connect(
+                            f"notify::{prop.replace('_', '-')}", self._render
+                        ),
+                    )
+                )
+
         items_filtered: list[T] = self.filter_items(items)
         has_overflow = len(items_filtered) > 5
         if not self.wants_see_more:
@@ -162,9 +176,11 @@ class DeviceListPopup[T](ControlCentrePopup):
             properties = set(self.notify_properties)
             properties.add(self.connected_property)
             for prop in properties:
+                if prop in self.reorder_properties:
+                    continue
                 handler = item.connect(
                     f"notify::{prop.replace('_', '-')}",
-                    self._render if prop in self.reorder_properties else update_row,
+                    update_row,
                 )
                 self._row_handlers.append((item, handler))
             children: list[BaseWidget] = (

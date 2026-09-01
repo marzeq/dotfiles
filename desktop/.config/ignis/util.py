@@ -52,9 +52,19 @@ _background_tasks: set[asyncio.Task[Any]] = set()
 _background_processes: set[asyncio.subprocess.Process] = set()
 
 
-def create_task[T](coroutine: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
-    """Start an owned background task and release it as soon as it finishes."""
-    task = asyncio.create_task(coroutine)
+def create_task[T](awaitable: Awaitable[T]) -> asyncio.Task[T]:
+    """Start an owned task from a coroutine or custom awaitable.
+
+    PyGObject async methods return ``gi._gi.Async`` objects which implement the
+    await protocol but are rejected by ``asyncio.create_task`` because they are
+    not native coroutine objects. A tiny coroutine adapter keeps the task
+    ownership/error handling centralized while supporting both forms.
+    """
+
+    async def run() -> T:
+        return await awaitable
+
+    task = asyncio.create_task(run())
     _background_tasks.add(task)
 
     def finished(completed: asyncio.Task[Any]) -> None:

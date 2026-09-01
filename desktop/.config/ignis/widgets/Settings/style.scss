@@ -346,6 +346,13 @@
   padding: 0.35rem 1rem;
 }
 
+.settings-connection-section-title {
+  color: $fg-subtle;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin: 0.65rem 1.8rem 0;
+}
+
 .settings-connection-row {
   @include custom-button;
 
@@ -374,6 +381,118 @@
 
 .settings-connection-empty {
   padding: 1rem;
+}
+
+.settings-connection-details {
+  padding: 0 0.8rem 0.8rem;
+}
+
+.settings-connection-editor {
+  min-width: 30rem;
+  padding: 1rem;
+  background-color: $bg;
+}
+
+.settings-connection-entry {
+  min-width: 13rem;
+}
+
+.settings-audio-stream {
+  min-height: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.65rem;
+}
+
+.settings-audio-device-list,
+.settings-audio-application-list {
+  padding: 0.55rem;
+}
+
+.settings-audio-device-row {
+  min-height: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.65rem;
+
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+}
+
+.settings-audio-device-select,
+.settings-audio-device-modify,
+.settings-audio-mute-button {
+  @include custom-button;
+  background-color: transparent;
+}
+
+.settings-audio-device-select {
+  padding: 0;
+  transition: none;
+
+  &:hover,
+  &:active {
+    background-color: transparent;
+  }
+}
+
+.settings-audio-device-icon,
+.settings-audio-stream-icon {
+  margin-left: 0.65rem;
+}
+
+.settings-audio-device-modify {
+  margin-left: 0.7rem;
+  padding: 0.55rem 0.95rem;
+  transition: none;
+  color: $fg-subtle;
+  font-size: 0.82rem;
+
+  &:hover {
+    background-color: $button-bg-active;
+    color: $fg;
+  }
+}
+
+.settings-audio-native-volume value {
+  margin-left: 0.4rem;
+  color: $fg-subtle;
+  font-size: 0.78rem;
+}
+
+.settings-audio-native-volume marks.bottom mark indicator {
+  min-width: 1px;
+  min-height: 0.4rem;
+  background-color: $fg-subtle;
+}
+
+.settings-audio-mute-button {
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+  margin-left: -0.75rem;
+  padding: 0.2rem;
+  border-radius: 0.55rem;
+
+  &:checked {
+    background-color: rgba($accent, 0.18);
+    color: $accent;
+  }
+}
+
+.settings-audio-device-editor {
+  border-radius: 0.8rem;
+  background-color: $bg-light;
+}
+
+.settings-system-info-value {
+  color: $fg-subtle;
+}
+
+.settings-destructive-button {
+  color: #ff7b74;
+
+  &:hover {
+    background-color: rgba(255, 70, 64, 0.13);
+  }
 }
 
 .settings-add-custom-accent-colour {

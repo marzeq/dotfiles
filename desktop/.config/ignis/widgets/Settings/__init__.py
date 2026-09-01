@@ -1,10 +1,15 @@
 import asyncio
 import os
+import platform
+import shlex
+import socket
 from typing import Any, Callable, Literal, cast
-from gi.repository import GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
+from gi.repository import Gdk, GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.base_widget import BaseWidget
 from ignis.services.bluetooth import BluetoothDevice, BluetoothService
+from ignis.services.audio import AudioService, Stream
 from ignis.services.network import NetworkService, WifiAccessPoint, WifiDevice
+from ignis.services.network._imports import NM
 from ignis.widgets import Widget
 from util import BindableSettings, JsonSettings
 import util
@@ -17,9 +22,16 @@ from widgets.Tray import tray_settings
 
 network_service = NetworkService.get_default()
 bluetooth_service = BluetoothService.get_default()
+audio_service = AudioService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
+PointerAccelerationProfile = Literal["adaptive", "flat", "custom"]
+pointer_acceleration_profiles: list[PointerAccelerationProfile] = [
+    "adaptive",
+    "flat",
+    "custom",
+]
 
 
 @JsonSettings("hyprland")
@@ -40,12 +52,16 @@ class HyprlandSettings(BindableSettings):
 
     pointer_sensitivity: float = 0.0
     acceleration_enabled: bool = False
+    acceleration_profile: PointerAccelerationProfile = "adaptive"
 
     def set_pointer_sensitivity(self, value: float) -> None:
         self.pointer_sensitivity = value
 
     def set_acceleration_enabled(self, value: bool) -> None:
         self.acceleration_enabled = value
+
+    def set_acceleration_profile(self, value: PointerAccelerationProfile) -> None:
+        self.acceleration_profile = value
 
     def sync(self) -> None:
         with open(
@@ -65,7 +81,7 @@ hl.config({{
         accel_profile = {
             '"flat"'
             if not self.acceleration_enabled
-            else '"adaptive"'
+            else f'"{self.acceleration_profile}"'
         },
     }},
 
@@ -501,6 +517,415 @@ def _new_connection_row(
     )
 
 
+class CompactConnectionScroll(Widget.Scroll):
+    """Grow with a short list, then scroll without yielding space to siblings."""
+
+    def __init__(self, child: Widget.Box, *, visible: Any = True) -> None:
+        self._connection_list = child
+        super().__init__(
+            child=child,
+            hexpand=True,
+            visible=visible,
+            propagate_natural_height=True,
+            hscrollbar_policy="never",
+            vscrollbar_policy="automatic",
+        )
+        child.connect("notify::child", self._sync_height)
+        self._sync_height()
+
+    def _sync_height(self, *_args) -> None:
+        count = max(1, len(self._connection_list.child))
+        height = min(360, 16 + count * 58)
+        # Avoid a transient min/max inversion when the row count changes in
+        # either direction; GTK validates each property assignment separately.
+        self.max_content_height = -1
+        self.min_content_height = height
+        self.max_content_height = height
+
+
+class ConnectionEditorWindow(Widget.RegularWindow):
+    def __init__(self, parent: Gtk.Window) -> None:
+        self._content = Widget.Box(vertical=True)
+        self._actions = Widget.Box(spacing=8)
+        self._close_button = Widget.Button(
+            label="Close",
+            on_click=lambda _: self.set_visible(False),
+            css_classes=["settings-secondary-button"],
+        )
+        super().__init__(
+            namespace="ignis_connection_editor",
+            title="Connection settings",
+            child=Widget.Box(
+                vertical=True,
+                spacing=10,
+                child=[
+                    self._content,
+                    Widget.Box(
+                        child=[
+                            self._close_button,
+                            Widget.Box(hexpand=True),
+                            self._actions,
+                        ],
+                    ),
+                ],
+                css_classes=["settings-connection-editor"],
+            ),
+            transient_for=parent,
+            modal=True,
+            hide_on_close=True,
+            decorated=False,
+            resizable=False,
+            default_width=520,
+        )
+        key_controller = Gtk.EventControllerKey()
+        key_controller.connect("key-pressed", self._on_key_pressed)
+        self.add_controller(key_controller)
+
+    def _on_key_pressed(
+        self, _controller: Gtk.EventControllerKey, keyval: int, *_args
+    ) -> bool:
+        if keyval != Gdk.KEY_Escape:
+            return False
+        self.set_visible(False)
+        return True
+
+    def edit(
+        self, title: str, content: BaseWidget, actions: list[BaseWidget]
+    ) -> None:
+        self.title = title
+        util.replace_box_children(self._content, [content])
+        util.replace_box_children(self._actions, actions)
+        self.set_focus(self._close_button)
+        self.present()
+        GLib.idle_add(lambda: (self._close_button.grab_focus(), False)[1])
+
+
+def _close_connection_editor() -> None:
+    try:
+        window = util.get_app().get_window("ignis_connection_editor")
+    except Exception:
+        return
+    if window is not None:
+        window.set_visible(False)
+
+
+class SavedWifiConnections(Widget.Box):
+    """Saved NetworkManager Wi-Fi profiles, including out-of-range networks."""
+
+    def __init__(
+        self, open_editor: Callable[[str, BaseWidget, list[BaseWidget]], None]
+    ) -> None:
+        self._client = getattr(network_service, "_client")
+        self._open_editor = open_editor
+        super().__init__(
+            vertical=True, spacing=6, css_classes=["settings-connection-list"]
+        )
+        self._client.connect("notify::connections", self._render)
+        self._render()
+
+    def _connections(self) -> list[Any]:
+        connections = []
+        for connection in self._client.get_connections():
+            setting = connection.get_setting_connection()
+            if setting is not None and setting.get_connection_type() == "802-11-wireless":
+                connections.append(connection)
+        return sorted(
+            connections,
+            key=lambda connection: (connection.get_id() or "").casefold(),
+        )
+
+    def _access_point(self, connection: Any) -> WifiAccessPoint | None:
+        wireless = connection.get_setting_wireless()
+        ssid_bytes = wireless.get_ssid() if wireless is not None else None
+        ssid = ssid_bytes.get_data().decode(errors="replace") if ssid_bytes else None
+        if not ssid:
+            return None
+        candidates = [
+            ap
+            for device in network_service.wifi.devices
+            for ap in device.access_points
+            if ap.ssid == ssid
+        ]
+        return max(candidates, key=lambda ap: ap.strength, default=None)
+
+    def _render(self, *_args) -> None:
+        rows: list[BaseWidget] = []
+        for connection in self._connections():
+            ap = self._access_point(connection)
+            name = connection.get_id() or "Saved network"
+            connected = bool(ap and ap.is_connected)
+            header = _new_connection_row(
+                icon=ap.icon_name if ap is not None else "network-wireless-symbolic",
+                label=name,
+                subtitle="Connected" if connected else "Saved",
+                on_click=lambda _, conn=connection, point=ap, title=name: self._edit(
+                    title, conn, point
+                ),
+            )
+            rows.append(header)
+
+        util.replace_box_children(
+            self,
+            rows
+            or [
+                Widget.Label(
+                    label="No saved Wi-Fi networks",
+                    css_classes=["settings-connection-empty"],
+                )
+            ],
+        )
+
+    def _edit(
+        self, title: str, connection: Any, ap: WifiAccessPoint | None
+    ) -> None:
+        content, actions = self._details(connection, ap)
+        self._open_editor(title, content, actions)
+
+    def _details(
+        self, connection: Any, ap: WifiAccessPoint | None
+    ) -> tuple[BaseWidget, list[BaseWidget]]:
+        setting = connection.get_setting_connection()
+        security_setting = connection.get_setting_wireless_security()
+        password = ""
+        if security_setting is not None:
+            try:
+                secrets = connection.get_secrets("802-11-wireless-security").unpack()
+                password = secrets.get("802-11-wireless-security", {}).get("psk", "")
+            except GLib.Error:
+                pass
+        connected = bool(ap and ap.is_connected)
+        pending: dict[str, Any] = {
+            "name": connection.get_id() or "",
+            "autoconnect": bool(setting.get_autoconnect()),
+            "password": password,
+            "password_changed": False,
+        }
+        fields: list[BaseWidget] = [
+            Setting(
+                label="Connection name",
+                subtitle="Saved when you press Save.",
+                icon="document-edit-symbolic",
+                widget=Widget.Entry(
+                    text=pending["name"],
+                    hexpand=True,
+                    on_change=lambda entry: pending.__setitem__("name", entry.text),
+                    css_classes=["settings-connection-entry"],
+                ),
+            ),
+            SwitchWithLabel(
+                label="Connect automatically",
+                icon="network-wireless-symbolic",
+                active=pending["autoconnect"],
+                on_change=lambda _, active: pending.__setitem__(
+                    "autoconnect", active
+                ),
+            ),
+        ]
+        if security_setting is not None:
+            def password_changed(entry: Widget.Entry) -> None:
+                pending["password"] = entry.text
+                pending["password_changed"] = True
+
+            fields.append(
+                Setting(
+                    label="Wi-Fi password",
+                    subtitle="Leave unchanged to keep the current password.",
+                    icon="dialog-password-symbolic",
+                    widget=Widget.Entry(
+                        text=password,
+                        visibility=False,
+                        hexpand=True,
+                        on_change=password_changed,
+                        css_classes=["settings-connection-entry"],
+                    ),
+                )
+            )
+        return Widget.Box(
+            vertical=True,
+            spacing=8,
+            child=fields,
+        ), [
+            Widget.Button(
+                label="Save",
+                on_click=lambda _: util.create_task(self._save(connection, pending)),
+                css_classes=["settings-secondary-button"],
+            ),
+            Widget.Button(
+                label="Disconnect" if connected else "Connect",
+                sensitive=ap is not None,
+                on_click=lambda _: self._toggle_connection(ap),
+                css_classes=["settings-secondary-button"],
+            ),
+            Widget.Button(
+                label="Forget",
+                on_click=lambda _: self._forget(connection),
+                css_classes=["settings-destructive-button"],
+            ),
+        ]
+
+    @staticmethod
+    def _toggle_connection(ap: WifiAccessPoint | None) -> None:
+        if ap is not None:
+            util.create_task(
+                ap.disconnect_from() if ap.is_connected else ap.connect_to_graphical()
+            )
+        _close_connection_editor()
+
+    @staticmethod
+    def _forget(connection: Any) -> None:
+        util.create_task(connection.delete_async())
+        _close_connection_editor()
+
+    async def _save(self, connection: Any, pending: dict[str, Any]) -> None:
+        name = str(pending["name"]).strip()
+        if not name:
+            return
+        setting = connection.get_setting_connection()
+        setting.set_property("id", name)
+        setting.set_property("autoconnect", bool(pending["autoconnect"]))
+        security_setting = connection.get_setting_wireless_security()
+        if security_setting is not None and pending["password_changed"]:
+            security_setting.set_property("psk", pending["password"])
+            security_setting.set_secret_flags("psk", NM.SettingSecretFlags.NONE)
+        await connection.commit_changes_async(True)
+        _close_connection_editor()
+
+
+class SavedBluetoothConnections(Widget.Box):
+    def __init__(
+        self, open_editor: Callable[[str, BaseWidget, list[BaseWidget]], None]
+    ) -> None:
+        self._open_editor = open_editor
+        self._device_handlers: list[tuple[BluetoothDevice, int]] = []
+        super().__init__(
+            vertical=True, spacing=6, css_classes=["settings-connection-list"]
+        )
+        bluetooth_service.connect("notify::devices", self._render)
+        bluetooth_service.connect("notify::powered", self._render)
+        self._render()
+
+    def _disconnect_devices(self) -> None:
+        for device, handler in self._device_handlers:
+            if device.handler_is_connected(handler):
+                device.disconnect(handler)
+        self._device_handlers.clear()
+
+    def _render(self, *_args) -> None:
+        self._disconnect_devices()
+        for device in bluetooth_service.devices:
+            for prop in ("paired", "connected", "alias", "name", "icon-name"):
+                self._device_handlers.append(
+                    (device, device.connect(f"notify::{prop}", self._render))
+                )
+        devices = sorted(
+            (device for device in bluetooth_service.devices if device.paired),
+            key=lambda device: (device.alias or device.name).casefold(),
+        )
+        rows: list[BaseWidget] = []
+        for device in devices:
+            title = device.alias or device.name
+            header = _new_connection_row(
+                icon=device.icon_name,
+                label=title,
+                subtitle="Connected" if device.connected else "Paired",
+                on_click=lambda _, bluetooth_device=device, name=title: self._edit(
+                    name, bluetooth_device
+                ),
+            )
+            rows.append(header)
+
+        util.replace_box_children(
+            self,
+            rows
+            or [
+                Widget.Label(
+                    label="No paired Bluetooth devices",
+                    css_classes=["settings-connection-empty"],
+                )
+            ],
+        )
+
+    def _edit(self, title: str, device: BluetoothDevice) -> None:
+        content, actions = self._details(device)
+        self._open_editor(title, content, actions)
+
+    def _details(
+        self, device: BluetoothDevice
+    ) -> tuple[BaseWidget, list[BaseWidget]]:
+        pending: dict[str, Any] = {
+            "alias": device.alias or device.name,
+            "trusted": device.trusted,
+        }
+        return Widget.Box(
+            vertical=True,
+            spacing=8,
+            child=[
+                Setting(
+                    label="Device name",
+                    subtitle="Saved when you press Save.",
+                    icon="document-edit-symbolic",
+                    widget=Widget.Entry(
+                        text=pending["alias"],
+                        hexpand=True,
+                        on_change=lambda entry: pending.__setitem__(
+                            "alias", entry.text
+                        ),
+                        css_classes=["settings-connection-entry"],
+                    ),
+                ),
+                SwitchWithLabel(
+                    label="Trusted device",
+                    subtitle="Allow this device to reconnect without confirmation.",
+                    icon="security-high-symbolic",
+                    active=pending["trusted"],
+                    on_change=lambda _, active: pending.__setitem__(
+                        "trusted", active
+                    ),
+                ),
+            ],
+        ), [
+            Widget.Button(
+                label="Save",
+                on_click=lambda _: self._save(device, pending),
+                css_classes=["settings-secondary-button"],
+            ),
+            Widget.Button(
+                label="Disconnect" if device.connected else "Connect",
+                sensitive=bluetooth_service.powered and device.connectable,
+                on_click=lambda _: self._toggle_connection(device),
+                css_classes=["settings-secondary-button"],
+            ),
+            Widget.Button(
+                label="Forget",
+                on_click=lambda _: self._forget(device),
+                css_classes=["settings-destructive-button"],
+            ),
+        ]
+
+    @staticmethod
+    def _toggle_connection(device: BluetoothDevice) -> None:
+        # connect_service(False) disconnects the profile only; it does not
+        # remove the BlueZ device or alter its paired property.
+        util.create_task(
+            device.disconnect_from() if device.connected else device.connect_to()
+        )
+        _close_connection_editor()
+
+    @staticmethod
+    def _forget(device: BluetoothDevice) -> None:
+        util.shell(f"bluetoothctl remove {shlex.quote(device.address)}")
+        _close_connection_editor()
+
+    @staticmethod
+    def _save(device: BluetoothDevice, pending: dict[str, Any]) -> None:
+        alias = str(pending["alias"]).strip()
+        if not alias:
+            return
+        device.gdevice.props.alias = alias
+        device.gdevice.props.trusted = bool(pending["trusted"])
+        _close_connection_editor()
+
+
 class NewWifiConnections(Widget.Box):
     def __init__(self) -> None:
         self._device: WifiDevice | None = None
@@ -638,16 +1063,19 @@ class NewBluetoothConnections(Widget.Box):
             )
             return
 
-        devices = sorted(
-            (device for device in bluetooth_service.devices if not device.paired),
-            key=lambda device: (device.alias or device.name).casefold(),
-        )
-        rows: list[BaseWidget] = []
-        for device in devices:
+        all_devices = bluetooth_service.devices
+        for device in all_devices:
             for prop in ("paired", "connected", "alias", "name", "icon-name"):
                 self._device_handlers.append(
                     (device, device.connect(f"notify::{prop}", self._render))
                 )
+
+        devices = sorted(
+            (device for device in all_devices if not device.paired and device.connectable),
+            key=lambda device: (device.alias or device.name).casefold(),
+        )
+        rows: list[BaseWidget] = []
+        for device in devices:
             rows.append(
                 _new_connection_row(
                     icon=device.icon_name,
@@ -667,6 +1095,298 @@ class NewBluetoothConnections(Widget.Box):
                 )
             ],
         )
+
+
+class AirplaneModeSetting(Setting):
+    def __init__(self) -> None:
+        self._wifi_was_enabled = False
+        self._bluetooth_was_powered = False
+        self._switch = Widget.Switch(
+            active=False,
+            on_change=self._changed,
+            valign="center",
+        )
+        super().__init__(
+            label="Airplane mode",
+            subtitle="Turn off Wi-Fi and Bluetooth radios.",
+            icon="airplane-mode-symbolic",
+            widget=self._switch,
+        )
+
+    def _changed(self, _switch: Widget.Switch, active: bool) -> None:
+        if active:
+            self._wifi_was_enabled = network_service.wifi.enabled
+            self._bluetooth_was_powered = bluetooth_service.powered
+            if self._wifi_was_enabled:
+                network_service.wifi.set_enabled(False)
+            if self._bluetooth_was_powered:
+                bluetooth_service.set_powered(False)
+            return
+        if self._wifi_was_enabled:
+            network_service.wifi.set_enabled(True)
+        if self._bluetooth_was_powered:
+            bluetooth_service.set_powered(True)
+
+
+class AudioStreamRow(Widget.Box):
+    def __init__(self, stream: Stream) -> None:
+        label = stream.description or stream.name or "Audio stream"
+        mute_icon = stream.bind(
+            "is-muted",
+            lambda muted: (
+                "audio-volume-muted-symbolic"
+                if muted
+                else "audio-volume-high-symbolic"
+            ),
+        )
+        scale = Widget.Scale(
+            min=0,
+            max=150,
+            step=1,
+            value=stream.bind("volume"),
+            on_change=lambda scale: stream.set_volume(scale.value),
+            draw_value=True,
+            value_pos="right",
+            width_request=230,
+            css_classes=["settings-audio-native-volume"],
+        )
+        scale.set_format_value_func(lambda _scale, value: f"{round(value)}%")
+        scale.add_mark(100, Gtk.PositionType.BOTTOM, None)
+        mute = Widget.ToggleButton(
+            child=Widget.Icon(
+                image=mute_icon,
+                pixel_size=18,
+            ),
+            active=stream.bind("is_muted"),
+            on_toggled=lambda _, active: stream.set_is_muted(active),
+            valign="center",
+            tooltip_text="Unmute" if stream.is_muted else "Mute",
+            css_classes=["settings-audio-mute-button"],
+        )
+
+        super().__init__(
+            spacing=12,
+            css_classes=["settings-audio-stream"],
+            child=[
+                Widget.Icon(
+                    image=(
+                        stream.icon_name
+                        if stream.icon_name != "image-missing"
+                        else "audio-x-generic-symbolic"
+                    ),
+                    pixel_size=20,
+                    css_classes=["settings-audio-stream-icon"],
+                ),
+                Widget.Label(
+                    label=label,
+                    halign="start",
+                    hexpand=True,
+                    ellipsize="end",
+                ),
+                Widget.Box(spacing=4, child=[scale, mute]),
+            ],
+        )
+
+
+class AudioDeviceList(Widget.Box):
+    def __init__(
+        self,
+        kind: Literal["speaker", "microphone"],
+        open_editor: Callable[[str, BaseWidget, list[BaseWidget]], None],
+    ) -> None:
+        self._kind = kind
+        self._open_editor = open_editor
+        self._handlers: list[tuple[Stream, int]] = []
+        super().__init__(
+            vertical=True,
+            spacing=6,
+            css_classes=["settings-audio-device-list"],
+        )
+        audio_service.connect(f"notify::{kind}s", self._render)
+        self._render()
+
+    def _render(self, *_args) -> None:
+        for stream, handler in self._handlers:
+            if stream.handler_is_connected(handler):
+                stream.disconnect(handler)
+        self._handlers.clear()
+        streams: list[Stream] = getattr(audio_service, f"{self._kind}s")
+        rows: list[BaseWidget] = []
+        for stream in sorted(
+            streams,
+            key=lambda item: (item.description or item.name or "").casefold(),
+        ):
+            self._handlers.append(
+                (stream, stream.connect("notify::is-default", self._render))
+            )
+            rows.append(
+                Widget.Box(
+                    child=[
+                        Widget.Button(
+                            child=Widget.Box(
+                                spacing=10,
+                                child=[
+                                    Widget.Icon(
+                                        image=(
+                                            "object-select-symbolic"
+                                            if stream.is_default
+                                            else "audio-card-symbolic"
+                                        ),
+                                        css_classes=["settings-audio-device-icon"],
+                                    ),
+                                    Widget.Label(
+                                        label=stream.description or stream.name,
+                                        halign="start",
+                                        hexpand=True,
+                                        ellipsize="end",
+                                    ),
+                                ],
+                            ),
+                            hexpand=True,
+                            on_click=lambda _, selected=stream: setattr(
+                                audio_service, self._kind, selected
+                            ),
+                            css_classes=["settings-audio-device-select"],
+                        ),
+                        Widget.Button(
+                            label="Modify",
+                            on_click=lambda _, selected=stream: self._edit(selected),
+                            valign="center",
+                            css_classes=["settings-audio-device-modify"],
+                        ),
+                    ],
+                    css_classes=["settings-audio-device-row"],
+                )
+            )
+        util.replace_box_children(
+            self,
+            rows
+            or [
+                Widget.Label(
+                    label=f"No {self._kind}s found",
+                    css_classes=["settings-connection-empty"],
+                )
+            ],
+        )
+
+    def _edit(self, stream: Stream) -> None:
+        volume_scale = Widget.Scale(
+            min=0,
+            max=150,
+            step=1,
+            value=stream.bind("volume"),
+            on_change=lambda scale: stream.set_volume(scale.value),
+            draw_value=True,
+            value_pos="right",
+            width_request=320,
+            css_classes=["settings-audio-native-volume"],
+        )
+        volume_scale.set_format_value_func(
+            lambda _scale, value: f"{round(value)}%"
+        )
+        volume_scale.add_mark(100, Gtk.PositionType.BOTTOM, None)
+        volume_row = Setting(
+            label="Volume",
+            icon=stream.bind("icon-name"),
+            widget=Widget.Box(
+                spacing=4,
+                child=[
+                    volume_scale,
+                    Widget.ToggleButton(
+                        child=Widget.Icon(
+                            image=stream.bind("icon-name"), pixel_size=18
+                        ),
+                        active=stream.bind("is_muted"),
+                        on_toggled=lambda _, active: stream.set_is_muted(active),
+                        valign="center",
+                        vexpand=False,
+                        css_classes=["settings-audio-mute-button"],
+                    ),
+                ],
+            ),
+        )
+
+        label = "Use as output" if self._kind == "speaker" else "Use as input"
+        self._open_editor(
+            stream.description or stream.name or "Audio device",
+            Widget.Box(
+                vertical=True,
+                child=[volume_row],
+                css_classes=["settings-audio-device-editor"],
+            ),
+            [
+                Widget.Button(
+                    label=label,
+                    on_click=lambda _: (
+                        setattr(audio_service, self._kind, stream),
+                        _close_connection_editor(),
+                    ),
+                    css_classes=["settings-primary-button"],
+                )
+            ],
+        )
+
+class ApplicationVolumeList(Widget.Box):
+    def __init__(self) -> None:
+        super().__init__(
+            vertical=True,
+            spacing=6,
+            css_classes=["settings-audio-application-list"],
+        )
+        audio_service.connect("notify::apps", self._render)
+        self._render()
+
+    def _render(self, *_args) -> None:
+        rows = [AudioStreamRow(stream) for stream in audio_service.apps]
+        util.replace_box_children(
+            self,
+            rows
+            or [
+                Widget.Label(
+                    label="No applications are currently playing audio",
+                    css_classes=["settings-connection-empty"],
+                )
+            ],
+        )
+
+
+def _system_information() -> list[tuple[str, str, str]]:
+    os_name = "Linux"
+    try:
+        values = {}
+        with open("/etc/os-release", encoding="utf-8") as release:
+            for line in release:
+                key, _, value = line.rstrip().partition("=")
+                values[key] = value.strip('"')
+        os_name = values.get("PRETTY_NAME", os_name)
+    except OSError:
+        pass
+
+    cpu = platform.processor() or "Unknown"
+    try:
+        with open("/proc/cpuinfo", encoding="utf-8") as cpuinfo:
+            for line in cpuinfo:
+                if line.lower().startswith("model name"):
+                    cpu = line.partition(":")[2].strip()
+                    break
+    except OSError:
+        pass
+
+    memory = "Unknown"
+    try:
+        with open("/proc/meminfo", encoding="utf-8") as meminfo:
+            total_kib = int(meminfo.readline().split()[1])
+            memory = f"{total_kib / 1024 / 1024:.1f} GiB"
+    except (OSError, ValueError, IndexError):
+        pass
+
+    return [
+        ("Operating system", os_name, "computer-symbolic"),
+        ("Hostname", socket.gethostname(), "network-server-symbolic"),
+        ("Kernel", platform.release(), "utilities-terminal-symbolic"),
+        ("Processor", cpu, "xsi-cpu-symbolic"),
+        ("Memory", memory, "xsi-ram-symbolic"),
+    ]
 
 
 def KeyboardLayoutDropdown() -> BaseWidget:
@@ -1100,34 +1820,97 @@ class SettingsWindow(Widget.RegularWindow):
 
         displays = build_displays_page(SettingsPage, hyprland_settings)
 
+        audio = SettingsPage(
+            title="Audio",
+            description="Choose audio devices and control system and application volume.",
+            child=[
+                SettingsGroup(
+                    title="Output",
+                    description="Select speakers or headphones and adjust playback.",
+                    child=[
+                        AudioDeviceList("speaker", self._open_connection_editor),
+                    ],
+                ),
+                SettingsGroup(
+                    title="Input",
+                    description="Select a microphone and adjust recording volume.",
+                    child=[
+                        AudioDeviceList("microphone", self._open_connection_editor),
+                    ],
+                ),
+                SettingsGroup(
+                    title="Applications",
+                    description="Control applications that currently have an audio stream.",
+                    child=[ApplicationVolumeList()],
+                ),
+            ],
+        )
+
+        system_information = SettingsPage(
+            title="System Information",
+            description="Hardware, operating system, and shell information.",
+            child=[
+                SettingsGroup(
+                    title="About this system",
+                    description="",
+                    child=[
+                        Setting(
+                            label=label,
+                            icon=icon,
+                            widget=Widget.Label(
+                                label=value,
+                                selectable=True,
+                                wrap=False,
+                                ellipsize="end",
+                                hexpand=True,
+                                halign="end",
+                                xalign=1,
+                                css_classes=["settings-system-info-value"],
+                            ),
+                        )
+                        for label, value, icon in _system_information()
+                    ],
+                )
+            ],
+        )
+
+        self._connection_editor: ConnectionEditorWindow | None = None
         self._new_wifi_connections = NewWifiConnections()
         self._new_bluetooth_connections = NewBluetoothConnections()
-        self._new_wifi_connections_scroll = Widget.Scroll(
-            child=self._new_wifi_connections,
-            hexpand=True,
-            propagate_natural_height=True,
-            min_content_height=240,
-            max_content_height=440,
-            hscrollbar_policy="never",
-            vscrollbar_policy="automatic",
+        self._saved_wifi_connections = SavedWifiConnections(
+            self._open_connection_editor
         )
-        self._new_bluetooth_connections_scroll = Widget.Scroll(
-            child=self._new_bluetooth_connections,
-            hexpand=True,
+        self._saved_bluetooth_connections = SavedBluetoothConnections(
+            self._open_connection_editor
+        )
+        self._saved_wifi_connections_scroll = CompactConnectionScroll(
+            self._saved_wifi_connections,
+            visible=network_service.wifi.bind("enabled"),
+        )
+        self._saved_bluetooth_connections_scroll = CompactConnectionScroll(
+            self._saved_bluetooth_connections,
+            visible=bluetooth_service.bind("powered"),
+        )
+        self._new_wifi_connections_scroll = CompactConnectionScroll(
+            self._new_wifi_connections,
+            visible=network_service.wifi.bind("enabled"),
+        )
+        self._new_bluetooth_connections_scroll = CompactConnectionScroll(
+            self._new_bluetooth_connections,
             visible=bluetooth_service.bind("setup_mode"),
-            propagate_natural_height=True,
-            min_content_height=240,
-            max_content_height=440,
-            hscrollbar_policy="never",
-            vscrollbar_policy="automatic",
         )
         wireless = SettingsPage(
             title="Wi-Fi and Bluetooth",
-            description="Discover and connect to new wireless networks and devices.",
+            description="Manage saved connections and paired devices, or discover new ones.",
             child=[
                 SettingsGroup(
+                    title="Airplane mode",
+                    description="",
+                    child=[AirplaneModeSetting()],
+                ),
+                SettingsGroup(
                     title="Wi-Fi",
-                    description="Connect to networks that are not yet saved on this computer.",
+                    description="",
                     child=[
                         SwitchWithLabel(
                             label="Wi-Fi",
@@ -1136,6 +1919,13 @@ class SettingsWindow(Widget.RegularWindow):
                             active=network_service.wifi.bind("enabled"),
                             on_change=lambda _, active: network_service.wifi.set_enabled(active),
                         ),
+                        Widget.Label(
+                            label="Saved networks",
+                            halign="start",
+                            visible=network_service.wifi.bind("enabled"),
+                            css_classes=["settings-connection-section-title"],
+                        ),
+                        self._saved_wifi_connections_scroll,
                         Setting(
                             widget=Widget.Button(
                                 label="Scan",
@@ -1148,12 +1938,18 @@ class SettingsWindow(Widget.RegularWindow):
                             icon="view-refresh-symbolic",
                             sensitive=network_service.wifi.bind("enabled"),
                         ),
+                        Widget.Label(
+                            label="Available networks",
+                            halign="start",
+                            visible=network_service.wifi.bind("enabled"),
+                            css_classes=["settings-connection-section-title"],
+                        ),
                         self._new_wifi_connections_scroll,
                     ],
                 ),
                 SettingsGroup(
                     title="Bluetooth",
-                    description="Pair nearby devices that are not yet known to this computer.",
+                    description="",
                     child=[
                         SwitchWithLabel(
                             label="Bluetooth",
@@ -1162,6 +1958,13 @@ class SettingsWindow(Widget.RegularWindow):
                             active=bluetooth_service.bind("powered"),
                             on_change=lambda _, active: bluetooth_service.set_powered(active),
                         ),
+                        Widget.Label(
+                            label="Paired devices",
+                            halign="start",
+                            visible=bluetooth_service.bind("powered"),
+                            css_classes=["settings-connection-section-title"],
+                        ),
+                        self._saved_bluetooth_connections_scroll,
                         SwitchWithLabel(
                             label="Pair new devices",
                             subtitle="Make this computer discoverable and scan nearby devices.",
@@ -1169,6 +1972,12 @@ class SettingsWindow(Widget.RegularWindow):
                             active=bluetooth_service.bind("setup_mode"),
                             sensitive=bluetooth_service.bind("powered"),
                             on_change=lambda _, active: bluetooth_service.set_setup_mode(active),
+                        ),
+                        Widget.Label(
+                            label="Available devices",
+                            halign="start",
+                            visible=bluetooth_service.bind("setup_mode"),
+                            css_classes=["settings-connection-section-title"],
                         ),
                         self._new_bluetooth_connections_scroll,
                     ],
@@ -1223,6 +2032,26 @@ class SettingsWindow(Widget.RegularWindow):
                             active=hyprland_settings.bind("acceleration_enabled"),  # type: ignore
                             on_change=lambda _, active: hyprland_settings.set_acceleration_enabled(active),
                         ),
+                        Setting(
+                            widget=StringDropdown(
+                                labels=[
+                                    profile.capitalize()
+                                    for profile in pointer_acceleration_profiles
+                                ],
+                                on_change=lambda value: hyprland_settings.set_acceleration_profile(
+                                    cast(PointerAccelerationProfile, value.lower())
+                                ),
+                                get_current=lambda: hyprland_settings.acceleration_profile.capitalize(),
+                                settings_obj=hyprland_settings,
+                                notify_props=["acceleration-profile"],
+                            ),
+                            label="Acceleration profile",
+                            subtitle="Choose how pointer speed responds to movement.",
+                            icon="input-mouse-symbolic",
+                            sensitive=hyprland_settings.bind(
+                                "acceleration_enabled"
+                            ),
+                        ),
                     ],  # type: ignore
                 ),
             ],
@@ -1271,9 +2100,11 @@ class SettingsWindow(Widget.RegularWindow):
             ("Appearance", "preferences-desktop-wallpaper-symbolic", appearance),
             ("Shell", "preferences-system-symbolic", shell),
             ("Displays", "preferences-desktop-display-symbolic", displays),
+            ("Audio", "audio-speakers-symbolic", audio),
             ("Wi-Fi and Bluetooth", "network-wireless-symbolic", wireless),
             ("Devices", "input-keyboard-symbolic", devices),
             ("Windows", "focus-windows-symbolic", windows),
+            ("System Information", "computer-symbolic", system_information),
         ]
         self._page_titles = [title for title, _, _ in page_specs]
         self._page_widgets = [
@@ -1376,6 +2207,13 @@ class SettingsWindow(Widget.RegularWindow):
             visible=False,
             hide_on_close=True,
         )
+
+    def _open_connection_editor(
+        self, title: str, content: BaseWidget, actions: list[BaseWidget]
+    ) -> None:
+        if self._connection_editor is None:
+            self._connection_editor = ConnectionEditorWindow(self)
+        self._connection_editor.edit(title, content, actions)
 
     def _select_page(self, index: int) -> None:
         if not 0 <= index < len(self._page_widgets):
