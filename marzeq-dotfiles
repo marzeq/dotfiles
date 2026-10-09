@@ -215,17 +215,16 @@ install_desktop() {
   run_or_echo sudo systemctl enable gdm
   run_or_echo systemctl --user enable gcr-ssh-agent.socket
   run_or_echo mkdir -p "$HOME/.local/share/ignis"
-  local optsf="$HOME/.config/hypr/opts.lua"
+  local optsf="$HOME/.local/share/ignis/opts.lua"
   [[ -f "$optsf" ]] || run_or_echo echo "return {}" > "$optsf"
   run_or_echo touch \
     "$HOME/.local/share/ignis/hyprland.lua" \
     "$HOME/.local/share/ignis/hyprlock.conf" \
-    "$HOME/.config/hypr/monitors.lua" \
-    "$HOME/.config/hypr/workspaces.lua" \
+    "$HOME/.local/share/ignis/monitors.lua" \
     "$HOME/.config/hypr/hyprland-custom.lua"
 
   if ! $DRY_RUN; then
-    info "Make sure you run nwg-displays to configure your displays graphically!"
+    info "Use Ignis Settings to configure your displays and shortcuts."
     echo -e "${GREEN_BOLD}You can reboot now.${RESET}"
     read -p "Reboot now? (y/n) " -n 1 -r
     echo

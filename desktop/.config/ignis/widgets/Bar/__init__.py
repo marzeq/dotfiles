@@ -6,7 +6,6 @@ import util
 from widgets.Clock import Clock
 from widgets.Workspaces import Workspaces
 from widgets.Tray import Tray
-from widgets.Settings import hyprland_settings, bar_settings
 from widgets.KeyboardLayout import KeyboardLayoutIndicator
 
 app = util.get_app()
@@ -102,21 +101,9 @@ class Bar(Widget.Window):
                 on_click=lambda *_: self.handle_click(),
             ),
         )
-
-
-        matching = [m for m in util.hyprland.monitors if m.id == monitor_id]
-        if len(matching) == 0:
-            raise ValueError(f"Monitor with ID {monitor_id} does not exist.")
-        hypr_monitor = matching[0]
-        def sync_visibility(*_):
-            self.visible = (
-                not bar_settings.show_only_on_primary_monitor
-                or hypr_monitor.name == hyprland_settings.primary_monitor
-            )
-
-        bar_settings.connect("notify::show-only-on-primary-monitor", sync_visibility)
-        hyprland_settings.connect("notify::primary-monitor", sync_visibility)
-        sync_visibility()
+        hypr_monitor = util.hyprland.get_monitor_by_name(monitor_name)
+        if hypr_monitor is None:
+            raise ValueError(f"Hyprland monitor {monitor_name} does not exist.")
 
         def on_scale_changed(*_):
             style = ""

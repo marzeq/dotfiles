@@ -1,8 +1,11 @@
 import asyncio
+import json
 import os
 import platform
 import shlex
 import socket
+import weakref
+from pathlib import Path
 from typing import Any, Callable, Literal, cast
 from gi.repository import Gdk, GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.base_widget import BaseWidget
@@ -15,7 +18,6 @@ from util import BindableSettings, JsonSettings
 import util
 from widgets.Settings.style_settings import style_settings
 from widgets.Clock import clock_settings
-from widgets.Workspaces import workspace_settings
 from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
 from widgets.Tray import tray_settings
@@ -34,6 +36,20 @@ from pointer_settings import (
     parse_hyprland_pointer_config,
     render_hyprland_pointer_config,
 )
+from hyprland_options import (
+    BASE_KEYS,
+    MODIFIER_KEYS,
+    LEGACY_OPTIONS_PATH,
+    OPTIONS_PATH,
+    Keybind,
+    default_keybindings_json,
+    keybind_definitions,
+    legacy_options,
+    parse_keybindings,
+    render_options,
+    serialize_keybindings,
+    write_atomic,
+)
 
 network_service = NetworkService.get_default()
 bluetooth_service = BluetoothService.get_default()
@@ -41,6 +57,13 @@ audio_service = AudioService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
+
+
+def _clamp_workspace_count(value: Any) -> int:
+    try:
+        return max(1, min(10, int(value)))
+    except (TypeError, ValueError):
+        return 10
 
 
 def _existing_pointer_defaults() -> tuple[float, bool]:
@@ -87,20 +110,145 @@ class HyprlandSettings(BindableSettings):
 
     def set_layout_type(self, value: HyprlandLayout) -> None:
         self.layout_type = value
+        self.schedule_hyprland_reload()
+
+    workspaces_span_displays: bool = False
+    workspace_count: int = 10
+    hide_empty_workspaces: bool = False
+
+    def set_workspaces_span_displays(self, value: bool) -> None:
+        self.workspaces_span_displays = bool(value)
+        self.schedule_hyprland_reload()
+
+    def set_workspace_count(self, value: int) -> None:
+        count = _clamp_workspace_count(value)
+        definitions = keybind_definitions(10, 10)
+        bindings = parse_keybindings(self.keybindings_json, definitions)
+        self.set_many(
+            workspace_count=count,
+            keybindings_json=serialize_keybindings(bindings, definitions),
+        )
+        self.schedule_hyprland_reload()
+
+    def set_hide_empty_workspaces(self, value: bool) -> None:
+        self.hide_empty_workspaces = value
 
     pointer_sensitivity: float = _default_pointer_sensitivity
     acceleration_enabled: bool = _default_acceleration_enabled
     pointer_speed_mapping_version: int = POINTER_SPEED_MAPPING_VERSION
 
+    program_terminal: str = "ghostty"
+    program_file_manager: str = "nautilus --new-window"
+    program_menu: str = "goignis open-window ignis_launcher_proxy"
+    program_browser: str = "firefox"
+    program_editor: str = "nvim"
+    keybindings_json: str = default_keybindings_json()
+
     @staticmethod
     def migrate_settings(data: dict[str, Any]) -> dict[str, Any]:
-        return migrate_pointer_settings(data)
+        migrated = migrate_pointer_settings(data)
+        for name, value in legacy_options().items():
+            migrated.setdefault(name, value)
+        workspace_count = _clamp_workspace_count(
+            migrated.get("workspace_count", 10)
+        )
+        old_workspace_mode = migrated.pop("workspace_mode", "primary")
+        span_displays = migrated.get(
+            "workspaces_span_displays", old_workspace_mode == "all"
+        )
+        migrated["workspace_count"] = workspace_count
+        migrated["workspaces_span_displays"] = bool(span_displays)
+        definitions = keybind_definitions(10, 10)
+        mod1 = migrated.pop("mod1", "SUPER")
+        mod2 = migrated.pop("mod2", "ALT")
+        migrated["keybindings_json"] = serialize_keybindings(
+            parse_keybindings(
+                migrated.get("keybindings_json", ""),
+                definitions,
+                mod1=mod1,
+                mod2=mod2,
+            ),
+            definitions,
+        )
+        return migrated
 
     def set_pointer_sensitivity(self, value: float) -> None:
         self.pointer_sensitivity = value
 
     def set_acceleration_enabled(self, value: bool) -> None:
         self.acceleration_enabled = value
+
+    def set_program(self, name: str, value: str) -> None:
+        setting = f"program_{name}"
+        if setting not in {
+            "program_terminal",
+            "program_file_manager",
+            "program_menu",
+            "program_browser",
+            "program_editor",
+        }:
+            raise ValueError(f"Unknown program setting: {name}")
+        setattr(self, setting, value)
+        self.schedule_hyprland_reload()
+
+    def schedule_hyprland_reload(self) -> None:
+        source_id = getattr(self, "_hyprland_reload_source_id", None)
+        if source_id is not None:
+            GLib.source_remove(source_id)
+
+        def reload_hyprland() -> bool:
+            self._hyprland_reload_source_id = None
+            util.shell("hyprctl reload")
+            return False
+
+        self._hyprland_reload_source_id = GLib.timeout_add(
+            400, reload_hyprland
+        )
+
+    def swap_alt_super(self) -> None:
+        definitions = keybind_definitions(10, 10)
+        bindings = self.get_keybindings()
+        swapped: dict[str, Keybind] = {}
+        for action, binding in bindings.items():
+            selected = {
+                "SUPER" if modifier == "ALT" else
+                "ALT" if modifier == "SUPER" else
+                modifier
+                for modifier in binding.modifiers
+            }
+            modifiers = tuple(
+                modifier
+                for modifier in MODIFIER_KEYS
+                if modifier in selected
+            )
+            swapped[action] = Keybind(
+                binding.enabled, modifiers, binding.key
+            )
+        self.keybindings_json = serialize_keybindings(swapped, definitions)
+        self.schedule_hyprland_reload()
+
+    def get_keybind_definitions(self):
+        return keybind_definitions(
+            (monitor.id + 1 for monitor in util.hyprland.monitors),
+            self.workspace_count,
+        )
+
+    def get_keybindings(self) -> dict[str, Keybind]:
+        return parse_keybindings(
+            self.keybindings_json, keybind_definitions(10, 10)
+        )
+
+    def set_keybinding(self, action: str, binding: Keybind) -> None:
+        bindings = self.get_keybindings()
+        if action not in bindings:
+            raise ValueError(f"Unknown keybinding: {action}")
+        if binding.key not in BASE_KEYS:
+            raise ValueError(f"Unknown key symbol: {binding.key}")
+        bindings[action] = binding
+        self.keybindings_json = serialize_keybindings(
+            bindings, keybind_definitions(10, 10)
+        )
+        self.schedule_hyprland_reload()
 
     def sync(self) -> None:
         pointer_config = render_hyprland_pointer_config(
@@ -140,6 +288,40 @@ $primary_monitor={self.primary_monitor}
 """
             )
 
+        write_atomic(
+            Path(os.path.expanduser("~/.local/share/ignis/workspace-state.json")),
+            json.dumps(
+                {
+                    "primary_monitor": self.primary_monitor,
+                    "workspaces_span_displays": self.workspaces_span_displays,
+                },
+                separators=(",", ":"),
+            )
+            + "\n",
+        )
+        write_atomic(
+            OPTIONS_PATH,
+            render_options(
+                programs={
+                    "terminal": self.program_terminal,
+                    "fileManager": self.program_file_manager,
+                    "menu": self.program_menu,
+                    "browser": self.program_browser,
+                    "editor": self.program_editor,
+                },
+                keybindings=self.get_keybindings(),
+                workspaces_span_displays=self.workspaces_span_displays,
+                workspace_count=self.workspace_count,
+                primary_monitor=self.primary_monitor,
+                layout_type=self.layout_type,
+                definitions=self.get_keybind_definitions(),
+            ),
+        )
+        try:
+            LEGACY_OPTIONS_PATH.unlink()
+        except FileNotFoundError:
+            pass
+
     primary_monitor: str = util.hyprland.monitors[0].name
 
     def set_primary_monitor(self, value: str) -> None:
@@ -147,17 +329,6 @@ $primary_monitor={self.primary_monitor}
 
 
 hyprland_settings = HyprlandSettings()
-
-
-@JsonSettings("bar")
-class BarSettingsSettings(BindableSettings):
-    show_only_on_primary_monitor: bool = False
-
-    def set_show_only_on_primary_monitor(self, value: bool):
-        self.show_only_on_primary_monitor = value
-
-
-bar_settings = BarSettingsSettings()
 
 
 class AccentColourButton(Widget.Button):
@@ -1552,6 +1723,114 @@ class KeyboardLayoutsEditor(Widget.Box):
         util.replace_box_children(self, rows)
 
 
+class KeybindingEditor(Widget.Box):
+    """Compact editor for one GUI-managed Hyprland binding."""
+
+    _instances = weakref.WeakSet()
+
+    def __init__(self, action: str) -> None:
+        self._action = action
+        self._syncing_modifiers = False
+        binding = hyprland_settings.get_keybindings()[action]
+        self._modifier_buttons = [
+            Widget.ToggleButton(
+                label=modifier.title(),
+                active=modifier in binding.modifiers,
+                on_toggled=lambda _, active, value=modifier: self._set_modifier(
+                    value, active
+                ),
+                css_classes=["settings-keybind-modifier"],
+            )
+            for modifier in MODIFIER_KEYS
+        ]
+        self._key = StringDropdown(
+            labels=list(BASE_KEYS),
+            enable_search=True,
+            on_change=self._set_key,
+            get_current=lambda: hyprland_settings.get_keybindings()[action].key,
+        )
+        self._key.add_css_class("settings-keybind-key")
+        self._controls = Widget.Box(
+            spacing=6,
+            child=[*self._modifier_buttons, self._key],
+            sensitive=binding.enabled,
+        )
+        self._enabled_icon = Widget.Icon(pixel_size=16)
+        self._enabled = Widget.ToggleButton(
+            child=self._enabled_icon,
+            active=binding.enabled,
+            on_toggled=self._set_enabled,
+            valign="center",
+            css_classes=["settings-keybind-enabled"],
+        )
+        self._sync_enabled_visual(binding.enabled)
+        super().__init__(
+            spacing=6,
+            child=[
+                Widget.Box(hexpand=True),
+                self._enabled,
+                self._controls,
+            ],
+            hexpand=True,
+            css_classes=["settings-keybind-editor"],
+        )
+        self._instances.add(self)
+
+    @classmethod
+    def sync_all_modifiers(cls) -> None:
+        for editor in list(cls._instances):
+            editor._sync_modifiers()
+
+    def _sync_modifiers(self) -> None:
+        selected = hyprland_settings.get_keybindings()[self._action].modifiers
+        self._syncing_modifiers = True
+        try:
+            for modifier, button in zip(
+                MODIFIER_KEYS, self._modifier_buttons
+            ):
+                button.active = modifier in selected
+        finally:
+            self._syncing_modifiers = False
+
+    def _update(self, **changes: Any) -> None:
+        current = hyprland_settings.get_keybindings()[self._action]
+        hyprland_settings.set_keybinding(
+            self._action,
+            Keybind(
+                enabled=changes.get("enabled", current.enabled),
+                modifiers=changes.get("modifiers", current.modifiers),
+                key=changes.get("key", current.key),
+            ),
+        )
+
+    def _sync_enabled_visual(self, active: bool) -> None:
+        self._enabled_icon.image = (
+            "object-select-symbolic" if active else "process-stop-symbolic"
+        )
+        self._enabled.tooltip_text = (
+            "Disable shortcut" if active else "Enable shortcut"
+        )
+
+    def _set_enabled(self, _button, active: bool) -> None:
+        self._sync_enabled_visual(active)
+        self._controls.sensitive = active
+        self._update(enabled=active)
+
+    def _set_modifier(self, modifier: str, active: bool) -> None:
+        if self._syncing_modifiers:
+            return
+        current = hyprland_settings.get_keybindings()[self._action]
+        values = [value for value in current.modifiers if value != modifier]
+        if active:
+            values.append(modifier)
+        self._update(
+            modifiers=tuple(value for value in MODIFIER_KEYS if value in values)
+        )
+
+    def _set_key(self, value: str) -> None:
+        self._update(key=value.strip())
+
+
 class SettingsWindow(Widget.RegularWindow):
     def __init__(self):
         self.color_chooser: Gtk.ColorChooserDialog | None = None
@@ -1751,13 +2030,6 @@ class SettingsWindow(Widget.RegularWindow):
                     description="Choose what appears in the shell’s persistent status area.",
                     child=[
                         SwitchWithLabel(
-                            label="Primary monitor only",
-                            subtitle="Hide the bar on secondary displays.",
-                            icon="video-display-symbolic",
-                            active=bar_settings.show_only_on_primary_monitor,
-                            on_change=lambda _, active: bar_settings.set_show_only_on_primary_monitor(active),
-                        ),
-                        SwitchWithLabel(
                             label="24-hour clock",
                             subtitle="Use regional 24-hour time formatting.",
                             icon="preferences-system-time-symbolic",
@@ -1777,13 +2049,6 @@ class SettingsWindow(Widget.RegularWindow):
                             icon="preferences-system-time-symbolic",
                             active=clock_settings.show_seconds,
                             on_change=lambda _, active: clock_settings.set_show_seconds(active),
-                        ),
-                        SwitchWithLabel(
-                            label="All workspaces on every monitor",
-                            subtitle="Show workspaces even when they belong to another display.",
-                            icon="view-grid-symbolic",
-                            active=workspace_settings.show_all_ws_on_monitor,
-                            on_change=lambda _, active: workspace_settings.set_show_all_ws_on_monitor(active),
                         ),
                         SwitchWithLabel(
                             label="Battery percentage",
@@ -2078,10 +2343,185 @@ class SettingsWindow(Widget.RegularWindow):
             ],
         )
 
+        program_rows = []
+        for name, label, subtitle, icon in (
+            ("terminal", "Terminal", "Command launched by the terminal shortcut.", "utilities-terminal-symbolic"),
+            ("file_manager", "File manager", "Command launched by the file manager shortcut.", "system-file-manager-symbolic"),
+            ("browser", "Web browser", "Command launched by the browser shortcut.", "web-browser-symbolic"),
+            ("editor", "Text editor", "Value exported as the EDITOR environment variable.", "accessories-text-editor-symbolic"),
+        ):
+            program_rows.append(
+                Setting(
+                    widget=Widget.Entry(
+                        text=getattr(hyprland_settings, f"program_{name}"),
+                        hexpand=False,
+                        width_chars=42,
+                        max_width_chars=42,
+                        on_change=lambda entry, setting=name: hyprland_settings.set_program(
+                            setting, entry.text
+                        ),
+                        css_classes=["settings-command-entry"],
+                    ),
+                    label=label,
+                    subtitle=subtitle,
+                    icon=icon,
+                )
+            )
+
+        shortcut_groups: list[BaseWidget] = [
+            SettingsGroup(
+                title="Shortcut modifiers",
+                description="Each shortcut uses its own combination of Shift, Ctrl, Alt and Super.",
+                child=[
+                    Setting(
+                        widget=Widget.Button(
+                            label="Swap Alt and Super",
+                            on_click=lambda _: (
+                                hyprland_settings.swap_alt_super(),
+                                KeybindingEditor.sync_all_modifiers(),
+                            ),
+                            css_classes=["settings-secondary-button"],
+                        ),
+                        label="Swap shortcut modifiers",
+                        subtitle="Exchange Alt and Super across every shortcut.",
+                        icon="input-keyboard-symbolic",
+                    ),
+                ],
+            ),
+            SettingsGroup(
+                title="Commands",
+                description="Configure the programs launched by desktop shortcuts.",
+                child=program_rows,
+            ),
+        ]
+        visible_keybindings = hyprland_settings.get_keybind_definitions()
+        categories = list(dict.fromkeys(item.category for item in visible_keybindings))
+        for category in categories:
+            if category == "Workspaces":
+                workspace_shortcuts = Widget.Box(vertical=True)
+
+                def render_workspace_shortcuts(*_args) -> None:
+                    definitions = [
+                        definition
+                        for definition in hyprland_settings.get_keybind_definitions()
+                        if definition.category == "Workspaces"
+                    ]
+                    util.replace_box_children(
+                        workspace_shortcuts,
+                        [
+                            SettingsGroup(
+                                title="Workspaces",
+                                description="",
+                                child=[
+                                    Setting(
+                                        widget=KeybindingEditor(definition.action),
+                                        label=definition.label,
+                                    )
+                                    for definition in definitions
+                                ],
+                            )
+                        ],
+                    )
+
+                hyprland_settings.connect(
+                    "notify::workspace-count", render_workspace_shortcuts
+                )
+                render_workspace_shortcuts()
+                shortcut_groups.append(workspace_shortcuts)
+            else:
+                shortcut_groups.append(
+                    SettingsGroup(
+                        title=category,
+                        description="",
+                        child=[
+                            Setting(
+                                widget=KeybindingEditor(definition.action),
+                                label=definition.label,
+                            )
+                            for definition in visible_keybindings
+                            if definition.category == category
+                        ],
+                    )
+                )
+
+        shortcuts = SettingsPage(
+            title="Shortcuts",
+            description="Customise desktop keyboard shortcuts.",
+            child=shortcut_groups,
+        )
+
+        workspace_count = Gtk.SpinButton.new_with_range(1, 10, 1)
+        workspace_count.set_value(hyprland_settings.workspace_count)
+        workspace_count.set_width_chars(2)
+        workspace_count.set_valign(Gtk.Align.CENTER)
+        workspace_count.add_css_class("settings-workspace-count")
+        workspace_count.connect(
+            "value-changed",
+            lambda spin: hyprland_settings.set_workspace_count(
+                spin.get_value_as_int()
+            ),
+        )
+
+        def sync_workspace_count(*_args) -> None:
+            value = hyprland_settings.workspace_count
+            if workspace_count.get_value_as_int() != value:
+                workspace_count.set_value(value)
+
+        hyprland_settings.connect(
+            "notify::workspace-count", sync_workspace_count
+        )
+
+        workspace_scope = Widget.Switch(
+            active=hyprland_settings.workspaces_span_displays,
+            valign="center",
+        )
+        workspace_scope.connect(
+            "state-set",
+            lambda _, state: (
+                hyprland_settings.set_workspaces_span_displays(bool(state)),
+                False,
+            )[1],
+        )
+        hide_empty_workspaces = Widget.Switch(
+            active=hyprland_settings.hide_empty_workspaces,
+            valign="center",
+        )
+        hide_empty_workspaces.connect(
+            "state-set",
+            lambda _, state: (
+                hyprland_settings.set_hide_empty_workspaces(bool(state)),
+                False,
+            )[1],
+        )
+
         windows = SettingsPage(
-            title="Windows",
-            description="Choose how windows are arranged and managed.",
+            title="Windows & Workspaces",
+            description="Choose how windows are arranged and how workspaces behave across displays.",
             child=[
+                SettingsGroup(
+                    title="Workspaces",
+                    description="Workspaces are presented as one fixed logical set, independent of Hyprland’s internal per-monitor workspaces.",
+                    child=[
+                        Setting(
+                            widget=workspace_scope,
+                            label="Workspaces span all displays",
+                            subtitle="When off, only the primary display switches and secondary displays keep their content.",
+                            icon="video-display-symbolic",
+                        ),
+                        Setting(
+                            widget=cast(BaseWidget, workspace_count),
+                            label="Number of workspaces",
+                            subtitle="Sets the dots in the bar and the workspace shortcuts shown in Settings.",
+                            icon="view-grid-symbolic",
+                        ),
+                        Setting(
+                            widget=hide_empty_workspaces,
+                            label="Hide empty workspaces in the bar",
+                            subtitle="The active workspace remains visible even when it has no windows.",
+                            icon="view-conceal-symbolic",
+                        ),
+                    ],
+                ),
                 SettingsGroup(
                     title="Tiling",
                     description="Hyprland provides two distinct automatic tiling strategies.",
@@ -2124,7 +2564,8 @@ class SettingsWindow(Widget.RegularWindow):
             ("Audio", "audio-speakers-symbolic", audio),
             ("Wi-Fi and Bluetooth", "network-wireless-symbolic", wireless),
             ("Devices", "input-keyboard-symbolic", devices),
-            ("Windows", "focus-windows-symbolic", windows),
+            ("Shortcuts", "preferences-desktop-keyboard-shortcuts-symbolic", shortcuts),
+            ("Windows & Workspaces", "focus-windows-symbolic", windows),
             ("System Information", "computer-symbolic", system_information),
         ]
         self._page_titles = [title for title, _, _ in page_specs]

@@ -23,7 +23,7 @@ from ignis.widgets import Widget
 import util
 
 
-MONITORS_PATH = Path(os.path.expanduser("~/.config/hypr/monitors.lua"))
+MONITORS_PATH = Path(os.path.expanduser("~/.local/share/ignis/monitors.lua"))
 ROLLBACK_DIR = Path(os.path.expanduser("~/.local/share/ignis/display-rollback"))
 ROLLBACK_CONFIG_PATH = ROLLBACK_DIR / "monitors.lua"
 ROLLBACK_META_PATH = ROLLBACK_DIR / "snapshot.json"
@@ -1429,6 +1429,7 @@ class DisplaySettings(Widget.Box):
         return True
 
     def _keep(self) -> None:
+        primary_changed = self._baseline_primary != self._draft_primary
         if self._rollback_source:
             GLib.source_remove(self._rollback_source)
             self._rollback_source = 0
@@ -1436,6 +1437,22 @@ class DisplaySettings(Widget.Box):
         self._clear_snapshot()
         self._baseline_primary = self._draft_primary
         self._schedule_refresh()
+        if primary_changed:
+            GLib.timeout_add(150, self._reload_shell)
+
+    @staticmethod
+    def _reload_shell() -> bool:
+        """Recreate primary-only shell surfaces after changing the primary output."""
+        try:
+            subprocess.Popen(
+                ["goignis", "reload"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError:
+            pass
+        return False
 
     def _revert(self, schedule_refresh: bool = True) -> None:
         if self._rollback_source:

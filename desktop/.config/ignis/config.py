@@ -21,7 +21,7 @@ from widgets.KeyboardLayout import (
     KeyboardLayoutPopup,
     KeyboardLayoutProxy,
 )
-from widgets.Settings import SettingsWindow
+from widgets.Settings import SettingsWindow, hyprland_settings
 
 app = util.get_app()
 
@@ -36,6 +36,10 @@ if settings is not None:
 dir = Utils.get_current_dir()  # type: ignore
 
 os.makedirs(os.path.expanduser("~/.local/share/ignis"), exist_ok=True)
+legacy_monitors_file = os.path.expanduser("~/.config/hypr/monitors.lua")
+monitors_file = os.path.expanduser("~/.local/share/ignis/monitors.lua")
+if os.path.exists(legacy_monitors_file) and not os.path.exists(monitors_file):
+    os.replace(legacy_monitors_file, monitors_file)
 accent_file = os.path.expanduser("~/.local/share/ignis/accent.scss")
 if not os.path.exists(accent_file):
     with open(accent_file, "w") as f:
@@ -82,17 +86,25 @@ util.shell("gsettings set org.gnome.desktop.wm.preferences button-layout :")
 util.shell("hyprctl reload")
 
 
-for i, m in enumerate(Utils.get_monitors()):  # type: ignore
+monitors = list(Utils.get_monitors())  # type: ignore
+if not monitors:
+    raise RuntimeError("Ignis could not find a display for the shell")
+primary_monitor_id = util.monitor_id_for_connector(
+    hyprland_settings.primary_monitor
+)
+
+for i, m in enumerate(monitors):
     ClosePopupWidget(i)
-    Bar(i)
-    KeyboardLayoutPopup(i)
-    NotificationsAndCalendar(i)
-    ControlCentre(i)
     Launcher(i, m)
 
+Bar(primary_monitor_id)
+KeyboardLayoutPopup(primary_monitor_id)
+NotificationsAndCalendar(primary_monitor_id)
+ControlCentre(primary_monitor_id)
+
 NotificationPopups()
-OSD()
-KeyboardLayoutOSD()
+OSD(primary_monitor_id)
+KeyboardLayoutOSD(primary_monitor_id)
 KeyboardLayoutProxy()
 LauncherProxy()
 SettingsWindow()

@@ -9,6 +9,7 @@ hl.config {
 
 local home = os.getenv("HOME")
 local config = home .. "/.config/hypr"
+local ignisData = home .. "/.local/share/ignis"
 
 local function file_exists(path)
 	local f = io.open(path, "r")
@@ -25,21 +26,16 @@ end
 -- │ SOURCES  │
 -- └──────────┘
 
-local monitors = config .. "/monitors.lua"
+local monitors = ignisData .. "/monitors.lua"
 if file_exists(monitors) then
-	require("monitors")
+	dofile(monitors)
 end
 
-local workspaces = config .. "/workspaces.lua"
-if file_exists(workspaces) then
-	require("workspaces")
-end
-
-local optsFp = config .. "/opts.lua"
+local optsFp = ignisData .. "/opts.lua"
 local opts = {}
 
 if file_exists(optsFp) then
-	opts = require("opts")
+	opts = dofile(optsFp) or {}
 end
 
 -- ┌──────────┐
@@ -217,20 +213,55 @@ hl.gesture {
 -- │ KEYBINDINGS  │
 -- └──────────────┘
 
-local mod = opts.mod or "SUPER"
-local mod2 = opts.mod2 or "ALT"
+local keybindings = opts.keybindings or {}
 
-if mod == mod2 then
-  error("mod and mod2 cannot be the same key")
+local function binding(key, modifiers, primary_modifier)
+	local selected_modifiers = {}
+	for _, modifier in ipairs(modifiers or {}) do
+		table.insert(selected_modifiers, modifier)
+	end
+	if primary_modifier == nil then
+		primary_modifier = "SUPER"
+	end
+	if primary_modifier ~= "none" then
+		table.insert(selected_modifiers, primary_modifier)
+	end
+
+	return {
+		key = key,
+		modifiers = selected_modifiers,
+	}
+end
+
+local function bind(action, fallback, callback, options)
+	local spec = keybindings[action] or fallback
+	if not spec or spec.enabled == false or not spec.key or spec.key == "" then
+		return
+	end
+
+	local parts = {}
+	local added = {}
+	local function add(value)
+		if value and value ~= "" and not added[value] then
+			table.insert(parts, value)
+			added[value] = true
+		end
+	end
+
+	for _, modifier in ipairs(spec.modifiers or {}) do
+		add(modifier)
+	end
+	add(spec.key)
+	hl.bind(table.concat(parts, " + "), callback, options)
 end
 
 -- apps
-hl.bind(mod .. " + Q", hl.dsp.window.close())
-hl.bind(mod .. " + F", hl.dsp.exec_cmd(fileManager))
-hl.bind(mod .. " + RETURN", hl.dsp.exec_cmd(terminal))
-hl.bind(mod .. " + B", hl.dsp.exec_cmd(browser))
-hl.bind(mod .. " + T", hl.dsp.window.float())
-hl.bind(mod .. " + SPACE", hl.dsp.exec_cmd(menu))
+bind("close_window", binding("Q"), hl.dsp.window.close())
+bind("open_file_manager", binding("F"), hl.dsp.exec_cmd(fileManager))
+bind("open_terminal", binding("RETURN"), hl.dsp.exec_cmd(terminal))
+bind("open_browser", binding("B"), hl.dsp.exec_cmd(browser))
+bind("toggle_floating", binding("T"), hl.dsp.window.float())
+bind("open_launcher", binding("SPACE"), hl.dsp.exec_cmd(menu))
 local function toggle_layout_action()
 	local layout = hl.get_config("general.layout")
 
@@ -240,89 +271,168 @@ local function toggle_layout_action()
 		hl.dispatch(hl.dsp.layout("togglesplit"))
 	end
 end
-hl.bind(mod .. " + S", toggle_layout_action)
+bind("toggle_layout", binding("S"), toggle_layout_action)
 
 -- focus
-hl.bind(mod .. " + H", hl.dsp.focus { direction = "left" })
-hl.bind(mod .. " + J", hl.dsp.focus { direction = "down" })
-hl.bind(mod .. " + K", hl.dsp.focus { direction = "up" })
-hl.bind(mod .. " + L", hl.dsp.focus { direction = "right" })
+bind("focus_left_h", binding("H"), hl.dsp.focus { direction = "left" })
+bind("focus_down_j", binding("J"), hl.dsp.focus { direction = "down" })
+bind("focus_up_k", binding("K"), hl.dsp.focus { direction = "up" })
+bind("focus_right_l", binding("L"), hl.dsp.focus { direction = "right" })
 
-hl.bind(mod .. " + left", hl.dsp.focus { direction = "left" })
-hl.bind(mod .. " + down", hl.dsp.focus { direction = "down" })
-hl.bind(mod .. " + up", hl.dsp.focus { direction = "up" })
-hl.bind(mod .. " + right", hl.dsp.focus { direction = "right" })
+bind("focus_left_arrow", binding("left"), hl.dsp.focus { direction = "left" })
+bind("focus_down_arrow", binding("down"), hl.dsp.focus { direction = "down" })
+bind("focus_up_arrow", binding("up"), hl.dsp.focus { direction = "up" })
+bind("focus_right_arrow", binding("right"), hl.dsp.focus { direction = "right" })
 
 -- move windows
-hl.bind(mod .. " + SHIFT + H", hl.dsp.window.move { direction = "up" })
-hl.bind(mod .. " + SHIFT + J", hl.dsp.window.move { direction = "down" })
-hl.bind(mod .. " + SHIFT + K", hl.dsp.window.move { direction = "left" })
-hl.bind(mod .. " + SHIFT + L", hl.dsp.window.move { direction = "right" })
+bind("move_up_h", binding("H", { "SHIFT" }), hl.dsp.window.move { direction = "up" })
+bind("move_down_j", binding("J", { "SHIFT" }), hl.dsp.window.move { direction = "down" })
+bind("move_left_k", binding("K", { "SHIFT" }), hl.dsp.window.move { direction = "left" })
+bind("move_right_l", binding("L", { "SHIFT" }), hl.dsp.window.move { direction = "right" })
 
-hl.bind(mod .. " + SHIFT + left", hl.dsp.window.move { direction = "up" })
-hl.bind(mod .. " + SHIFT + down", hl.dsp.window.move { direction = "down" })
-hl.bind(mod .. " + SHIFT + up", hl.dsp.window.move { direction = "left" })
-hl.bind(mod .. " + SHIFT + right", hl.dsp.window.move { direction = "right" })
+bind("move_up_arrow", binding("left", { "SHIFT" }), hl.dsp.window.move { direction = "up" })
+bind("move_down_arrow", binding("down", { "SHIFT" }), hl.dsp.window.move { direction = "down" })
+bind("move_left_arrow", binding("up", { "SHIFT" }), hl.dsp.window.move { direction = "left" })
+bind("move_right_arrow", binding("right", { "SHIFT" }), hl.dsp.window.move { direction = "right" })
 
-hl.bind(mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
+bind("fullscreen", binding("F", { "SHIFT" }), hl.dsp.window.fullscreen())
 
 -- keyboard layouts
 
-hl.bind("ALT + SPACE", hl.dsp.exec_cmd("goignis open-window ignis_keyboard_layout_proxy"))
+bind("keyboard_layout", binding("SPACE", { "ALT" }, "none"), hl.dsp.exec_cmd("goignis open-window ignis_keyboard_layout_proxy"))
 
 -- misc
-hl.bind(mod .. " + N", hl.dsp.exec_cmd("swaync-client -t"))
+bind("notifications", binding("N"), hl.dsp.exec_cmd("swaync-client -t"))
 
 -- screenshots
-hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh area"))
+bind("screenshot_area", binding("S", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh area"))
 
-hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh window"))
+bind("screenshot_window", binding("W", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh window"))
 
-hl.bind(mod .. " + SHIFT + M", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh monitor"))
+bind("screenshot_monitor", binding("M", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh monitor"))
 
-hl.bind(mod .. " + SHIFT + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/hypr-ocr.sh"))
+bind("ocr", binding("T", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/hypr-ocr.sh"))
 
-hl.bind(mod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))
+bind("colour_picker", binding("C", { "SHIFT" }), hl.dsp.exec_cmd("hyprpicker -a"))
 
 -- workspaces
 
-local monitoropts = opts.monitoropts or {}
-local virtualworkspaces = true
-if opts.virtualworkspaces ~= nil then
-  virtualworkspaces = opts.virtualworkspaces
+local workspaces_span_displays = opts.workspaces_span_displays == true
+local workspace_count = math.max(1, math.min(10, tonumber(opts.workspace_count) or 10))
+local workspace_monitors = hl.get_monitors()
+table.sort(workspace_monitors, function(a, b)
+	return a.id < b.id
+end)
+local workspace_primary = nil
+
+for _, monitor in ipairs(workspace_monitors) do
+	if monitor.name == opts.primary_monitor then
+		workspace_primary = monitor
+		break
+	end
 end
 
-local vws = virtualworkspaces and require("virtual-ws")(monitoropts) or nil
+workspace_primary = workspace_primary or workspace_monitors[1]
 
-for i = 1, 10 do
+local workspace_offsets = {}
+local next_workspace_block = 1
+if workspace_primary then
+	workspace_offsets[workspace_primary.name] = 0
+	for _, monitor in ipairs(workspace_monitors) do
+		if monitor.name ~= workspace_primary.name then
+			workspace_offsets[monitor.name] = next_workspace_block * 10
+			next_workspace_block = next_workspace_block + 1
+		end
+	end
+end
+
+local function logical_workspace_id(logical_id, monitor)
+	return (workspace_offsets[monitor.name] or 0) + logical_id
+end
+
+local function monitor_is_vertical(monitor)
+	local width = tonumber(monitor.width) or 0
+	local height = tonumber(monitor.height) or 0
+	local transform = tonumber(monitor.transform) or 0
+	if transform % 2 == 1 then
+		width, height = height, width
+	end
+	return height > width
+end
+
+local function add_workspace_rule(logical_id, monitor)
+	local rule = {
+		workspace = tostring(logical_workspace_id(logical_id, monitor)),
+		monitor = monitor.name,
+		persistent = true,
+	}
+	if opts.layout_type == "master" and monitor_is_vertical(monitor) then
+		rule.layout_opts = {
+			orientation = "top",
+		}
+	end
+	hl.workspace_rule(rule)
+end
+
+if workspace_primary then
+	for logical_id = 1, workspace_count do
+		if workspaces_span_displays then
+			for _, monitor in ipairs(workspace_monitors) do
+				add_workspace_rule(logical_id, monitor)
+			end
+		else
+			add_workspace_rule(logical_id, workspace_primary)
+		end
+	end
+
+	if not workspaces_span_displays then
+		for _, monitor in ipairs(workspace_monitors) do
+			if monitor.name ~= workspace_primary.name then
+				add_workspace_rule(1, monitor)
+			end
+		end
+	end
+end
+
+local workspace_command = "python3 " .. config .. "/scripts/logical-workspace.py"
+
+for i = 1, workspace_count do
 	local key = i == 10 and "0" or tostring(i)
 
-  if vws then
-    hl.bind(mod .. " + " .. key, vws.goto_vws(i))
-  else
-    hl.bind(mod .. " + " .. key, hl.dsp.focus({ workspace = tostring(i) }))
-  end
-
-  if vws then
-    hl.bind(mod .. " + SHIFT + " .. key, vws.move_to_vws(i, { follow = false }))
-  else
-    hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move { workspace = tostring(i), follow = false })
-  end
+	bind(
+		"workspace_" .. i,
+		binding(key),
+		hl.dsp.exec_cmd(workspace_command .. " switch " .. tostring(i))
+	)
+	bind(
+		"move_to_workspace_" .. i,
+		binding(key, { "SHIFT" }),
+		hl.dsp.exec_cmd(workspace_command .. " move " .. tostring(i))
+	)
 end
 
 -- monitor focus
 for _, monitor in ipairs(hl.get_monitors()) do
-  local key = monitor.id + 1
+	local key = monitor.id + 1
+	local default_key = key == 10 and "0" or tostring(key)
 
-  hl.bind(mod2 .. " + " .. key, hl.dsp.focus { monitor = monitor.name })
+	bind(
+		"focus_monitor_" .. key,
+		binding(default_key, {}, "ALT"),
+		hl.dsp.focus { monitor = monitor.name }
+	)
 
-  hl.bind(mod2 .. " + SHIFT + " .. key, hl.dsp.window.move { monitor = monitor.name, follow = true })
+	bind(
+		"move_to_monitor_" .. key,
+		binding(default_key, { "SHIFT" }, "ALT"),
+		hl.dsp.window.move { monitor = monitor.name, follow = true }
+	)
 end
 
 -- mouse
-hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
+bind("drag_window", binding("mouse:272"), hl.dsp.window.drag(), { mouse = true })
 
-hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+bind("resize_window", binding("mouse:273"), hl.dsp.window.resize(), { mouse = true })
 
 -- audio
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh inc_volume 2"), { repeating = true })
@@ -342,9 +452,9 @@ hl.bind("XF86AudioNext", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh next")
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh previous"))
 
 -- brightness
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set +5%"), { repeating = true })
+bind("brightness_up", binding("XF86MonBrightnessUp", {}, "none"), hl.dsp.exec_cmd("brightnessctl set +5%"), { repeating = true })
 
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { repeating = true })
+bind("brightness_down", binding("XF86MonBrightnessDown", {}, "none"), hl.dsp.exec_cmd("brightnessctl set 5%-"), { repeating = true })
 
 -- ┌──────────────────────────┐
 -- │ WINDOW & WORKSPACE RULES │

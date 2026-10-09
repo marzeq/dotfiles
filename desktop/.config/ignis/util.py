@@ -190,6 +190,14 @@ def active_monitor() -> int:
     return hyprland.active_workspace.monitor_id
 
 
+def monitor_id_for_connector(connector: str, fallback: int = 0) -> int:
+    """Resolve a Hyprland connector name to Ignis' GDK monitor index."""
+    for index, monitor in enumerate(Utils.get_monitors()):  # type: ignore
+        if monitor.get_connector() == connector:
+            return index
+    return fallback
+
+
 Hook = Awaitable[Any] | Callable[[], Any]
 
 
@@ -385,9 +393,21 @@ class PopupManager:
         else:
             box.css_classes = [c for c in box.css_classes if c != "active"]
 
-    def set_popup(self, name: str) -> None:
+    def _target_monitor(self, name: str) -> int:
+        prefix = f"{name}_"
+        registered = [
+            int(key.removeprefix(prefix))
+            for key in self.popup_triggers_by_name
+            if key.startswith(prefix) and key.removeprefix(prefix).isdigit()
+        ]
+        # Bar-attached popups have exactly one trigger on the primary display.
+        # Per-monitor surfaces such as the launcher have no registered trigger
+        # and continue to follow the active monitor.
+        return registered[0] if len(registered) == 1 else active_monitor()
+
+    def set_popup(self, name: str, monitor: int) -> None:
         self.curr_popup = name
-        self.curr_popup_monitor = active_monitor()
+        self.curr_popup_monitor = monitor
         self.set_active(self.curr_popup, self.curr_popup_monitor, True)
 
     def reset_popup(self) -> None:
@@ -398,22 +418,23 @@ class PopupManager:
 
     def handle_popup_clicked(self, name: str) -> None:
         self.clear_popupers()
+        target_monitor = self._target_monitor(name)
         if self.curr_popup == name:
             if self.curr_popup_monitor is None:
-                app.open_window(f"{name}_{active_monitor()}")
-                self.set_popup(name)
+                app.open_window(f"{name}_{target_monitor}")
+                self.set_popup(name, target_monitor)
                 self.open_popupers()
-            elif self.curr_popup_monitor == active_monitor():
+            elif self.curr_popup_monitor == target_monitor:
                 self.close_curr_popup()
             else:
                 self.close_curr_popup()
-                app.open_window(f"{name}_{active_monitor()}")
-                self.set_popup(name)
+                app.open_window(f"{name}_{target_monitor}")
+                self.set_popup(name, target_monitor)
                 self.open_popupers()
         else:
             self.close_curr_popup()
-            app.open_window(f"{name}_{active_monitor()}")
-            self.set_popup(name)
+            app.open_window(f"{name}_{target_monitor}")
+            self.set_popup(name, target_monitor)
             self.open_popupers()
 
     def close_curr_popup(self) -> None:
@@ -428,8 +449,9 @@ class PopupManager:
                 app.close_window(f"ignis_close_popuper_{i}")
 
     def open_popupers(self):
+        target_monitor = self.curr_popup_monitor
         for i in range(Utils.get_n_monitors()):  # type: ignore
-            if i != active_monitor():
+            if i != target_monitor:
                 app.open_window(f"ignis_close_popuper_{i}")
 
 

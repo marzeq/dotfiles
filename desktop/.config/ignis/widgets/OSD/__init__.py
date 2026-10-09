@@ -10,7 +10,7 @@ audio = AudioService.get_default()
 
 
 class OSD(Widget.RevealerWindow):
-    def __init__(self):
+    def __init__(self, monitor: int):
         scale =  Widget.Scale(
             hexpand=True,
             min=0,
@@ -56,7 +56,7 @@ class OSD(Widget.RevealerWindow):
             popup=True,
             child=Widget.Box(child=[revealer]),
             revealer=revealer,
-            monitor=0,
+            monitor=monitor,
         )
 
     def set_property(self, prop_name, value):

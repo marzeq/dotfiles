@@ -157,7 +157,7 @@ class KeyboardLayoutPopup(Widget.RevealerWindow):
 
 
 class KeyboardLayoutOSD(Widget.RevealerWindow):
-    def __init__(self) -> None:
+    def __init__(self, monitor: int) -> None:
         self._layout_list = Widget.Box(spacing=6)
         revealer = Widget.Revealer(
             transition_type="slide_up",
@@ -177,7 +177,7 @@ class KeyboardLayoutOSD(Widget.RevealerWindow):
             popup=True,
             child=Widget.Box(child=[revealer]),
             revealer=revealer,
-            monitor=0,
+            monitor=monitor,
         )
         util.hyprland.main_keyboard.connect("notify::active-keymap", self._refresh)
         hyprland_settings.connect("notify::keyboard-layout", self._refresh)

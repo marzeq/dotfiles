@@ -1307,10 +1307,7 @@ class NotificationPopups(Widget.Window):
     def _primary_monitor_id() -> int:
         from widgets.Settings import hyprland_settings
 
-        for monitor in util.hyprland.monitors:
-            if monitor.name == hyprland_settings.primary_monitor:
-                return monitor.id
-        return 0
+        return util.monitor_id_for_connector(hyprland_settings.primary_monitor)
 
     def _move_to_primary(self) -> None:
         self.monitor = self._primary_monitor_id()

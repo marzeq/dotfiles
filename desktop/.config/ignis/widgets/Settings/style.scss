@@ -254,6 +254,50 @@
   border-radius: 0.6rem;
 }
 
+.settings-keybind-editor {
+  min-width: 28rem;
+}
+
+.settings-keybind-editor dropdown {
+  min-width: 13rem;
+}
+
+.settings-keybind-enabled {
+  @include custom-button;
+
+  min-width: 2.15rem;
+  min-height: 2.15rem;
+  margin-right: 0.55rem;
+  padding: 0;
+  border-radius: 0.5rem;
+  background-color: $button-bg;
+
+  &:checked {
+    background-color: rgba($accent, 0.25);
+    color: $fg;
+  }
+}
+
+.settings-keybind-modifier {
+  @include custom-button;
+
+  min-width: 3.2rem;
+  min-height: 2.15rem;
+  padding: 0 0.35rem;
+  border-radius: 0.5rem;
+  background-color: $button-bg;
+  font-size: 0.76rem;
+
+  &:checked {
+    background-color: rgba($accent, 0.25);
+    color: $fg;
+  }
+}
+
+.settings-command-entry {
+  min-width: 34rem;
+}
+
 .settings-primary-button {
   @include custom-button;
 
