@@ -7,44 +7,28 @@ components is supported and encouraged; there is no need to adopt the entire set
 
 ## Components
 
-- **Desktop** — a Hyprland desktop with a custom shell. Installing it through the management CLI also installs the
-  Terminal component.
-- **Neovim** — a ready-to-use Neovim configuration.
-- **Shells** — shared Bash and Zsh configuration for an ergonomic command-line environment.
-- **Terminal** — Ghostty configuration and the accompanying terminal font.
-
-The desktop targets Arch Linux and Hyprland. The Neovim, shell and Ghostty configurations are not tied to Arch and also
-work on macOS.
-
-### Personal extras
-
-- **mpv** — my personal player configuration.
-- **Wallpapers** — the background collection I use with the desktop.
-
-These are not managed by the installer and are more “mine” than components designed for general use, but they remain
-available to copy or Stow manually.
-
-The installer is an optional convenience, not a requirement or a special runtime for these configurations. On Arch it can
-install dependencies, Stow selected components and remember that selection for later updates or removal. The underlying
-files remain ordinary dotfiles. Advanced users can instead use Git and GNU Stow directly, mapping the dependency lists in
-the `marzeq-dotfiles` script to equivalent packages for their distribution or macOS. See the installation guide for both
-approaches.
-
-The Hyprland configuration is a faithful adaptation of how the GNOME desktop environment looks and feels,
-while preserving the superior ergonomics of a tiler like Hyprland. All design credits go to the GNOME team where due.
-
-The Neovim setup is my personal balance between minimalism and IDE-like usability, so I get all of the modern features
-I deem necessary without the bloat and unresponsiveness.
+- **Desktop** — Hyprland with a custom GNOME-inspired shell and graphical settings.
+- **Neovim** — a ready-to-use configuration balancing minimalism with modern IDE features.
+- **Shells** — a shared Bash and Zsh environment.
+- **Terminal** — Ghostty configuration and its accompanying font.
 
 ## Installation
 
-Instructions [here](./INSTALL.md).
+Start with the **[managed installation](./INSTALL.md#managed-installation-recommended)** on Arch Linux x86-64. It is the
+easiest way to install one or more components and keep them updated.
+
+Using another distribution or macOS? See the
+**[advanced manual instructions](./ADVANCED.md)** instead. Existing users of the old installer should follow the
+**[migration guide](./MIGRATION.md)**.
 
 ## Notes/info for customisation
 
 [Here](./NOTES.md).
 
 ## Desktop overview
+
+The Hyprland configuration is a faithful adaptation of how the GNOME desktop environment looks and feels, while
+preserving the superior ergonomics of a tiler like Hyprland. All design credits go to the GNOME team where due.
 
 ![The desktop with tiled applications and the Ignis settings window](./screenshots/hero.png)
 
@@ -91,6 +75,9 @@ Hyprland shortcuts can be enabled, disabled and remapped individually.
 Of course, the settings window has more sections than shown here.
 
 ## Neovim
+
+The Neovim setup is my personal balance between minimalism and IDE-like usability, providing the modern features I need
+without the bloat and unresponsiveness.
 
 ![2025-10-01-190830_hyprshot](https://github.com/user-attachments/assets/7e574460-4892-4093-9024-51c8472a38c0)
 ![2025-10-01-190841_hyprshot](https://github.com/user-attachments/assets/17e991b6-c1c6-4969-b2a5-1b4bd79e72b7)

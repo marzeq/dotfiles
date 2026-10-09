@@ -1,56 +1,26 @@
 # Installation and management
 
-The configuration files are ordinary GNU Stow packages. The included installer and management CLI are optional Arch
-Linux conveniences; they are not required to use the dotfiles and nothing depends on them at runtime.
+The managed installer is the recommended route for most users. It installs dependencies, applies only the components you
+choose and remembers them for future updates or removal.
 
-## Choose an installation method
+> The managed path requires Arch Linux x86-64. Advanced users on another distribution or macOS should use the separate
+> [manual installation guide](./ADVANCED.md).
 
-### Automated management on Arch Linux x86_64
+## Managed installation (recommended)
 
-This is the convenient path for an Arch installation. The CLI installs the relevant pacman and AUR dependencies, Stows
-the managed components you select and their declared dependencies, and records that selection so it can update or remove
-them later. It is useful for reproducing the complete setup, but it does not replace Git or Stow with a proprietary
-format.
+The CLI installs the relevant pacman and AUR dependencies, Stows the managed components you select and their declared
+dependencies, and records that selection so it can update or remove them later.
 
 Prerequisites:
 
 - A working `git` installation.
 - You are on Arch Linux (this repo and scripts assume `pacman` + AUR tooling).
-- Your system uses the x86_64 architecture.
+- Your system uses the x86-64 architecture.
 - `~/.local/bin` is on your `PATH` (the bootstrap links the CLI there).
 
-Continue with the automated bootstrap below if this is the path you want.
+### Bootstrap (one-time)
 
-### Advanced manual installation on other distributions or macOS
-
-The `shells`, `nvim` and `terminal` packages are not Linux-specific and also work on macOS. Clone the repository directly,
-install GNU Stow and each application's dependencies using your own package manager, then Stow only the packages you
-want. For example:
-
-```bash
-git clone https://github.com/marzeq/dotfiles.git
-cd dotfiles
-stow -t "$HOME" shells nvim terminal
-```
-
-This path is intended for more advanced users. Use the `SHELLS_DEPS`, `NEOVIM_DEPS`, `TERMINAL_DEPS` and `DESKTOP_DEPS`
-lists near the top of the [`marzeq-dotfiles`](./marzeq-dotfiles) script as the dependency reference, mapping each listed
-Arch package one-to-one to its equivalent on your distribution or macOS. You are responsible for installing, updating
-and troubleshooting those packages yourself.
-
-`desktop` is of course Linux-specific and targets Hyprland, so it is not supported on macOS. You can still Stow it manually
-on other distributions, but you must resolve and manage its full dependency set yourself. In the automated path,
-installing `desktop` also installs `terminal`; reproduce that dependency manually if you want the setup as designed.
-
-The final command is only an example: pass one package or any combination. Ghostty itself and the bundled terminal font
-must also be installed manually; the font files are in `font/`.
-
-The `mpv` and `wallpapers` directories can likewise be copied or Stowed manually, but they are deliberately not tracked
-by the management CLI. They are personal extras rather than supported installation components.
-
-## Automated bootstrap (one-time)
-
-The bootstrap script will handle cloning the repo, setting up the CLI tool, and ensuring you have a way to manage your dotfiles going forward.
+The bootstrap script will handle cloning the repo, setting up the CLI tool, and ensuring you have a way to manage the dotfiles going forward.
 
 1. Run the bootstrap script:
 
@@ -98,6 +68,8 @@ marzeq-dotfiles install shells nvim
 marzeq-dotfiles install all
 ```
 
+Installing `desktop` also installs `terminal`, which is part of the desktop setup.
+
 ### update
 
 Pulls the latest repo and re-applies only the components you previously installed.
@@ -141,39 +113,8 @@ marzeq-dotfiles remove all
 - If the CLI is not found, ensure `~/.local/bin` is on your `PATH`.
 - If the repo path is wrong, re-run the bootstrap
 
-## Migration from an old dotfiles setup to the new management CLI
+## Other paths
 
-If you have installed these dotfiles using the old method (clone and `./install.sh [component]`), you can perform a migration with the instructions below.
-
-**IMPORTANT:**
-
-When migrating, *DO NOT* wget the bootstrap script, as it will re-clone the repo and the CLI tool will break existing stow links. 
-Instead *PLEASE DO* follow the exact steps below to avoid issues:
-
-1. Pull latest changes to the repo to obtain the new bootstrap and management script:
-
-```bash
-cd (wherever you cloned the repo)
-git pull
-```
-
-2. Run the boostrap script:
-
-```bash
-./install.sh
-```
-
-The boostrap script will detect that it lives inside the repo and will not re-clone,
-but it will link it to `~/.local/share/marzeq/dotfiles` and install the CLI tool to `~/.local/bin/marzeq-dotfiles`.
-
-This is to not break the existing stow links and allow you to immediately use the new CLI tool to manage your install going forward.
-
-3. Manually add the components you have previously installed to the CLI's tracking:
-
-```bash
-# example if you had shells and nvim previously installed
-marzeq-dotfiles install shells nvim
-```
-
-After this, the CLI will be aware of the components you have installed and you can use it to manage updates and future installs/removals as normal,
-but the actual repo location and stow links will remain intact and not break.
+- Already using an older version of these dotfiles? Follow the [migration guide](./MIGRATION.md).
+- Using another distribution or macOS, or prefer to manage everything yourself? Follow the
+  [advanced manual installation guide](./ADVANCED.md).
