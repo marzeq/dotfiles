@@ -47,7 +47,7 @@ local programs = opts.programs or {}
 local terminal = programs.terminal or "ghostty"
 local fileManager = programs.fileManager or "nautilus --new-window"
 local menu = programs.menu or "goignis open-window ignis_launcher_proxy"
-local browser = programs.browser or "firefox"
+local browser = programs.browser or "helium-browser"
 
 hl.env("EDITOR", programs.editor or "nvim")
 
@@ -233,8 +233,7 @@ local function binding(key, modifiers, primary_modifier)
 	}
 end
 
-local function bind(action, fallback, callback, options)
-	local spec = keybindings[action] or fallback
+local function bind_spec(spec, callback, options)
 	if not spec or spec.enabled == false or not spec.key or spec.key == "" then
 		return
 	end
@@ -253,6 +252,10 @@ local function bind(action, fallback, callback, options)
 	end
 	add(spec.key)
 	hl.bind(table.concat(parts, " + "), callback, options)
+end
+
+local function bind(action, fallback, callback, options)
+	bind_spec(keybindings[action] or fallback, callback, options)
 end
 
 -- apps
@@ -301,9 +304,6 @@ bind("fullscreen", binding("F", { "SHIFT" }), hl.dsp.window.fullscreen())
 
 bind("keyboard_layout", binding("SPACE", { "ALT" }, "none"), hl.dsp.exec_cmd("goignis open-window ignis_keyboard_layout_proxy"))
 
--- misc
-bind("notifications", binding("N"), hl.dsp.exec_cmd("swaync-client -t"))
-
 -- screenshots
 bind("screenshot_area", binding("S", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh area"))
 
@@ -314,6 +314,13 @@ bind("screenshot_monitor", binding("M", { "SHIFT" }), hl.dsp.exec_cmd("~/.config
 bind("ocr", binding("T", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/hypr-ocr.sh"))
 
 bind("colour_picker", binding("C", { "SHIFT" }), hl.dsp.exec_cmd("hyprpicker -a"))
+
+-- custom commands
+for _, shortcut in ipairs(opts.custom_shortcuts or {}) do
+	if type(shortcut.command) == "string" and shortcut.command:match("%S") then
+		bind_spec(shortcut, hl.dsp.exec_cmd(shortcut.command))
+	end
+end
 
 -- workspaces
 

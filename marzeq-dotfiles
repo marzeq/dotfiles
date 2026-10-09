@@ -59,7 +59,7 @@ DESKTOP_DEPS=(
   "pacman-contrib"
   "fontconfig"
   "nautilus" "gvfs" "gvfs-smb"
-  "firefox"
+  ".AUR:helium-browser-bin"
   "gnome-keyring" "gcr-4"
 )
 

@@ -70,6 +70,14 @@ class KeybindDefinition:
     default: Keybind
 
 
+@dataclass(frozen=True)
+class CustomShortcut:
+    id: str
+    name: str
+    command: str
+    binding: Keybind
+
+
 def _binding(
     action: str,
     label: str,
@@ -114,7 +122,6 @@ KEYBIND_DEFINITIONS: tuple[KeybindDefinition, ...] = (
     _binding("open_browser", "Open browser", "Applications", "B"),
     _binding("open_launcher", "Open launcher", "Shell", "SPACE"),
     _binding("keyboard_layout", "Choose keyboard layout", "Shell", "SPACE", primary_modifier=None, modifiers=("ALT",)),
-    _binding("notifications", "Toggle notifications", "Shell", "N"),
     _binding("screenshot_area", "Capture area", "Screenshots and tools", "S", modifiers=("SHIFT",)),
     _binding("screenshot_window", "Capture window", "Screenshots and tools", "W", modifiers=("SHIFT",)),
     _binding("screenshot_monitor", "Capture monitor", "Screenshots and tools", "M", modifiers=("SHIFT",)),
@@ -245,6 +252,63 @@ def serialize_keybindings(
     )
 
 
+def parse_custom_shortcuts(value: str) -> list[CustomShortcut]:
+    try:
+        raw = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        raw = []
+    if not isinstance(raw, list):
+        return []
+
+    shortcuts: list[CustomShortcut] = []
+    seen_ids: set[str] = set()
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            continue
+        shortcut_id = str(item.get("id", f"custom-{index + 1}")).strip()
+        if not shortcut_id or shortcut_id in seen_ids:
+            shortcut_id = f"custom-{index + 1}"
+        while shortcut_id in seen_ids:
+            shortcut_id += "-copy"
+        seen_ids.add(shortcut_id)
+
+        raw_binding = item.get("binding", {})
+        if not isinstance(raw_binding, dict):
+            raw_binding = {}
+        raw_modifiers = raw_binding.get("modifiers", ("SUPER",))
+        if not isinstance(raw_modifiers, (list, tuple)):
+            raw_modifiers = ("SUPER",)
+        modifiers = tuple(
+            modifier
+            for modifier in MODIFIER_KEYS
+            if modifier in raw_modifiers
+        )
+        key = str(raw_binding.get("key", "A")).strip()
+        if key not in BASE_KEYS:
+            key = "A"
+        enabled = raw_binding.get("enabled", True)
+        if not isinstance(enabled, bool):
+            enabled = True
+        shortcuts.append(
+            CustomShortcut(
+                id=shortcut_id,
+                name=str(item.get("name", "Custom shortcut")).strip()
+                or "Custom shortcut",
+                command=str(item.get("command", "")),
+                binding=Keybind(enabled, modifiers, key),
+            )
+        )
+    return shortcuts
+
+
+def serialize_custom_shortcuts(values: list[CustomShortcut]) -> str:
+    return json.dumps(
+        [asdict(value) for value in values],
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
 def legacy_options() -> dict[str, Any]:
     """Read the small supported subset of the old hand-written opts.lua."""
     try:
@@ -281,6 +345,7 @@ def render_options(
     *,
     programs: dict[str, str],
     keybindings: dict[str, Keybind],
+    custom_shortcuts: list[CustomShortcut],
     workspaces_span_displays: bool,
     workspace_count: int,
     primary_monitor: str,
@@ -308,6 +373,23 @@ def render_options(
                 f"      enabled = {str(binding.enabled).lower()},",
                 f"      modifiers = {{{modifiers}}},",
                 f"      key = {_lua_string(binding.key)},",
+                "    },",
+            ]
+        )
+    lines.extend(["  },", "  custom_shortcuts = {"])
+    for shortcut in custom_shortcuts:
+        modifiers = ", ".join(
+            _lua_string(value) for value in shortcut.binding.modifiers
+        )
+        lines.extend(
+            [
+                "    {",
+                f"      id = {_lua_string(shortcut.id)},",
+                f"      name = {_lua_string(shortcut.name)},",
+                f"      command = {_lua_string(shortcut.command)},",
+                f"      enabled = {str(shortcut.binding.enabled).lower()},",
+                f"      modifiers = {{{modifiers}}},",
+                f"      key = {_lua_string(shortcut.binding.key)},",
                 "    },",
             ]
         )

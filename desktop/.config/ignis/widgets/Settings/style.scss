@@ -25,6 +25,10 @@
   border-right: $separator;
 }
 
+.settings-sidebar-scroll {
+  background: transparent;
+}
+
 .settings-sidebar-heading {
   padding: 0.4rem 0.75rem 1.15rem;
 }
@@ -292,6 +296,28 @@
     background-color: rgba($accent, 0.25);
     color: $fg;
   }
+}
+
+.settings-custom-shortcut-row {
+  padding: 0.9rem 1rem;
+}
+
+.settings-custom-shortcut-field-label {
+  color: $fg-subtle;
+  font-size: 0.78rem;
+}
+
+.settings-custom-shortcut-command {
+  min-width: 24rem;
+}
+
+.settings-custom-shortcuts-empty {
+  padding: 1rem;
+  color: $fg-subtle;
+}
+
+.settings-custom-shortcut-add {
+  margin: 0 1rem 1rem;
 }
 
 .settings-command-entry {

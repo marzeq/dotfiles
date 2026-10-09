@@ -533,6 +533,14 @@ class BindableSettings(IgnisGObject):
         """Set and persist multiple related settings atomically."""
         ...
 
+    def export_data(self) -> dict[str, Any]:
+        """Return the persisted settings as plain JSON-compatible values."""
+        ...
+
+    def import_data(self, values: dict[str, Any]) -> None:
+        """Validate and replace persisted settings from an exported profile."""
+        ...
+
 
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
     """
@@ -642,6 +650,32 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 for name in values:
                     self.notify(name)
                 self._save()
+
+            def export_data(self) -> dict[str, Any]:
+                return dict(self._data)
+
+            def import_data(self, values: dict[str, Any]) -> None:
+                if not isinstance(values, dict):
+                    raise TypeError("Settings section must be a JSON object")
+
+                migrate = getattr(self, "migrate_settings", None)
+                imported = (
+                    migrate(dict(values)) if migrate is not None else dict(values)
+                )
+                unknown = set(imported) - set(self._defaults)
+                if unknown:
+                    names = ", ".join(sorted(unknown))
+                    raise ValueError(f"Unknown settings: {names}")
+
+                validated: dict[str, Any] = {}
+                for name, default in self._defaults.items():
+                    value = imported.get(name, default)
+                    if type(value) is not type(default):
+                        raise TypeError(
+                            f"Setting {name!r} must be {type(default).__name__}"
+                        )
+                    validated[name] = value
+                self.set_many(**validated)
 
             def bind_properties(self, lambda_func: Callable[[], T]):
                 return self.bind_many([k for k in hints], lambda *_: lambda_func())

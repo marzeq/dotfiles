@@ -4,6 +4,7 @@ import os
 import platform
 import shlex
 import socket
+import uuid
 import weakref
 from pathlib import Path
 from typing import Any, Callable, Literal, cast
@@ -20,7 +21,10 @@ from widgets.Settings.style_settings import style_settings
 from widgets.Clock import clock_settings
 from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
+from widgets.Launcher.app_mode import app_settings
 from widgets.Tray import tray_settings
+from power_settings import power_settings
+from services.power_profiles.service import PowerProfilesService
 from keyboard_settings import (
     KeyboardChoice,
     KeyboardLayoutConfig,
@@ -41,12 +45,15 @@ from hyprland_options import (
     MODIFIER_KEYS,
     LEGACY_OPTIONS_PATH,
     OPTIONS_PATH,
+    CustomShortcut,
     Keybind,
     default_keybindings_json,
     keybind_definitions,
     legacy_options,
+    parse_custom_shortcuts,
     parse_keybindings,
     render_options,
+    serialize_custom_shortcuts,
     serialize_keybindings,
     write_atomic,
 )
@@ -54,6 +61,7 @@ from hyprland_options import (
 network_service = NetworkService.get_default()
 bluetooth_service = BluetoothService.get_default()
 audio_service = AudioService.get_default()
+power_profiles_service = PowerProfilesService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -140,9 +148,10 @@ class HyprlandSettings(BindableSettings):
     program_terminal: str = "ghostty"
     program_file_manager: str = "nautilus --new-window"
     program_menu: str = "goignis open-window ignis_launcher_proxy"
-    program_browser: str = "firefox"
+    program_browser: str = "helium-browser"
     program_editor: str = "nvim"
     keybindings_json: str = default_keybindings_json()
+    custom_shortcuts_json: str = "[]"
 
     @staticmethod
     def migrate_settings(data: dict[str, Any]) -> dict[str, Any]:
@@ -169,6 +178,11 @@ class HyprlandSettings(BindableSettings):
                 mod2=mod2,
             ),
             definitions,
+        )
+        migrated["custom_shortcuts_json"] = serialize_custom_shortcuts(
+            parse_custom_shortcuts(
+                migrated.get("custom_shortcuts_json", "[]")
+            )
         )
         return migrated
 
@@ -224,7 +238,31 @@ class HyprlandSettings(BindableSettings):
             swapped[action] = Keybind(
                 binding.enabled, modifiers, binding.key
             )
-        self.keybindings_json = serialize_keybindings(swapped, definitions)
+        custom_shortcuts = [
+            CustomShortcut(
+                shortcut.id,
+                shortcut.name,
+                shortcut.command,
+                Keybind(
+                    shortcut.binding.enabled,
+                    tuple(
+                        modifier
+                        for modifier in MODIFIER_KEYS
+                        if modifier in {
+                            "SUPER" if value == "ALT" else
+                            "ALT" if value == "SUPER" else value
+                            for value in shortcut.binding.modifiers
+                        }
+                    ),
+                    shortcut.binding.key,
+                ),
+            )
+            for shortcut in self.get_custom_shortcuts()
+        ]
+        self.set_many(
+            keybindings_json=serialize_keybindings(swapped, definitions),
+            custom_shortcuts_json=serialize_custom_shortcuts(custom_shortcuts),
+        )
         self.schedule_hyprland_reload()
 
     def get_keybind_definitions(self):
@@ -248,6 +286,58 @@ class HyprlandSettings(BindableSettings):
         self.keybindings_json = serialize_keybindings(
             bindings, keybind_definitions(10, 10)
         )
+        self.schedule_hyprland_reload()
+
+    def get_custom_shortcuts(self) -> list[CustomShortcut]:
+        return parse_custom_shortcuts(self.custom_shortcuts_json)
+
+    def add_custom_shortcut(self) -> str:
+        shortcut_id = uuid.uuid4().hex
+        shortcuts = self.get_custom_shortcuts()
+        shortcuts.append(
+            CustomShortcut(
+                id=shortcut_id,
+                name="Custom shortcut",
+                command="",
+                binding=Keybind(False, ("SUPER",), "A"),
+            )
+        )
+        self.custom_shortcuts_json = serialize_custom_shortcuts(shortcuts)
+        self.schedule_hyprland_reload()
+        return shortcut_id
+
+    def update_custom_shortcut(
+        self,
+        shortcut_id: str,
+        *,
+        name: str | None = None,
+        command: str | None = None,
+        binding: Keybind | None = None,
+    ) -> None:
+        shortcuts = self.get_custom_shortcuts()
+        for index, shortcut in enumerate(shortcuts):
+            if shortcut.id == shortcut_id:
+                shortcuts[index] = CustomShortcut(
+                    id=shortcut.id,
+                    name=shortcut.name if name is None else name,
+                    command=(
+                        shortcut.command if command is None else command
+                    ),
+                    binding=shortcut.binding if binding is None else binding,
+                )
+                break
+        else:
+            raise ValueError(f"Unknown custom shortcut: {shortcut_id}")
+        self.custom_shortcuts_json = serialize_custom_shortcuts(shortcuts)
+        self.schedule_hyprland_reload()
+
+    def remove_custom_shortcut(self, shortcut_id: str) -> None:
+        shortcuts = [
+            shortcut
+            for shortcut in self.get_custom_shortcuts()
+            if shortcut.id != shortcut_id
+        ]
+        self.custom_shortcuts_json = serialize_custom_shortcuts(shortcuts)
         self.schedule_hyprland_reload()
 
     def sync(self) -> None:
@@ -310,6 +400,7 @@ $primary_monitor={self.primary_monitor}
                     "editor": self.program_editor,
                 },
                 keybindings=self.get_keybindings(),
+                custom_shortcuts=self.get_custom_shortcuts(),
                 workspaces_span_displays=self.workspaces_span_displays,
                 workspace_count=self.workspace_count,
                 primary_monitor=self.primary_monitor,
@@ -1728,10 +1819,24 @@ class KeybindingEditor(Widget.Box):
 
     _instances = weakref.WeakSet()
 
-    def __init__(self, action: str) -> None:
-        self._action = action
+    def __init__(
+        self,
+        action: str | None = None,
+        *,
+        get_binding: Callable[[], Keybind] | None = None,
+        on_update: Callable[[Keybind], None] | None = None,
+    ) -> None:
+        if action is not None:
+            get_binding = lambda: hyprland_settings.get_keybindings()[action]
+            on_update = lambda binding: hyprland_settings.set_keybinding(
+                action, binding
+            )
+        if get_binding is None or on_update is None:
+            raise ValueError("A keybinding action or callbacks are required")
+        self._get_binding = get_binding
+        self._on_update = on_update
         self._syncing_modifiers = False
-        binding = hyprland_settings.get_keybindings()[action]
+        binding = self._get_binding()
         self._modifier_buttons = [
             Widget.ToggleButton(
                 label=modifier.title(),
@@ -1747,7 +1852,7 @@ class KeybindingEditor(Widget.Box):
             labels=list(BASE_KEYS),
             enable_search=True,
             on_change=self._set_key,
-            get_current=lambda: hyprland_settings.get_keybindings()[action].key,
+            get_current=lambda: self._get_binding().key,
         )
         self._key.add_css_class("settings-keybind-key")
         self._controls = Widget.Box(
@@ -1782,7 +1887,7 @@ class KeybindingEditor(Widget.Box):
             editor._sync_modifiers()
 
     def _sync_modifiers(self) -> None:
-        selected = hyprland_settings.get_keybindings()[self._action].modifiers
+        selected = self._get_binding().modifiers
         self._syncing_modifiers = True
         try:
             for modifier, button in zip(
@@ -1793,9 +1898,8 @@ class KeybindingEditor(Widget.Box):
             self._syncing_modifiers = False
 
     def _update(self, **changes: Any) -> None:
-        current = hyprland_settings.get_keybindings()[self._action]
-        hyprland_settings.set_keybinding(
-            self._action,
+        current = self._get_binding()
+        self._on_update(
             Keybind(
                 enabled=changes.get("enabled", current.enabled),
                 modifiers=changes.get("modifiers", current.modifiers),
@@ -1819,7 +1923,7 @@ class KeybindingEditor(Widget.Box):
     def _set_modifier(self, modifier: str, active: bool) -> None:
         if self._syncing_modifiers:
             return
-        current = hyprland_settings.get_keybindings()[self._action]
+        current = self._get_binding()
         values = [value for value in current.modifiers if value != modifier]
         if active:
             values.append(modifier)
@@ -1829,6 +1933,145 @@ class KeybindingEditor(Widget.Box):
 
     def _set_key(self, value: str) -> None:
         self._update(key=value.strip())
+
+
+class CustomShortcutRow(Widget.Box):
+    def __init__(self, shortcut_id: str, on_remove: Callable[[], None]) -> None:
+        self._shortcut_id = shortcut_id
+        shortcut = self._get_shortcut()
+        name = Widget.Entry(
+            text=shortcut.name,
+            hexpand=False,
+            width_chars=22,
+            max_width_chars=30,
+            on_change=lambda entry: hyprland_settings.update_custom_shortcut(
+                self._shortcut_id, name=entry.text
+            ),
+        )
+        command = Widget.Entry(
+            text=shortcut.command,
+            hexpand=True,
+            on_change=lambda entry: hyprland_settings.update_custom_shortcut(
+                self._shortcut_id, command=entry.text
+            ),
+            css_classes=["settings-custom-shortcut-command"],
+        )
+        name.set_placeholder_text("Shortcut name")
+        command.set_placeholder_text("Shell command")
+        remove = Widget.Button(
+            child=Widget.Icon(image="edit-delete-symbolic", pixel_size=16),
+            tooltip_text="Remove shortcut",
+            css_classes=["settings-destructive-button"],
+            valign="end",
+            on_click=lambda *_: on_remove(),
+        )
+        fields = Widget.Box(
+            spacing=10,
+            child=[
+                Widget.Box(
+                    vertical=True,
+                    spacing=4,
+                    child=[
+                        Widget.Label(
+                            label="Name",
+                            halign="start",
+                            css_classes=["settings-custom-shortcut-field-label"],
+                        ),
+                        name,
+                    ],
+                ),
+                Widget.Box(
+                    vertical=True,
+                    spacing=4,
+                    hexpand=True,
+                    child=[
+                        Widget.Label(
+                            label="Command",
+                            halign="start",
+                            css_classes=["settings-custom-shortcut-field-label"],
+                        ),
+                        command,
+                    ],
+                ),
+                remove,
+            ],
+        )
+        binding = KeybindingEditor(
+            get_binding=lambda: self._get_shortcut().binding,
+            on_update=lambda value: hyprland_settings.update_custom_shortcut(
+                self._shortcut_id, binding=value
+            ),
+        )
+        super().__init__(
+            vertical=True,
+            spacing=10,
+            child=[fields, binding],
+            css_classes=["settings-custom-shortcut-row"],
+        )
+
+    def _get_shortcut(self) -> CustomShortcut:
+        for shortcut in hyprland_settings.get_custom_shortcuts():
+            if shortcut.id == self._shortcut_id:
+                return shortcut
+        raise ValueError(f"Unknown custom shortcut: {self._shortcut_id}")
+
+
+class CustomShortcutsEditor(Widget.Box):
+    def __init__(self) -> None:
+        self._rows = Widget.Box(vertical=True)
+        add = Widget.Button(
+            child=Widget.Box(
+                spacing=7,
+                child=[
+                    Widget.Icon(image="list-add-symbolic", pixel_size=16),
+                    Widget.Label(label="Add shortcut"),
+                ],
+            ),
+            halign="start",
+            css_classes=[
+                "settings-secondary-button",
+                "settings-custom-shortcut-add",
+            ],
+            on_click=lambda *_: self._add(),
+        )
+        super().__init__(
+            vertical=True,
+            spacing=12,
+            child=[self._rows, add],
+            css_classes=["settings-custom-shortcuts-editor"],
+        )
+        self._render()
+
+    def _add(self) -> None:
+        hyprland_settings.add_custom_shortcut()
+        self._render()
+
+    def _remove(self, shortcut_id: str) -> None:
+        hyprland_settings.remove_custom_shortcut(shortcut_id)
+        self._render()
+
+    def _render(self) -> None:
+        children: list[BaseWidget] = []
+        for index, shortcut in enumerate(hyprland_settings.get_custom_shortcuts()):
+            if index:
+                children.append(
+                    Widget.Separator(css_classes=["settings-row-separator"])
+                )
+            children.append(
+                CustomShortcutRow(
+                    shortcut.id,
+                    on_remove=lambda value=shortcut.id: self._remove(value),
+                )
+            )
+        if not children:
+            children.append(
+                Widget.Label(
+                    label="No custom shortcuts",
+                    halign="start",
+                    css_classes=["settings-custom-shortcuts-empty"],
+                )
+            )
+        util.replace_box_children(self._rows, children)
 
 
 class SettingsWindow(Widget.RegularWindow):
@@ -2368,6 +2611,18 @@ class SettingsWindow(Widget.RegularWindow):
                 )
             )
 
+        default_applications = SettingsPage(
+            title="Default Applications",
+            description="Choose the programs used by the desktop.",
+            child=[
+                SettingsGroup(
+                    title="Applications",
+                    description="Commands are applied automatically.",
+                    child=program_rows,
+                ),
+            ],
+        )
+
         shortcut_groups: list[BaseWidget] = [
             SettingsGroup(
                 title="Shortcut modifiers",
@@ -2387,11 +2642,6 @@ class SettingsWindow(Widget.RegularWindow):
                         icon="input-keyboard-symbolic",
                     ),
                 ],
-            ),
-            SettingsGroup(
-                title="Commands",
-                description="Configure the programs launched by desktop shortcuts.",
-                child=program_rows,
             ),
         ]
         visible_keybindings = hyprland_settings.get_keybind_definitions()
@@ -2443,6 +2693,14 @@ class SettingsWindow(Widget.RegularWindow):
                         ],
                     )
                 )
+
+        shortcut_groups.append(
+            SettingsGroup(
+                title="Custom shortcuts",
+                description="Run a shell command in the background with any key combination.",
+                child=[CustomShortcutsEditor()],
+            )
+        )
 
         shortcuts = SettingsPage(
             title="Shortcuts",
@@ -2557,6 +2815,195 @@ class SettingsWindow(Widget.RegularWindow):
             ],
         )
 
+        def timeout_control(
+            attribute: str,
+            setter: Callable[[int], None],
+            enabled_attribute: str,
+            enabled_setter: Callable[[bool], None],
+        ):
+            spin = Gtk.SpinButton.new_with_range(1, 240, 1)
+            spin.set_value(getattr(power_settings, attribute))
+            spin.set_width_chars(4)
+            spin.set_valign(Gtk.Align.CENTER)
+            spin.connect(
+                "value-changed", lambda value: setter(value.get_value_as_int())
+            )
+
+            time_control = Widget.Box(
+                spacing=8,
+                valign="center",
+                sensitive=getattr(power_settings, enabled_attribute),
+                child=[
+                    cast(BaseWidget, spin),
+                    Widget.Label(label="minutes"),
+                ],
+            )
+            enabled = Widget.Switch(
+                active=getattr(power_settings, enabled_attribute),
+                valign="center",
+            )
+
+            def sync_value(*_args) -> None:
+                current = getattr(power_settings, attribute)
+                if spin.get_value_as_int() != current:
+                    spin.set_value(current)
+
+            def sync_enabled(*_args) -> None:
+                current = getattr(power_settings, enabled_attribute)
+                if enabled.active != current:
+                    enabled.active = current
+                time_control.sensitive = current
+
+            def set_enabled(_switch, state: bool) -> bool:
+                time_control.sensitive = bool(state)
+                enabled_setter(bool(state))
+                return False
+
+            power_settings.connect(
+                f"notify::{attribute.replace('_', '-')}", sync_value
+            )
+            power_settings.connect(
+                f"notify::{enabled_attribute.replace('_', '-')}", sync_enabled
+            )
+            enabled.connect("state-set", set_enabled)
+            return Widget.Box(
+                spacing=14,
+                valign="center",
+                child=[
+                    enabled,
+                    time_control,
+                ],
+            )
+
+        power = SettingsPage(
+            title="Power Management",
+            description="Choose when an idle session blanks, locks and suspends.",
+            child=[
+                SettingsGroup(
+                    title="Power mode",
+                    description="Balance performance and energy use.",
+                    child=[
+                        Setting(
+                            widget=(
+                                StringDropdown(
+                                    labels=[],
+                                    choices=[
+                                        KeyboardChoice(
+                                            value=profile,
+                                            label={
+                                                "performance": "Performance",
+                                                "balanced": "Balanced",
+                                                "power-saver": "Power Saver",
+                                            }.get(profile, profile.replace("-", " ").title()),
+                                        )
+                                        for profile in power_profiles_service.profiles
+                                    ],
+                                    on_change=lambda profile: power_profiles_service.set_active_profile(
+                                        profile
+                                    ),
+                                    get_current=lambda: power_profiles_service.active_profile,
+                                    settings_obj=power_profiles_service,
+                                    notify_props=["active-profile", "profiles"],
+                                    repopulate=lambda: [
+                                        KeyboardChoice(
+                                            value=profile,
+                                            label={
+                                                "performance": "Performance",
+                                                "balanced": "Balanced",
+                                                "power-saver": "Power Saver",
+                                            }.get(profile, profile.replace("-", " ").title()),
+                                        )
+                                        for profile in power_profiles_service.profiles
+                                    ],
+                                )
+                                if power_profiles_service.is_available
+                                else Widget.Label(label="Unavailable")
+                            ),
+                            label="Power mode",
+                            subtitle="Select the system power profile.",
+                            icon="power-profile-balanced-symbolic",
+                        ),
+                    ],
+                ),
+                SettingsGroup(
+                    title="Idle timeouts",
+                    description="Times are in minutes and changes apply automatically.",
+                    child=[
+                        Setting(
+                            widget=timeout_control(
+                                "display_timeout_minutes",
+                                power_settings.set_display_timeout_minutes,
+                                "display_timeout_enabled",
+                                power_settings.set_display_timeout_enabled,
+                            ),
+                            label="Turn screen off",
+                            subtitle="Blank inactive displays after this many minutes.",
+                            icon="video-display-symbolic",
+                        ),
+                        Setting(
+                            widget=timeout_control(
+                                "lock_timeout_minutes",
+                                power_settings.set_lock_timeout_minutes,
+                                "lock_timeout_enabled",
+                                power_settings.set_lock_timeout_enabled,
+                            ),
+                            label="Lock session",
+                            subtitle="Show the lock screen after this many minutes.",
+                            icon="system-lock-screen-symbolic",
+                        ),
+                        Setting(
+                            widget=timeout_control(
+                                "suspend_timeout_minutes",
+                                power_settings.set_suspend_timeout_minutes,
+                                "suspend_timeout_enabled",
+                                power_settings.set_suspend_timeout_enabled,
+                            ),
+                            label="Suspend system",
+                            subtitle="Suspend the computer after this many minutes.",
+                            icon="media-playback-pause-symbolic",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        backup = SettingsPage(
+            title="Backup & Restore",
+            description="Move your desktop preferences between installations.",
+            child=[
+                SettingsGroup(
+                    title="Settings profile",
+                    description="The JSON profile contains shell, appearance, shortcut, workspace, application and power preferences. Wallpaper image files and display hardware configuration stay local.",
+                    child=[
+                        Setting(
+                            widget=Widget.Button(
+                                label="Export…",
+                                on_click=lambda *_: util.create_task(
+                                    self._export_settings()
+                                ),
+                                css_classes=["settings-secondary-button"],
+                            ),
+                            label="Export settings",
+                            subtitle="Save a readable JSON profile.",
+                            icon="document-save-symbolic",
+                        ),
+                        Setting(
+                            widget=Widget.Button(
+                                label="Import…",
+                                on_click=lambda *_: util.create_task(
+                                    self._import_settings()
+                                ),
+                                css_classes=["settings-secondary-button"],
+                            ),
+                            label="Import settings",
+                            subtitle="Restore a profile exported by this desktop.",
+                            icon="document-open-symbolic",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
         page_specs = [
             ("Appearance", "preferences-desktop-wallpaper-symbolic", appearance),
             ("Shell", "preferences-system-symbolic", shell),
@@ -2564,9 +3011,16 @@ class SettingsWindow(Widget.RegularWindow):
             ("Audio", "audio-speakers-symbolic", audio),
             ("Wi-Fi and Bluetooth", "network-wireless-symbolic", wireless),
             ("Devices", "input-keyboard-symbolic", devices),
+            (
+                "Default Applications",
+                "application-x-executable-symbolic",
+                default_applications,
+            ),
             ("Shortcuts", "preferences-desktop-keyboard-shortcuts-symbolic", shortcuts),
             ("Windows & Workspaces", "focus-windows-symbolic", windows),
+            ("Power Management", "battery-symbolic", power),
             ("System Information", "computer-symbolic", system_information),
+            ("Backup & Restore", "document-save-symbolic", backup),
         ]
         self._page_titles = [title for title, _, _ in page_specs]
         self._page_widgets = [
@@ -2608,13 +3062,14 @@ class SettingsWindow(Widget.RegularWindow):
             self._page_buttons.append(button)
             navigation.append(button)
 
-        sidebar = Widget.Box(
+        sidebar_content = Widget.Box(
             vertical=True,
             spacing=4,
             child=[
-                *navigation,
+                *navigation[:-1],
                 Widget.Box(vexpand=True),
                 Widget.Separator(css_classes=["settings-sidebar-separator"]),
+                navigation[-1],
                 Widget.Button(
                     child=Widget.Box(
                         spacing=10,
@@ -2625,6 +3080,21 @@ class SettingsWindow(Widget.RegularWindow):
                     ),
                     on_click=lambda _: util.shell("goignis reload"),
                     css_classes=["settings-reload-button"],
+                ),
+            ],
+        )
+        sidebar = Widget.Box(
+            vertical=True,
+            spacing=4,
+            child=[
+                Widget.Scroll(
+                    child=sidebar_content,
+                    hexpand=True,
+                    vexpand=True,
+                    min_content_height=1,
+                    hscrollbar_policy="never",
+                    vscrollbar_policy="automatic",
+                    css_classes=["settings-sidebar-scroll"],
                 ),
             ],
             css_classes=["settings-sidebar"],
@@ -2652,6 +3122,202 @@ class SettingsWindow(Widget.RegularWindow):
             visible=False,
             hide_on_close=True,
         )
+
+    def _settings_profile(self) -> dict[str, Any]:
+        hyprland = hyprland_settings.export_data()
+        hyprland["keybindings"] = json.loads(
+            hyprland.pop("keybindings_json")
+        )
+        hyprland["custom_shortcuts"] = json.loads(
+            hyprland.pop("custom_shortcuts_json")
+        )
+
+        style = style_settings.export_data()
+        style["added_wallpapers"] = style_settings._added_wallpapers_str_to_list(
+            style.pop("addedwallpapers")
+        )
+        raw_custom_colours = style.pop("custom_accent_colours")
+        style["custom_accent_colours"] = (
+            json.loads(raw_custom_colours) if raw_custom_colours else {}
+        )
+        try:
+            style["accent_colour"] = style_settings.get_accent_colour(
+                style_settings.wallpaper
+            )
+        except OSError:
+            style["accent_colour"] = None
+
+        apps = app_settings.export_data()
+        raw_hidden_apps = apps.pop("hidden_apps")
+        apps["hidden_apps"] = (
+            json.loads(raw_hidden_apps) if raw_hidden_apps else []
+        )
+
+        return {
+            "format": "marzeq-desktop-settings",
+            "version": 1,
+            "settings": {
+                "hyprland": hyprland,
+                "style": style,
+                "clock": clock_settings.export_data(),
+                "launcher": launcher_settings.export_data(),
+                "tray": tray_settings.export_data(),
+                "applications": apps,
+                "power": power_settings.export_data(),
+            },
+        }
+
+    def _show_transfer_error(self, detail: str) -> None:
+        dialog = Gtk.AlertDialog()
+        dialog.set_message("Settings transfer failed")
+        dialog.set_detail(detail)
+        dialog.show(self)
+
+    async def _export_settings(self) -> None:
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Export desktop settings")
+        dialog.set_initial_name("marzeq-desktop-settings.json")
+        try:
+            selected = await dialog.save(self)  # type: ignore
+        except GLib.Error:
+            return
+        if selected is None or selected.get_path() is None:
+            return
+        try:
+            path = Path(selected.get_path())
+            write_atomic(path, json.dumps(self._settings_profile(), indent=2) + "\n")
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            self._show_transfer_error(f"Could not export settings: {exc}")
+            return
+
+    @staticmethod
+    def _profile_sections(profile: Any) -> dict[str, dict[str, Any]]:
+        if not isinstance(profile, dict):
+            raise ValueError("The profile root must be a JSON object")
+        if profile.get("format") != "marzeq-desktop-settings":
+            raise ValueError("This is not a marzeq desktop settings profile")
+        if profile.get("version") != 1:
+            raise ValueError("This settings profile version is not supported")
+        sections = profile.get("settings")
+        if not isinstance(sections, dict):
+            raise ValueError("The profile has no settings object")
+        required = {
+            "hyprland",
+            "style",
+            "clock",
+            "launcher",
+            "tray",
+            "applications",
+            "power",
+        }
+        if set(sections) != required:
+            raise ValueError("The profile has missing or unknown settings sections")
+        if not all(isinstance(section, dict) for section in sections.values()):
+            raise ValueError("Every settings section must be a JSON object")
+        return cast(dict[str, dict[str, Any]], sections)
+
+    async def _import_settings(self) -> None:
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Import desktop settings")
+        try:
+            selected = await dialog.open(self)  # type: ignore
+        except GLib.Error:
+            return
+        if selected is None or selected.get_path() is None:
+            return
+
+        settings_objects: dict[str, BindableSettings] = {
+            "hyprland": hyprland_settings,
+            "style": style_settings,
+            "clock": clock_settings,
+            "launcher": launcher_settings,
+            "tray": tray_settings,
+            "applications": app_settings,
+            "power": power_settings,
+        }
+        snapshots = {
+            name: settings.export_data()
+            for name, settings in settings_objects.items()
+        }
+        imported_wallpaper_exists = False
+        accent_colour: str | None = None
+        try:
+            path = Path(selected.get_path())
+            profile = json.loads(path.read_text(encoding="utf-8"))
+            sections = self._profile_sections(profile)
+
+            hyprland = dict(sections["hyprland"])
+            hyprland["keybindings_json"] = json.dumps(
+                hyprland.pop("keybindings"), separators=(",", ":")
+            )
+            hyprland["custom_shortcuts_json"] = json.dumps(
+                hyprland.pop("custom_shortcuts"), separators=(",", ":")
+            )
+            monitor_names = {monitor.name for monitor in util.hyprland.monitors}
+            if hyprland.get("primary_monitor") not in monitor_names:
+                hyprland["primary_monitor"] = hyprland_settings.primary_monitor
+
+            style = dict(sections["style"])
+            accent_value = style.pop("accent_colour", None)
+            if accent_value is not None and not isinstance(accent_value, str):
+                raise TypeError("Accent colour must be a string or null")
+            accent_colour = accent_value
+            wallpapers = style.pop("added_wallpapers")
+            if not isinstance(wallpapers, list) or not all(
+                isinstance(item, str) for item in wallpapers
+            ):
+                raise TypeError("Added wallpapers must be a list of paths")
+            style["addedwallpapers"] = style_settings._added_wallpapers_list_to_str(
+                wallpapers
+            )
+            style["custom_accent_colours"] = json.dumps(
+                style["custom_accent_colours"],
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+            imported_wallpaper = style.get("wallpaper")
+            imported_wallpaper_exists = (
+                isinstance(imported_wallpaper, str)
+                and Path(imported_wallpaper).is_file()
+            )
+            if not imported_wallpaper_exists:
+                style["wallpaper"] = style_settings.wallpaper
+
+            apps = dict(sections["applications"])
+            hidden_apps = apps["hidden_apps"]
+            if not isinstance(hidden_apps, list) or not all(
+                isinstance(item, str) for item in hidden_apps
+            ):
+                raise TypeError("Hidden applications must be a list of names")
+            apps["hidden_apps"] = json.dumps(hidden_apps, separators=(",", ":"))
+
+            prepared = {
+                **sections,
+                "hyprland": hyprland,
+                "style": style,
+                "applications": apps,
+            }
+            for name, settings in settings_objects.items():
+                settings.import_data(prepared[name])
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            for name, settings in settings_objects.items():
+                try:
+                    settings.import_data(snapshots[name])
+                except (OSError, TypeError, ValueError):
+                    pass
+            self._show_transfer_error(f"Could not import settings: {exc}")
+            return
+
+        if imported_wallpaper_exists:
+            util.shell("~/.config/hypr/scripts/set_curr_wallpaper.sh")
+            if accent_colour:
+                style_settings.set_accent_colour(
+                    accent_colour, style_settings.wallpaper
+                )
+            else:
+                style_settings.restore_accent_colour(style_settings.wallpaper)
+        hyprland_settings.schedule_hyprland_reload()
+        power_settings.restart()
 
     def _open_connection_editor(
         self, title: str, content: BaseWidget, actions: list[BaseWidget]
