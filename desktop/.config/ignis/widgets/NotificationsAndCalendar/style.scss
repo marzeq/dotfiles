@@ -76,26 +76,6 @@
   background: transparent;
 }
 
-.notification-media-marquee-fade {
-  &.left {
-    background-image: linear-gradient(
-      to right,
-      $button-bg 0%,
-      rgba($button-bg, 0.72) 42%,
-      rgba($button-bg, 0) 100%
-    );
-  }
-
-  &.right {
-    background-image: linear-gradient(
-      to left,
-      $button-bg 0%,
-      rgba($button-bg, 0.72) 42%,
-      rgba($button-bg, 0) 100%
-    );
-  }
-}
-
 .notification-age,
 .notification-media-subtitle {
   color: $fg-inactive;
@@ -211,6 +191,41 @@
 
 .notification-media-slot {
   margin-bottom: 0.15rem;
+}
+
+.notification-media-placeholder {
+  margin-bottom: 0.15rem;
+}
+
+.notification-media-slot.expanded {
+  background-color: $bg;
+  border-radius: 0.9rem;
+  box-shadow: 0 12px 12px -10px rgba(black, 0.72);
+}
+
+.notification-media-card {
+  border: 1px solid rgba($fg, 0.08);
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: $button-bg-hover;
+  }
+
+  &:active {
+    background-color: $button-bg-active;
+  }
+}
+
+.notification-media-card.stack-depth-1 {
+  background-color: mix(black, $button-bg, 9%);
+}
+
+.notification-media-card.stack-depth-2 {
+  background-color: mix(black, $button-bg, 18%);
+}
+
+.notification-media-expanded-scroll {
+  border-radius: 0.9rem;
 }
 
 .notification-popup-list {

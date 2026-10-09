@@ -5,7 +5,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from gi.repository import GdkPixbuf, GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
+from gi.repository import (  # pyright: ignore[reportMissingModuleSource]
+    Gdk,
+    GdkPixbuf,
+    Gio,
+    GLib,
+    Graphene,
+    Gsk,
+    Gtk,
+)
+from ignis.dbus import DBusProxy
 from ignis.services.mpris import MprisPlayer, MprisService
 from ignis.services.notifications import (
     NOTIFICATIONS_IMAGE_DATA,
@@ -24,7 +33,28 @@ MARQUEE_TICK_MS = 16
 MARQUEE_SPEED_PX_S = 28.0
 MARQUEE_START_PAUSE_S = 4.0
 MARQUEE_END_PAUSE_S = 1.4
+MEDIA_CARD_MIN_HEIGHT = 84
+MEDIA_STACK_OFFSET = 5
+MEDIA_STACK_VISIBLE_CARDS = 3
+MEDIA_STACK_ANIMATION_MS = 180
 NOTIFICATION_IMAGE_CACHE = Path(NOTIFICATIONS_IMAGE_DATA)
+
+PLAYERCTLD_XML = """
+<node>
+  <interface name="com.github.altdesktop.playerctld">
+    <method name="Shift">
+      <arg name="Player" type="s" direction="out"/>
+    </method>
+    <method name="Unshift">
+      <arg name="Player" type="s" direction="out"/>
+    </method>
+    <property name="PlayerNames" type="as" access="read"/>
+    <signal name="ActivePlayerChangeEnd">
+      <arg name="Name" type="s"/>
+    </signal>
+  </interface>
+</node>
+"""
 
 notification_service = NotificationService.get_default()
 mpris_service = MprisService.get_default()
@@ -377,6 +407,8 @@ class AutoScrollingLabel(Widget.Overlay):
         self._pause_until = 0.0
         self._last_tick = 0.0
         self._is_realized = False
+        self._fade_left = False
+        self._fade_right = False
 
         text = Widget.Label(
             label=label,
@@ -399,26 +431,8 @@ class AutoScrollingLabel(Widget.Overlay):
         self._scroll.set_min_content_width(0)
         self._scroll.set_propagate_natural_width(False)
 
-        self._left_fade = Widget.Box(
-            width_request=22,
-            hexpand=True,
-            halign="start",
-            can_target=False,
-            visible=False,
-            css_classes=["notification-media-marquee-fade", "left"],
-        )
-        self._right_fade = Widget.Box(
-            width_request=22,
-            hexpand=False,
-            halign="end",
-            can_target=False,
-            visible=False,
-            css_classes=["notification-media-marquee-fade", "right"],
-        )
-
         super().__init__(
             child=self._scroll,
-            overlays=[self._left_fade, self._right_fade],
             hexpand=False,
             visible=visible,
             css_classes=["notification-media-marquee"],
@@ -434,6 +448,42 @@ class AutoScrollingLabel(Widget.Overlay):
         if orientation == Gtk.Orientation.HORIZONTAL:
             return (0, 0, -1, -1)
         return super().do_measure(orientation, for_size)
+
+    @staticmethod
+    def _mask_stop(offset: float, alpha: float) -> Gsk.ColorStop:
+        stop = Gsk.ColorStop()
+        stop.offset = offset
+        stop.color = Gdk.RGBA(1, 1, 1, alpha)
+        return stop
+
+    def do_snapshot(self, snapshot: Gtk.Snapshot) -> None:
+        width = self.get_width()
+        height = self.get_height()
+        if width <= 0 or height <= 0 or not (self._fade_left or self._fade_right):
+            self.snapshot_child(self._scroll, snapshot)
+            return
+
+        fade_fraction = min(0.45, 22 / width)
+        stops = [
+            self._mask_stop(0.0, 0.0 if self._fade_left else 1.0),
+            self._mask_stop(fade_fraction if self._fade_left else 0.0, 1.0),
+            self._mask_stop(1.0 - fade_fraction if self._fade_right else 1.0, 1.0),
+            self._mask_stop(1.0, 0.0 if self._fade_right else 1.0),
+        ]
+        bounds = Graphene.Rect().init(0, 0, width, height)
+        start = Graphene.Point().init(0, 0)
+        end = Graphene.Point().init(width, 0)
+
+        snapshot.push_mask(Gsk.MaskMode.ALPHA)
+        snapshot.append_linear_gradient(bounds, start, end, stops)
+        snapshot.pop()
+        try:
+            self.snapshot_child(self._scroll, snapshot)
+        finally:
+            # push_mask() has two matching pops: one ends mask recording and
+            # one ends source recording. Always balance the latter even if a
+            # child snapshot raises, so one bad frame cannot poison GTK state.
+            snapshot.pop()
 
     def _overflow(self) -> float:
         if self._adjustment is None:
@@ -457,8 +507,9 @@ class AutoScrollingLabel(Widget.Overlay):
             self._stop_animation()
             if self._adjustment is not None:
                 self._adjustment.set_value(0)
-            self._left_fade.visible = False
-            self._right_fade.visible = False
+            self._fade_left = False
+            self._fade_right = False
+            self.queue_draw()
             return
 
         self._sync_fades(overflow)
@@ -475,8 +526,12 @@ class AutoScrollingLabel(Widget.Overlay):
             return
         maximum = self._overflow() if overflow is None else overflow
         value = self._adjustment.get_value()
-        self._left_fade.visible = maximum > 0.5 and value > 0.5
-        self._right_fade.visible = maximum > 0.5 and value < maximum - 0.5
+        fade_left = maximum > 0.5 and value > 0.5
+        fade_right = maximum > 0.5 and value < maximum - 0.5
+        if fade_left != self._fade_left or fade_right != self._fade_right:
+            self._fade_left = fade_left
+            self._fade_right = fade_right
+            self.queue_draw()
 
     def _tick(self) -> bool:
         if not self._is_realized or self._adjustment is None:
@@ -536,16 +591,24 @@ class AutoScrollingLabel(Widget.Overlay):
         self.reset_scroll_state()
 
 
-class MediaPlayer(Widget.Box):
-    def __init__(self) -> None:
-        self._player: MprisPlayer | None = None
+class MediaPlayerCard(Widget.Box):
+    """One MPRIS player in the notification-area player stack."""
+
+    def __init__(
+        self,
+        player: MprisPlayer,
+        on_promote: Callable[[MprisPlayer], None],
+        on_control: Callable[[], None],
+        on_availability_changed: Callable[[MprisPlayer], None],
+    ) -> None:
+        self._player: MprisPlayer | None = player
+        self._on_promote: Callable[[MprisPlayer], None] | None = on_promote
+        self._on_control: Callable[[], None] | None = on_control
+        self._on_availability_changed: Callable[[MprisPlayer], None] | None = (
+            on_availability_changed
+        )
         self._player_handlers: list[int] = []
         self._art_url: str | None = None
-        super().__init__(
-            vertical=True,
-            css_classes=["notification-media-slot"],
-            visible=False,
-        )
 
         self._art = _scaled_icon(
             None, 58, ["notification-media-art"], "audio-x-generic-symbolic"
@@ -587,64 +650,64 @@ class MediaPlayer(Widget.Box):
             label="", css_classes=["notification-media-subtitle"], visible=False
         )
         self._marquees = [self._title_marquee, self._subtitle_marquee]
-        self.append(
-            Widget.Box(
-                spacing=12,
-                css_classes=["notification-media"],
-                child=[
-                    art_frame,
-                    Widget.Box(
-                        vertical=True,
-                        spacing=3,
-                        hexpand=True,
-                        valign="center",
-                        css_classes=["notification-media-text"],
-                        child=[self._title_marquee, self._subtitle_marquee],
-                    ),
-                    controls,
-                ],
-            )
+        super().__init__(
+            spacing=12,
+            hexpand=True,
+            valign="start",
+            height_request=MEDIA_CARD_MIN_HEIGHT,
+            css_classes=["notification-media", "notification-media-card"],
+            child=[
+                art_frame,
+                Widget.Box(
+                    vertical=True,
+                    spacing=3,
+                    hexpand=True,
+                    valign="center",
+                    css_classes=["notification-media-text"],
+                    child=[self._title_marquee, self._subtitle_marquee],
+                ),
+                controls,
+            ],
         )
-        mpris_service.connect("notify::players", self._select_player)
-        self._select_player()
+        for prop in (
+            "art-url",
+            "artist",
+            "title",
+            "playback-status",
+            "can-pause",
+            "can-play",
+            "can-go-next",
+            "can-go-previous",
+        ):
+            self._player_handlers.append(player.connect(f"notify::{prop}", self._render))
 
-    def _select_player(self, *_args) -> None:
-        players = mpris_service.players
-        player = next(
-            (item for item in players if item.playback_status == "Playing"),
-            players[0] if players else None,
-        )
-        if player is self._player:
-            self._render()
-            return
-
-        self._disconnect_player()
-        self._player = player
-        if player is not None:
-            for prop in (
-                "art-url",
-                "artist",
-                "title",
-                "playback-status",
-                "can-pause",
-                "can-play",
-                "can-go-next",
-                "can-go-previous",
-            ):
-                self._player_handlers.append(player.connect(f"notify::{prop}", self._render))
+        # A click on the card body selects it as the front card. Buttons claim
+        # their own gestures, and the explicit pick check keeps them from also
+        # promoting the card if GTK delivers the bubbled release.
+        self._click_controller = Gtk.GestureClick()
+        self._click_controller.connect("released", self._clicked)
+        self.add_controller(self._click_controller)
         self._render()
 
-    def _disconnect_player(self) -> None:
-        if self._player is not None:
-            for handler in self._player_handlers:
-                if self._player.handler_is_connected(handler):
-                    self._player.disconnect(handler)
-        self._player_handlers.clear()
+    @property
+    def player(self) -> MprisPlayer | None:
+        return self._player
+
+    def _clicked(self, _gesture, _press_count: int, x: float, y: float) -> None:
+        target = self.pick(x, y, Gtk.PickFlags.DEFAULT)
+        while target is not None and target is not self:
+            if isinstance(target, Gtk.Button):
+                return
+            target = target.get_parent()
+
+        player = self._player
+        callback = self._on_promote
+        if player is not None and callback is not None:
+            callback(player)
 
     def _render(self, *_args) -> None:
         player = self._player
         if player is None:
-            self.visible = False
             return
 
         if player.art_url != self._art_url:
@@ -668,23 +731,378 @@ class MediaPlayer(Widget.Box):
             if player.playback_status == "Playing"
             else "media-playback-start-symbolic"
         )
-        self.visible = True
-
+        if _args and self._on_availability_changed is not None:
+            self._on_availability_changed(player)
     def _previous(self, *_args) -> None:
         if self._player is not None:
             self._player.previous()
+            self._control_used()
 
     def _play_pause(self, *_args) -> None:
         if self._player is not None:
             self._player.play_pause()
+            self._control_used()
 
     def _next(self, *_args) -> None:
         if self._player is not None:
             self._player.next()
+            self._control_used()
+
+    def _control_used(self) -> None:
+        callback = self._on_control
+        if callback is not None:
+            callback()
 
     def reset_scroll_state(self) -> None:
         for marquee in self._marquees:
             marquee.reset_scroll_state()
+
+    def dispose_card(self) -> None:
+        player = self._player
+        if player is not None:
+            for handler in self._player_handlers:
+                if player.handler_is_connected(handler):
+                    player.disconnect(handler)
+        self._player_handlers.clear()
+        self.remove_controller(self._click_controller)
+        self._art.clear()
+        self._player = None
+        self._on_promote = None
+        self._on_control = None
+        self._on_availability_changed = None
+
+
+class MediaPlayers(Widget.EventBox):
+    """Fold multiple players into one card and expand them over notifications."""
+
+    def __init__(self) -> None:
+        self._cards: dict[MprisPlayer, MediaPlayerCard] = {}
+        self._order: list[MprisPlayer] = []
+        self._promoted_player: MprisPlayer | None = None
+        self._placeholder: Widget.Box | None = None
+        self._expanded = False
+        self._progress = 0.0
+        self._animation_source = 0
+        self._animation_from = 0.0
+        self._animation_to = 0.0
+        self._animation_started = 0.0
+        self._selecting_player_name: str | None = None
+
+        self._stack_spacer = Widget.Box(
+            height_request=MEDIA_CARD_MIN_HEIGHT,
+            hexpand=True,
+            can_target=False,
+        )
+        self._stack = Widget.Overlay(
+            child=self._stack_spacer,
+            css_classes=["notification-media-folded"],
+        )
+        self._stack_scroll = Widget.Scroll(
+            child=self._stack,
+            hscrollbar_policy="never",
+            vscrollbar_policy="automatic",
+            propagate_natural_height=True,
+            css_classes=["notification-media-expanded-scroll"],
+        )
+
+        super().__init__(
+            vertical=True,
+            hexpand=True,
+            valign="start",
+            visible=False,
+            css_classes=["notification-media-slot", "folded"],
+            child=[self._stack_scroll],
+            on_hover_lost=self._collapse,
+        )
+
+        playerctld_info = Gio.DBusNodeInfo.new_for_xml(PLAYERCTLD_XML).interfaces[0]
+        self._playerctld = DBusProxy.new(
+            name="org.mpris.MediaPlayer2.playerctld",
+            object_path="/org/mpris/MediaPlayer2",
+            interface_name="com.github.altdesktop.playerctld",
+            info=playerctld_info,
+        )
+        self._playerctld.signal_subscribe(
+            "ActivePlayerChangeEnd", self._on_playerctld_primary_changed
+        )
+        mpris_service.connect("notify::players", self._sync_players)
+        self._sync_players()
+        util.create_task(self._refresh_playerctld_order())
+
+    @staticmethod
+    def _player_bus_name(player: MprisPlayer) -> str | None:
+        proxy = getattr(player, "_MprisPlayer__mpris_proxy", None)
+        return proxy.name if proxy is not None else None
+
+    def _on_playerctld_primary_changed(
+        self, _connection, _sender, _path, _interface, _signal, parameters
+    ) -> None:
+        names = parameters.unpack()
+        if not names:
+            return
+        primary_name = names[0]
+        if (
+            self._selecting_player_name is not None
+            and primary_name != self._selecting_player_name
+        ):
+            return
+        GLib.idle_add(self._make_front_by_bus_name, primary_name)
+
+    async def _refresh_playerctld_order(self) -> None:
+        names = await self._playerctld.get_dbus_property_async("PlayerNames")
+        if not names:
+            return
+        ordered = [
+            player
+            for name in names
+            for player in self._order
+            if self._player_bus_name(player) == name
+        ]
+        ordered.extend(player for player in self._order if player not in ordered)
+        if ordered:
+            self._order = ordered
+            self._promoted_player = ordered[0]
+            self._rebuild_stack()
+
+    def _make_front_by_bus_name(self, bus_name: str) -> bool:
+        player = next(
+            (
+                item
+                for item in self._order
+                if self._player_bus_name(item) == bus_name
+            ),
+            None,
+        )
+        if player is None or (self._order and self._order[0] is player):
+            return GLib.SOURCE_REMOVE
+        self._order.remove(player)
+        self._order.insert(0, player)
+        self._promoted_player = player
+        self._rebuild_stack()
+        return GLib.SOURCE_REMOVE
+
+    async def _select_playerctld_primary(self, player: MprisPlayer) -> None:
+        target = self._player_bus_name(player)
+        if target is None:
+            return
+        self._selecting_player_name = target
+        try:
+            names = await self._playerctld.get_dbus_property_async("PlayerNames")
+            for _ in range(len(names or self._order)):
+                if names and names[0] == target:
+                    break
+                result = await self._playerctld.ShiftAsync()
+                selected = result[0] if isinstance(result, tuple) else result
+                if selected == target:
+                    break
+                names = None
+        finally:
+            self._selecting_player_name = None
+            self._make_front_by_bus_name(target)
+
+    def _keep_primary_after_control(self) -> None:
+        if not self._order:
+            return
+        primary = self._order[0]
+        self._selecting_player_name = self._player_bus_name(primary)
+        GLib.timeout_add(80, self._restore_playerctld_primary, primary)
+
+    def _restore_playerctld_primary(self, primary: MprisPlayer) -> bool:
+        if primary in self._order:
+            util.create_task(self._select_playerctld_primary(primary))
+        else:
+            self._selecting_player_name = None
+        return GLib.SOURCE_REMOVE
+
+    @staticmethod
+    def _is_usable_player(player: MprisPlayer) -> bool:
+        """Ignore idle browser MPRIS endpoints until they expose real media."""
+        return bool(
+            player.title
+            or player.artist
+            or player.art_url
+            or player.playback_status in ("Playing", "Paused")
+            or player.can_play
+            or player.can_pause
+            or player.can_go_next
+            or player.can_go_previous
+        )
+
+    def _refresh_player_availability(self, player: MprisPlayer) -> None:
+        is_listed = player in self._order
+        if self._is_usable_player(player) != is_listed:
+            self._sync_players()
+
+    def _sync_players(self, *_args) -> None:
+        players = list(mpris_service.players)
+        live = set(players)
+        usable = {player for player in players if self._is_usable_player(player)}
+        self._stack.overlays = []
+
+        for player in tuple(self._cards):
+            if player not in live:
+                card = self._cards.pop(player)
+                card.dispose_card()
+
+        self._order = [player for player in self._order if player in usable]
+        for player in players:
+            if player not in self._cards:
+                self._cards[player] = MediaPlayerCard(
+                    player,
+                    self._promote,
+                    self._keep_primary_after_control,
+                    self._refresh_player_availability,
+                )
+            if player in usable and player not in self._order:
+                self._order.append(player)
+
+        if self._promoted_player not in usable:
+            self._promoted_player = None
+        if self._promoted_player is None and self._order:
+            playing = next(
+                (player for player in self._order if player.playback_status == "Playing"),
+                None,
+            )
+            if playing is not None:
+                self._order.remove(playing)
+                self._order.insert(0, playing)
+
+        self.visible = bool(self._order)
+        self._rebuild_stack()
+
+    def _folded_height(self) -> int:
+        visible_count = min(len(self._order), MEDIA_STACK_VISIBLE_CARDS)
+        return MEDIA_CARD_MIN_HEIGHT + max(0, visible_count - 1) * MEDIA_STACK_OFFSET
+
+    def _expanded_height(self) -> int:
+        count = len(self._order)
+        if not count:
+            return MEDIA_CARD_MIN_HEIGHT
+        return count * MEDIA_CARD_MIN_HEIGHT + max(0, count - 1) * 9
+
+    def _rebuild_stack(self) -> None:
+        cards = [self._cards[player] for player in self._order]
+        paint_order = list(reversed(cards))
+        if cards and all(card.get_parent() is self._stack for card in cards):
+            # Reorder existing overlay children in place. Removing and adding
+            # them clears GTK's pointer state for one frame, which made a
+            # clicked card visibly lose :hover during selection.
+            sibling: Gtk.Widget = self._stack_spacer
+            for card in paint_order:
+                card.insert_after(self._stack, sibling)
+                sibling = card
+        else:
+            self._stack.overlays = []
+            # Later overlays paint on top, so keep the primary card last.
+            self._stack.overlays = paint_order
+        for card in cards:
+            card.visible = True
+        self._apply_stack_layout()
+        if self._progress <= 0.001:
+            self._set_stack_depth_classes(True)
+
+    def _apply_stack_layout(self) -> None:
+        folded_height = self._folded_height()
+        expanded_height = self._expanded_height()
+        self._stack_spacer.height_request = round(
+            folded_height + (expanded_height - folded_height) * self._progress
+        )
+
+        parent = self.get_parent()
+        available_height = parent.get_height() if parent is not None else 0
+        self._stack_scroll.set_max_content_height(
+            max(folded_height, available_height)
+        )
+
+        for index, player in enumerate(self._order):
+            card = self._cards[player]
+            folded_y = min(index, MEDIA_STACK_VISIBLE_CARDS - 1) * MEDIA_STACK_OFFSET
+            expanded_y = index * (MEDIA_CARD_MIN_HEIGHT + 9)
+            card.margin_top = round(
+                folded_y + (expanded_y - folded_y) * self._progress
+            )
+            card.opacity = 1.0 if index < MEDIA_STACK_VISIBLE_CARDS else self._progress
+            card.can_target = index < MEDIA_STACK_VISIBLE_CARDS or self._progress > 0.85
+
+        if self._placeholder is not None:
+            self._placeholder.height_request = folded_height
+
+    def _set_stack_depth_classes(self, folded: bool) -> None:
+        for index, player in enumerate(self._order):
+            card = self._cards[player]
+            card.remove_css_class("stack-depth-1")
+            card.remove_css_class("stack-depth-2")
+            if folded and 0 < index < MEDIA_STACK_VISIBLE_CARDS:
+                card.add_css_class(f"stack-depth-{index}")
+
+    def _animate_to(self, target: float) -> None:
+        if len(self._order) < 2:
+            target = 0.0
+        if abs(self._progress - target) < 0.001:
+            self._finish_animation(target)
+            return
+        if self._animation_source:
+            GLib.source_remove(self._animation_source)
+        self._animation_from = self._progress
+        self._animation_to = target
+        self._animation_started = GLib.get_monotonic_time() / 1_000_000
+        self._expanded = target > 0
+        if target > 0:
+            self.width_request = self.get_width()
+            self.remove_css_class("folded")
+            self.add_css_class("expanded")
+            self._set_stack_depth_classes(False)
+        else:
+            self._set_stack_depth_classes(True)
+        self._animation_source = GLib.timeout_add(MARQUEE_TICK_MS, self._animate_tick)
+
+    def _animate_tick(self) -> bool:
+        elapsed = GLib.get_monotonic_time() / 1_000_000 - self._animation_started
+        duration = MEDIA_STACK_ANIMATION_MS / 1000
+        linear = min(1.0, elapsed / duration)
+        eased = 1 - (1 - linear) ** 3
+        self._progress = self._animation_from + (
+            self._animation_to - self._animation_from
+        ) * eased
+        self._apply_stack_layout()
+        if linear < 1:
+            return GLib.SOURCE_CONTINUE
+        self._animation_source = 0
+        self._finish_animation(self._animation_to)
+        return GLib.SOURCE_REMOVE
+
+    def _finish_animation(self, target: float) -> None:
+        self._progress = target
+        self._expanded = target > 0
+        self._apply_stack_layout()
+        if target <= 0:
+            self.remove_css_class("expanded")
+            self.add_css_class("folded")
+            self.width_request = -1
+            self._set_stack_depth_classes(True)
+
+    def _collapse(self, *_args) -> None:
+        self._animate_to(0.0)
+
+    def _promote(self, player: MprisPlayer) -> None:
+        if player not in self._order:
+            return
+        was_unfolded = self._expanded or self._animation_to > 0
+        self._promoted_player = player
+        self._order.remove(player)
+        self._order.insert(0, player)
+        util.create_task(self._select_playerctld_primary(player))
+        self._rebuild_stack()
+        self._animate_to(0.0 if was_unfolded else 1.0)
+
+    def reset_scroll_state(self) -> None:
+        self._stack_scroll.get_vadjustment().set_value(0)
+        for card in self._cards.values():
+            card.reset_scroll_state()
+
+    def set_placeholder(self, placeholder: Widget.Box) -> None:
+        self._placeholder = placeholder
+        placeholder.height_request = self._folded_height()
 
 
 class Notifications(Widget.Box):
@@ -746,7 +1164,14 @@ class Notifications(Widget.Box):
         adjustment = self._scroll.get_vadjustment()
         adjustment.connect("changed", self._sync_scroll_fade)
         adjustment.connect("value-changed", self._sync_scroll_fade)
-        self._media = MediaPlayer()
+        self._media = MediaPlayers()
+        self._media_placeholder = Widget.Box(
+            height_request=MEDIA_CARD_MIN_HEIGHT,
+            visible=self._media.visible,
+            can_target=False,
+            css_classes=["notification-media-placeholder"],
+        )
+        self._media.set_placeholder(self._media_placeholder)
 
         super().__init__(
             vertical=True,
@@ -760,7 +1185,7 @@ class Notifications(Widget.Box):
                         vertical=True,
                         spacing=12,
                         child=[
-                            self._media,
+                            self._media_placeholder,
                             Widget.Overlay(
                                 vexpand=True,
                                 child=self._scroll,
@@ -774,6 +1199,7 @@ class Notifications(Widget.Box):
                     ),
                     overlays=[
                         self._empty,
+                        self._media,
                     ],
                 ),
             ],
@@ -817,6 +1243,7 @@ class Notifications(Widget.Box):
 
     def _sync_empty_state(self, *_args) -> None:
         empty = not self._cards
+        self._media_placeholder.visible = self._media.visible
         self._empty.visible = empty and not self._media.visible
         self._clear_button.sensitive = not empty
 

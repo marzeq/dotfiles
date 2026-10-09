@@ -84,7 +84,6 @@ hl.env("HOST_LC_ALL", "$LANG")
 
 hl.env("GDK_BACKEND", "wayland,x11,*")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
-hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 
 hl.env("DXVK_HDR", "1")
 hl.env("ENABLE_HDR_WSI", "1")
@@ -122,12 +121,6 @@ hl.config {
 
 		dim_inactive = true,
 		dim_strength = 0.2,
-
-		shadow = {
-			enabled = true,
-			range = 16,
-			color = "rgba(24, 24, 24, 0.5)",
-		},
 
 		blur = {
 			enabled = true,
@@ -272,6 +265,10 @@ hl.bind(mod .. " + SHIFT + up", hl.dsp.window.move { direction = "left" })
 hl.bind(mod .. " + SHIFT + right", hl.dsp.window.move { direction = "right" })
 
 hl.bind(mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
+
+-- keyboard layouts
+
+hl.bind("ALT + SPACE", hl.dsp.exec_cmd("goignis open-window ignis_keyboard_layout_proxy"))
 
 -- misc
 hl.bind(mod .. " + N", hl.dsp.exec_cmd("swaync-client -t"))

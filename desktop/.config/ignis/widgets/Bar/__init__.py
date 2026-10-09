@@ -7,6 +7,7 @@ from widgets.Clock import Clock
 from widgets.Workspaces import Workspaces
 from widgets.Tray import Tray
 from widgets.Settings import hyprland_settings, bar_settings
+from widgets.KeyboardLayout import KeyboardLayoutIndicator
 
 app = util.get_app()
 
@@ -18,9 +19,14 @@ class Bar(Widget.Window):
     def set_tray_hovered(self, value: bool):
         self.tray_hovered = value
 
+    def set_keyboard_layout_hovered(self, value: bool):
+        self.keyboard_layout_hovered = value
+
     def handle_click(self):
         if self.clock_hovered:
             util.popup_manager.handle_popup_clicked("ignis_notifs_calendar")
+        elif self.keyboard_layout_hovered:
+            util.popup_manager.handle_popup_clicked("ignis_keyboard_layout")
         elif self.tray_hovered:
             util.popup_manager.handle_popup_clicked("ignis_control_centre")
         else:
@@ -36,6 +42,7 @@ class Bar(Widget.Window):
         m2_notch = util.has_apple_m2_notch() and monitor_name == "eDP-1"
 
         self.clock_hovered = False
+        self.keyboard_layout_hovered = False
         self.tray_hovered = False
 
         clock = Clock(
@@ -59,6 +66,15 @@ class Bar(Widget.Window):
             end_widget=Widget.Box(
                 child=([clock] if m2_notch else []) +
                     [
+                        KeyboardLayoutIndicator(
+                            monitor=monitor_id,
+                            on_hover=lambda *_: self.set_keyboard_layout_hovered(
+                                True
+                            ),
+                            on_hover_lost=lambda *_: self.set_keyboard_layout_hovered(
+                                False
+                            ),
+                        ),
                         Tray(
                             monitor=monitor_id,
                             on_hover=lambda *_: self.set_tray_hovered(True),

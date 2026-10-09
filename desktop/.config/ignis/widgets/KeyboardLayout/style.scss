@@ -1,0 +1,73 @@
+.keyboard-layout-indicator {
+  margin: 0.3rem 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  background-color: transparent;
+
+  &:hover {
+    background-color: rgba($fg, 0.07);
+  }
+
+  &:active,
+  &.active {
+    background-color: rgba($accent, 0.18);
+  }
+}
+
+.keyboard-layout-popup-container {
+  margin-top: 0.5rem;
+  margin-right: 4rem;
+}
+
+.keyboard-layout-popup {
+  @include popup;
+  min-width: 16rem;
+  padding: 1rem;
+}
+
+.keyboard-layout-popup-title {
+  margin: 0.15rem 0.5rem 0.65rem;
+  color: $fg;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.keyboard-layout-popup-row {
+  @include custom-button;
+
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background-color: transparent;
+}
+
+.keyboard-layout-popup-code {
+  min-width: 2.5rem;
+  color: $accent;
+  font-weight: 800;
+}
+
+.keyboard-layout-popup-name {
+  color: $fg;
+}
+
+.keyboard-layout-osd {
+  margin-bottom: 2rem;
+  padding: 0.45rem;
+  border: $popup-border;
+  border-radius: 0.9rem;
+  background-color: $bg;
+  box-shadow: $popup-shadow;
+}
+
+.keyboard-layout-osd-item {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: 0.65rem;
+  color: $fg-subtle;
+  font-weight: 700;
+
+  &.active {
+    background-color: rgba($accent, 0.24);
+    color: $accent;
+  }
+}

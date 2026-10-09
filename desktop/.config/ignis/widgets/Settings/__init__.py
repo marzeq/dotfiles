@@ -19,6 +19,21 @@ from widgets.Workspaces import workspace_settings
 from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
 from widgets.Tray import tray_settings
+from keyboard_settings import (
+    KeyboardChoice,
+    KeyboardLayoutConfig,
+    get_keyboard_layouts,
+    get_keyboard_variants,
+    parse_keyboard_config,
+    serialize_keyboard_config,
+)
+from pointer_settings import (
+    POINTER_SPEED_MAPPING_VERSION,
+    logical_speed_from_sensitivity,
+    migrate_pointer_settings,
+    parse_hyprland_pointer_config,
+    render_hyprland_pointer_config,
+)
 
 network_service = NetworkService.get_default()
 bluetooth_service = BluetoothService.get_default()
@@ -26,12 +41,26 @@ audio_service = AudioService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
-PointerAccelerationProfile = Literal["adaptive", "flat", "custom"]
-pointer_acceleration_profiles: list[PointerAccelerationProfile] = [
-    "adaptive",
-    "flat",
-    "custom",
-]
+
+
+def _existing_pointer_defaults() -> tuple[float, bool]:
+    try:
+        with open(
+            os.path.expanduser("~/.local/share/ignis/ignis-hyprland.lua")
+        ) as config_file:
+            existing = parse_hyprland_pointer_config(config_file.read())
+    except OSError:
+        existing = parse_hyprland_pointer_config("")
+
+    return (
+        logical_speed_from_sensitivity(existing.sensitivity, existing.profile),
+        existing.acceleration_enabled,
+    )
+
+
+_default_pointer_sensitivity, _default_acceleration_enabled = (
+    _existing_pointer_defaults()
+)
 
 
 @JsonSettings("hyprland")
@@ -45,14 +74,27 @@ class HyprlandSettings(BindableSettings):
     def set_keyboard_variant(self, value: str) -> None:
         self.keyboard_variant = value
 
+    def get_keyboard_configs(self) -> list[KeyboardLayoutConfig]:
+        return parse_keyboard_config(self.keyboard_layout, self.keyboard_variant)
+
+    def set_keyboard_configs(self, entries: list[KeyboardLayoutConfig]) -> None:
+        if not entries:
+            return
+        layouts, variants = serialize_keyboard_config(entries)
+        self.set_many(keyboard_layout=layouts, keyboard_variant=variants)
+
     layout_type: HyprlandLayout = "master"
 
     def set_layout_type(self, value: HyprlandLayout) -> None:
         self.layout_type = value
 
-    pointer_sensitivity: float = 0.0
-    acceleration_enabled: bool = False
-    acceleration_profile: PointerAccelerationProfile = "adaptive"
+    pointer_sensitivity: float = _default_pointer_sensitivity
+    acceleration_enabled: bool = _default_acceleration_enabled
+    pointer_speed_mapping_version: int = POINTER_SPEED_MAPPING_VERSION
+
+    @staticmethod
+    def migrate_settings(data: dict[str, Any]) -> dict[str, Any]:
+        return migrate_pointer_settings(data)
 
     def set_pointer_sensitivity(self, value: float) -> None:
         self.pointer_sensitivity = value
@@ -60,10 +102,12 @@ class HyprlandSettings(BindableSettings):
     def set_acceleration_enabled(self, value: bool) -> None:
         self.acceleration_enabled = value
 
-    def set_acceleration_profile(self, value: PointerAccelerationProfile) -> None:
-        self.acceleration_profile = value
-
     def sync(self) -> None:
+        pointer_config = render_hyprland_pointer_config(
+            self.pointer_sensitivity, self.acceleration_enabled
+        ).replace(
+            "\n", "\n        "
+        )
         with open(
             os.path.expanduser("~/.local/share/ignis/ignis-hyprland.lua"),
             "w",
@@ -77,12 +121,7 @@ hl.config({{
         kb_layout = "{self.keyboard_layout}",
         kb_variant = "{self.keyboard_variant}",
 
-        sensitivity = {self.pointer_sensitivity},
-        accel_profile = {
-            '"flat"'
-            if not self.acceleration_enabled
-            else f'"{self.acceleration_profile}"'
-        },
+        {pointer_config}
     }},
 
     general = {{
@@ -119,50 +158,6 @@ class BarSettingsSettings(BindableSettings):
 
 
 bar_settings = BarSettingsSettings()
-
-
-def get_keyboard_layouts() -> list[str]:
-    layouts = []
-    with open("/usr/share/X11/xkb/rules/base.lst", "r") as f:
-        lines = f.readlines()
-        in_layouts_section = False
-        for line in lines:
-            line = line.strip()
-            if line.startswith("! layout"):
-                in_layouts_section = True
-                continue
-            if in_layouts_section:
-                if line.startswith("!"):
-                    break
-                if line and not line.startswith("#"):
-                    parts = line.split()
-                    if parts and parts[0] not in layouts and parts[0] != "custom":
-                        layouts.append(parts[0])
-    return layouts
-
-
-def get_keyboard_variants(layout: str) -> list[str]:
-    variants: list[str] = [""]
-    with open("/usr/share/X11/xkb/rules/base.lst", "r") as f:
-        in_variants = False
-        for raw in f:
-            line = raw.rstrip()
-            if line.startswith("! variant"):
-                in_variants = True
-                continue
-            if in_variants:
-                if line.startswith("!"):
-                    break
-                if not line or line.lstrip().startswith("#"):
-                    continue
-
-                parts = line.split()
-                if len(parts) >= 2:
-                    variant = parts[0]
-                    layout_part = parts[1]
-                    if layout_part.endswith(":") and layout_part[:-1] == layout:
-                        variants.append(variant)
-    return variants
 
 
 class AccentColourButton(Widget.Button):
@@ -1389,44 +1384,6 @@ def _system_information() -> list[tuple[str, str, str]]:
     ]
 
 
-def KeyboardLayoutDropdown() -> BaseWidget:
-    layouts = get_keyboard_layouts()
-
-    model = Gtk.StringList()
-    for l in layouts:
-        model.append(l)
-
-    dropdown = Gtk.DropDown(
-        model=model,
-        expression=Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
-    )
-    dropdown.set_hexpand(False)
-    dropdown.set_halign(Gtk.Align.START)
-    dropdown.set_valign(Gtk.Align.CENTER)
-    dropdown.add_css_class("settings-dropdown")
-    dropdown.set_enable_search(True)
-
-    def on_selected(dd, _):
-        item = dd.get_selected_item()
-        if item is not None:
-            hyprland_settings.set_keyboard_layout(item.props.string)
-            hyprland_settings.set_keyboard_variant("")
-
-    dropdown.connect("notify::selected-item", on_selected)
-
-    def sync_from_settings(*_):
-        try:
-            dropdown.set_selected(layouts.index(hyprland_settings.keyboard_layout))
-        except ValueError:
-            pass
-
-    GLib.idle_add(lambda: (sync_from_settings(), False)[1])
-
-    hyprland_settings.connect("notify::keyboard-layout", sync_from_settings)
-
-    return dropdown  # type: ignore
-
-
 def StringDropdown(
     *,
     labels: list[str],
@@ -1435,18 +1392,25 @@ def StringDropdown(
     settings_obj=None,
     notify_props: list[str] | None = None,
     enable_search: bool = False,
-    repopulate: Callable | None = None,
+    choices: list[KeyboardChoice] | None = None,
+    repopulate: Callable[[], list[KeyboardChoice]] | None = None,
 ):
     model = Gtk.StringList()
     syncing = False
+    current_values: list[str] = []
 
-    def fill(items: list[str]):
+    def fill(items: list[KeyboardChoice]):
+        nonlocal current_values
         while model.get_n_items():
             model.remove(0)
-        for i in items:
-            model.append(i)
+        current_values = [item.value for item in items]
+        for item in items:
+            model.append(item.label)
 
-    fill(labels)
+    fill(
+        choices
+        or [KeyboardChoice(value=label, label=label) for label in labels]
+    )
 
     dropdown = Gtk.DropDown(
         model=model,
@@ -1462,9 +1426,9 @@ def StringDropdown(
         nonlocal syncing
         if syncing:
             return
-        item = dd.get_selected_item()
-        if item:
-            on_change(item.props.string)
+        selected = dd.get_selected()
+        if selected < len(current_values):
+            on_change(current_values[selected])
 
     dropdown.connect("notify::selected-item", on_selected)
 
@@ -1474,13 +1438,11 @@ def StringDropdown(
             return
         syncing = True
 
-        current_labels = labels
         if repopulate:
-            current_labels = repopulate()
-            fill(current_labels)
+            fill(repopulate())
 
         try:
-            dropdown.set_selected(current_labels.index(get_current()))
+            dropdown.set_selected(current_values.index(get_current()))
         except ValueError:
             dropdown.set_selected(0)
 
@@ -1493,6 +1455,101 @@ def StringDropdown(
             settings_obj.connect(f"notify::{prop}", sync_from_settings)
 
     return cast(BaseWidget, dropdown)
+
+
+class KeyboardLayoutsEditor(Widget.Box):
+    def __init__(self) -> None:
+        self._updating = False
+        super().__init__(
+            vertical=True,
+            spacing=6,
+            hexpand=True,
+            css_classes=["settings-keyboard-layout-list"],
+        )
+        hyprland_settings.connect("notify::keyboard-layout", self._settings_changed)
+        hyprland_settings.connect("notify::keyboard-variant", self._settings_changed)
+        self._render()
+
+    def _settings_changed(self, *_args) -> None:
+        if not self._updating:
+            self._render()
+
+    def _commit(self, entries: list[KeyboardLayoutConfig]) -> None:
+        self._updating = True
+        try:
+            hyprland_settings.set_keyboard_configs(entries)
+        finally:
+            self._updating = False
+        self._render()
+
+    def _set_layout(self, index: int, layout: str) -> None:
+        entries = hyprland_settings.get_keyboard_configs()
+        entries[index] = KeyboardLayoutConfig(layout=layout)
+        self._commit(entries)
+
+    def _set_variant(self, index: int, variant: str) -> None:
+        entries = hyprland_settings.get_keyboard_configs()
+        entries[index] = KeyboardLayoutConfig(
+            layout=entries[index].layout,
+            variant=variant,
+        )
+        self._commit(entries)
+
+    def _remove(self, index: int) -> None:
+        entries = hyprland_settings.get_keyboard_configs()
+        if len(entries) > 1:
+            entries.pop(index)
+            self._commit(entries)
+
+    def add(self) -> None:
+        entries = hyprland_settings.get_keyboard_configs()
+        available = get_keyboard_layouts()
+        choice = next(
+            (
+                item
+                for item in sorted(available, key=lambda item: item.value != "us")
+            ),
+            None,
+        )
+        if choice is not None:
+            self._commit([*entries, KeyboardLayoutConfig(layout=choice.value)])
+
+    def _render(self) -> None:
+        entries = hyprland_settings.get_keyboard_configs()
+        all_layouts = get_keyboard_layouts()
+        rows: list[BaseWidget] = []
+        for index, entry in enumerate(entries):
+            layout = StringDropdown(
+                labels=[],
+                choices=all_layouts,
+                enable_search=True,
+                on_change=lambda value, row=index: self._set_layout(row, value),
+                get_current=lambda item=entry: item.layout,
+            )
+            variant = StringDropdown(
+                labels=[],
+                choices=get_keyboard_variants(entry.layout),
+                enable_search=True,
+                on_change=lambda value, row=index: self._set_variant(row, value),
+                get_current=lambda item=entry: item.variant,
+            )
+            remove = Widget.Button(
+                child=Widget.Icon(image="edit-delete-symbolic", pixel_size=16),
+                tooltip_text="Remove layout",
+                css_classes=["settings-keyboard-layout-remove"],
+                sensitive=len(entries) > 1,
+                valign="center",
+                vexpand=False,
+                on_click=lambda *_args, row=index: self._remove(row),
+            )
+            rows.append(
+                Widget.Box(
+                    spacing=8,
+                    child=[layout, variant, Widget.Box(hexpand=True), remove],
+                    css_classes=["settings-keyboard-layout-row"],
+                )
+            )
+        util.replace_box_children(self, rows)
 
 
 class SettingsWindow(Widget.RegularWindow):
@@ -1794,27 +1851,11 @@ class SettingsWindow(Widget.RegularWindow):
             ],
         )
 
-        keyboard_layout = StringDropdown(
-            labels=get_keyboard_layouts(),
-            enable_search=True,
-            on_change=lambda value: (
-                hyprland_settings.set_keyboard_layout(value),
-                hyprland_settings.set_keyboard_variant(""),
-            ),
-            get_current=lambda: hyprland_settings.keyboard_layout,
-            settings_obj=hyprland_settings,
-            notify_props=["keyboard-layout"],
-        )
-        keyboard_variant = StringDropdown(
-            labels=[],
-            enable_search=True,
-            on_change=hyprland_settings.set_keyboard_variant,
-            get_current=lambda: hyprland_settings.keyboard_variant,
-            settings_obj=hyprland_settings,
-            notify_props=["keyboard-layout", "keyboard-variant"],
-            repopulate=lambda: get_keyboard_variants(
-                hyprland_settings.keyboard_layout
-            ),
+        keyboard_layouts = KeyboardLayoutsEditor()
+        add_keyboard_layout = Widget.Button(
+            label="Add layout",
+            css_classes=["settings-secondary-button"],
+            on_click=lambda *_: keyboard_layouts.add(),
         )
         from widgets.Settings.displays import build_displays_page
 
@@ -1991,20 +2032,20 @@ class SettingsWindow(Widget.RegularWindow):
             child=[
                 SettingsGroup(
                     title="Keyboard",
-                    description="Choose the layout and optional regional variant.",
+                    description="Add layouts and choose an optional variant for each one.",
                     child=[
                         Setting(
-                            widget=keyboard_layout,
-                            label="Layout",
-                            icon="input-keyboard-symbolic",
-                        ),
-                        Setting(
-                            widget=keyboard_variant,
-                            label="Variant",
-                            subtitle="Leave empty to use the layout default.",
+                            widget=add_keyboard_layout,
+                            label="Add keyboard layout",
+                            subtitle="The first configured layout is used by default.",
                             icon="input-keyboard-symbolic",
                         ),
                     ],
+                ),
+                SettingsGroup(
+                    title="Configured layouts",
+                    description="Choose the layout and variant used for each entry.",
+                    child=[keyboard_layouts],
                 ),
                 SettingsGroup(
                     title="Pointer",
@@ -2031,26 +2072,6 @@ class SettingsWindow(Widget.RegularWindow):
                             icon="input-mouse-symbolic",
                             active=hyprland_settings.bind("acceleration_enabled"),  # type: ignore
                             on_change=lambda _, active: hyprland_settings.set_acceleration_enabled(active),
-                        ),
-                        Setting(
-                            widget=StringDropdown(
-                                labels=[
-                                    profile.capitalize()
-                                    for profile in pointer_acceleration_profiles
-                                ],
-                                on_change=lambda value: hyprland_settings.set_acceleration_profile(
-                                    cast(PointerAccelerationProfile, value.lower())
-                                ),
-                                get_current=lambda: hyprland_settings.acceleration_profile.capitalize(),
-                                settings_obj=hyprland_settings,
-                                notify_props=["acceleration-profile"],
-                            ),
-                            label="Acceleration profile",
-                            subtitle="Choose how pointer speed responds to movement.",
-                            icon="input-mouse-symbolic",
-                            sensitive=hyprland_settings.bind(
-                                "acceleration_enabled"
-                            ),
                         ),
                     ],  # type: ignore
                 ),
@@ -2150,23 +2171,6 @@ class SettingsWindow(Widget.RegularWindow):
             vertical=True,
             spacing=4,
             child=[
-                Widget.Box(
-                    vertical=True,
-                    spacing=2,
-                    child=[
-                        Widget.Label(
-                            label=f"Hello {os.environ.get('USER', 'User')}!",
-                            halign="start",
-                            css_classes=["settings-sidebar-title"],
-                        ),
-                        Widget.Label(
-                            label="Customise the shell here",
-                            halign="start",
-                            css_classes=["settings-sidebar-subtitle"],
-                        ),
-                    ],
-                    css_classes=["settings-sidebar-heading"],
-                ),
                 *navigation,
                 Widget.Box(vexpand=True),
                 Widget.Separator(css_classes=["settings-sidebar-separator"]),

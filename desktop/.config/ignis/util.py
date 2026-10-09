@@ -507,6 +507,10 @@ class BindableSettings(IgnisGObject):
         """
         ...
 
+    def set_many(self, **values: Any) -> None:
+        """Set and persist multiple related settings atomically."""
+        ...
+
 
 def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
     """
@@ -576,6 +580,10 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                 except FileNotFoundError:
                     self._data = {}
 
+                migrate = getattr(self, "migrate_settings", None)
+                if migrate is not None:
+                    self._data = migrate(self._data)
+
                 for k, v in self._defaults.items():
                     self._data.setdefault(k, v)
                     super().__setattr__(k, self._data[k])
@@ -599,6 +607,19 @@ def JsonSettings[T](path: str) -> Callable[[type[T]], type[T]]:
                     json.dump(self._data, f, indent=2)
 
                 self.sync()
+
+            def set_many(self, **values: Any) -> None:
+                unknown = set(values) - set(self._defaults)
+                if unknown:
+                    names = ", ".join(sorted(unknown))
+                    raise AttributeError(f"Unknown settings: {names}")
+
+                for name, value in values.items():
+                    self._data[name] = value
+                    super().__setattr__(name, value)
+                for name in values:
+                    self.notify(name)
+                self._save()
 
             def bind_properties(self, lambda_func: Callable[[], T]):
                 return self.bind_many([k for k in hints], lambda *_: lambda_func())

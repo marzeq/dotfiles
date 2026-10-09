@@ -1,12 +1,52 @@
 from __future__ import annotations
 import json
+import os
+from pathlib import Path
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
+from gi.repository import Gio  # pyright: ignore[reportMissingModuleSource]
 from util import JsonSettings
 from .base_mode import LauncherMode, LauncherResult, fuzzy_search_results
 import util
 
 applications = ApplicationsService.get_default()
+
+
+def _flatpak_export_dirs() -> tuple[Path, ...]:
+    data_home = Path(
+        os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share"
+    )
+    return (
+        data_home / "flatpak/exports/share/applications",
+        Path("/var/lib/flatpak/exports/share/applications"),
+    )
+
+
+def _available_apps() -> list[Application]:
+    """Return Gio apps plus Flatpak exports missing from Ignis' cached list."""
+    apps_by_id = {app.id: app for app in applications.apps}
+
+    # Ignis populates its service through Gio.AppInfo.get_all().  Gio determines
+    # its search path from the environment present when the shell starts, so a
+    # shell launched without Flatpak's XDG_DATA_DIRS entries never sees exported
+    # desktop files.  Load the two standard export locations explicitly as a
+    # fallback; opening the launcher also makes newly installed apps appear.
+    for export_dir in _flatpak_export_dirs():
+        try:
+            desktop_files = list(export_dir.glob("*.desktop"))
+        except OSError:
+            continue
+
+        for desktop_file in desktop_files:
+            app_info = Gio.DesktopAppInfo.new_from_filename(str(desktop_file))
+            if app_info is None or app_info.get_nodisplay():
+                continue
+
+            app = Application(app=app_info)
+            if app.id is not None:
+                apps_by_id.setdefault(app.id, app)
+
+    return sorted(apps_by_id.values(), key=lambda app: app.name)
 
 
 @JsonSettings("apps")
@@ -38,7 +78,8 @@ class AppSettings:
 
     @property
     def visible_apps(self) -> list[Application]:
-        return [app for app in applications.apps if app.name.lower() not in self.read_hidden_apps()]
+        hidden_apps = self.read_hidden_apps()
+        return [app for app in _available_apps() if app.name.lower() not in hidden_apps]
 
 
 app_settings = AppSettings()
@@ -77,7 +118,12 @@ class AppMode(LauncherMode):
 
     @staticmethod
     def _app_search_terms(app: Application) -> list[str]:
-        return ([app.description] if app.description else []) + app.keywords
+        app_id = app.id.removesuffix(".desktop") if app.id else None
+        return (
+            ([app.description] if app.description else [])
+            + app.keywords
+            + ([app_id] if app_id else [])
+        )
 
     async def update(self, query: str, refresh):
         query = query.strip().lower()

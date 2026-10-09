@@ -465,6 +465,9 @@ class DisplaySettings(Widget.Box):
         self._draft_primary = primary_settings.primary_monitor
         self._signal_handlers: list[tuple[Any, int]] = []
         self._refresh_source = 0
+        self._position_spins: tuple[Gtk.SpinButton, Gtk.SpinButton] | None = None
+        self._syncing_position = False
+        self._error_message = ""
 
         self._layout = DisplayLayout(self._layout_changed)
         self._monitor_picker = Gtk.DropDown.new_from_strings([])
@@ -812,22 +815,44 @@ class DisplaySettings(Widget.Box):
         return modes
 
     def _mark_dirty(self) -> None:
-        self._dirty = True
-        self._apply_button.set_sensitive(True)
+        if not self._dirty:
+            self._dirty = True
+            self._apply_button.set_sensitive(True)
         self._show_error("")
 
     def _layout_changed(self, name: str, x: int, y: int) -> None:
+        selection_changed = self._selected != name
         self._selected = name
         config = self._config(name)
         if (config.x, config.y) != (x, y):
             index = self._configs.index(config)
             self._configs[index] = replace(config, x=x, y=y)
             self._mark_dirty()
-        names = [item.name for item in self._configs]
-        self._syncing = True
-        self._monitor_picker.set_selected(names.index(name))
-        self._syncing = False
-        self._render()
+            config = self._configs[index]
+
+        if selection_changed:
+            names = [item.name for item in self._configs]
+            self._syncing = True
+            self._monitor_picker.set_selected(names.index(name))
+            self._syncing = False
+            self._render()
+            return
+
+        # Drag updates arrive at pointer-event frequency. Rebuilding the whole
+        # details panel here used to create dozens of widgets and signal
+        # handlers for every pixel of movement, causing large CPU spikes.
+        self._layout.update(self._configs, self._selected)
+        self._sync_position_controls(config)
+
+    def _sync_position_controls(self, config: MonitorConfig) -> None:
+        if self._position_spins is None:
+            return
+        self._syncing_position = True
+        try:
+            self._position_spins[0].set_value(config.x)
+            self._position_spins[1].set_value(config.y)
+        finally:
+            self._syncing_position = False
 
     def _row(self, label: str, subtitle: str, control, icon: str) -> Widget.Box:
         Gtk.Widget.set_valign(control, Gtk.Align.CENTER)
@@ -931,12 +956,20 @@ class DisplaySettings(Widget.Box):
 
         x_spin = Gtk.SpinButton.new_with_range(-32768, 32768, 1)
         y_spin = Gtk.SpinButton.new_with_range(-32768, 32768, 1)
+        self._position_spins = x_spin, y_spin
         for spin, value, axis in ((x_spin, config.x, "x"), (y_spin, config.y, "y")):
             spin.set_value(value)
             spin.set_width_chars(6)
             spin.set_sensitive(config.enabled and not bool(config.mirror))
             spin.set_valign(Gtk.Align.CENTER)
-            spin.connect("value-changed", lambda widget, key=axis: self._set(**{key: widget.get_value_as_int()}))
+            spin.connect(
+                "value-changed",
+                lambda widget, key=axis: (
+                    None
+                    if self._syncing_position
+                    else self._set(**{key: widget.get_value_as_int()})
+                ),
+            )
             spin.add_css_class("settings-display-position")
         rows.append(
             self._row(
@@ -1419,6 +1452,9 @@ class DisplaySettings(Widget.Box):
             self._schedule_refresh()
 
     def _show_error(self, message: str) -> None:
+        if message == self._error_message:
+            return
+        self._error_message = message
         self._error.set_label(message)
         self._error.set_visible(bool(message))
 

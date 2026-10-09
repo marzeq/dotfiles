@@ -16,6 +16,11 @@ from widgets.NotificationsAndCalendar import NotificationsAndCalendar
 from widgets.NotificationsAndCalendar.notifications import NotificationPopups
 from widgets.Launcher import LauncherProxy, Launcher
 from widgets.OSD import OSD
+from widgets.KeyboardLayout import (
+    KeyboardLayoutOSD,
+    KeyboardLayoutPopup,
+    KeyboardLayoutProxy,
+)
 from widgets.Settings import SettingsWindow
 
 app = util.get_app()
@@ -60,6 +65,17 @@ app.apply_css(f"{dir}/style.scss")
 app.apply_css(gtk_accent_file, style_priority="user")
 app.add_icons(f"{dir}/icons")
 
+# Flatpak's exported applications and icons may be absent from XDG_DATA_DIRS
+# in the environment that starts Ignis.  The launcher discovers the desktop
+# files explicitly; add the matching icon roots to GTK's theme as well.
+data_home = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+for flatpak_icon_dir in (
+    os.path.join(data_home, "flatpak/exports/share/icons"),
+    "/var/lib/flatpak/exports/share/icons",
+):
+    if os.path.isdir(flatpak_icon_dir):
+        app.add_icons(flatpak_icon_dir)
+
 util.shell("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
 util.shell("gsettings set org.gnome.desktop.interface font-name 'Adwaita Sans 11'")
 util.shell("gsettings set org.gnome.desktop.wm.preferences button-layout :")
@@ -69,12 +85,15 @@ util.shell("hyprctl reload")
 for i, m in enumerate(Utils.get_monitors()):  # type: ignore
     ClosePopupWidget(i)
     Bar(i)
+    KeyboardLayoutPopup(i)
     NotificationsAndCalendar(i)
     ControlCentre(i)
     Launcher(i, m)
 
 NotificationPopups()
 OSD()
+KeyboardLayoutOSD()
+KeyboardLayoutProxy()
 LauncherProxy()
 SettingsWindow()
 LockProxy()

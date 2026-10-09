@@ -232,6 +232,28 @@
   background-color: $button-bg;
 }
 
+.settings-keyboard-layout-list {
+  padding: 0.55rem;
+}
+
+.settings-keyboard-layout-row {
+  min-height: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.65rem;
+}
+
+.settings-keyboard-layout-row dropdown {
+  min-width: 12rem;
+}
+
+.settings-keyboard-layout-remove {
+  @include custom-button;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border-radius: 0.6rem;
+}
+
 .settings-primary-button {
   @include custom-button;
 
