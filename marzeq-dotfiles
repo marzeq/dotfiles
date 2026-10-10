@@ -15,6 +15,8 @@ fi
 
 STATE_DIR="$HOME/.local/share/marzeq"
 INSTALLED_FILE="$STATE_DIR/installed_components"
+SOURCE_BUILD_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/marzeq-dotfiles/source-builds"
+LOCAL_BIN="$HOME/.local/bin"
 DRY_RUN=false
 SKIP_PACKAGES=false
 
@@ -51,6 +53,7 @@ DESKTOP_DEPS=(
   "swww" "hyprpicker" "hypridle" "hyprlock"
   "hyprshot" "grim" "slurp"
   "imagemagick" "tesseract" "tesseract-data-eng"
+  "go" "sdl3" "sdl3_image" "pkgconf"
   ".PARU"
   "wl-clipboard" "wl-clip-persist"
   "pamixer" "pavucontrol"
@@ -200,6 +203,75 @@ install_goignis() {
   run_or_echo rm -rf /tmp/goignis
 }
 
+build_desktop_tool() (
+  local name="$1"
+  local repo="$2"
+  local cache_file="$SOURCE_BUILD_CACHE/$name.commit"
+  local installed_binary="$LOCAL_BIN/$name"
+
+  if $DRY_RUN; then
+    info "Would check and, if needed, build $name from $repo (dev)."
+    return
+  fi
+
+  info "Checking $name source..."
+  local remote_ref
+  remote_ref="$(git ls-remote "$repo" refs/heads/dev)" \
+    || error "Failed to check the latest $name commit."
+  local latest_commit="${remote_ref%%[[:space:]]*}"
+  [[ "$latest_commit" =~ ^[0-9a-fA-F]{40,64}$ ]] \
+    || error "The $name dev branch did not return a valid commit hash."
+
+  local built_commit=""
+  [[ -f "$cache_file" ]] && read -r built_commit < "$cache_file"
+  if [[ "$built_commit" == "$latest_commit" && -x "$installed_binary" ]]; then
+    info "$name is already built from the latest dev commit."
+    return
+  fi
+
+  local build_root
+  build_root="$(mktemp -d "${TMPDIR:-/tmp}/marzeq-dotfiles-$name.XXXXXX")"
+  local binary_tmp="$installed_binary.tmp.$$"
+  local cache_tmp="$cache_file.tmp.$$"
+  trap 'rm -rf "$build_root"; rm -f "$binary_tmp" "$cache_tmp"' EXIT
+
+  git clone --depth 1 --branch dev --single-branch "$repo" "$build_root/source" \
+    || error "Failed to clone $name."
+
+  local artifact
+  case "$name" in
+    mexe)
+      (
+        cd "$build_root/source"
+        go build -trimpath -o "$build_root/mexe" ./cmd/mexe
+      ) || error "Failed to build mexe."
+      artifact="$build_root/mexe"
+      ;;
+    accent-extract)
+      make -C "$build_root/source" -j"$(nproc)" \
+        || error "Failed to build accent-extract."
+      artifact="$build_root/source/accent-extract"
+      ;;
+    *)
+      error "Unknown source-built desktop tool: $name"
+      ;;
+  esac
+
+  install -Dm755 "$artifact" "$binary_tmp"
+  mv "$binary_tmp" "$installed_binary"
+  mkdir -p "$SOURCE_BUILD_CACHE"
+  git -C "$build_root/source" rev-parse HEAD > "$cache_tmp"
+  mv "$cache_tmp" "$cache_file"
+  info "Installed $name to $installed_binary."
+)
+
+install_desktop_tools() {
+  build_desktop_tool "mexe" "https://github.com/marzeq/mexe.git"
+  build_desktop_tool \
+    "accent-extract" \
+    "https://git.marzeq.foo/clone/marzeq/accent-extract.git"
+}
+
 desktop_installed=false
 install_desktop() {
   ensure_package desktop
@@ -211,6 +283,7 @@ install_desktop() {
     install_packages "${DESKTOP_DEPS[@]}"
     install_goignis
   fi
+  install_desktop_tools
   run_or_echo stow -d "$REPO_PATH" -t "$HOME" desktop
   run_or_echo sudo systemctl enable gdm
   run_or_echo systemctl --user enable gcr-ssh-agent.socket
@@ -252,6 +325,12 @@ do_remove_component() {
     info "Component $comp not present in repo; skipping unstow."
   else
     run_or_echo stow -d "$REPO_PATH" -t "$HOME" -D "$comp"
+  fi
+  if [[ "$comp" == "desktop" ]]; then
+    run_or_echo rm -f "$LOCAL_BIN/mexe" "$LOCAL_BIN/accent-extract"
+    run_or_echo rm -f \
+      "$SOURCE_BUILD_CACHE/mexe.commit" \
+      "$SOURCE_BUILD_CACHE/accent-extract.commit"
   fi
   unrecord_component "$comp"
 }

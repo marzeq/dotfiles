@@ -1,7 +1,7 @@
+from pathlib import Path
+
 import util
-import shlex
 from .base_mode import LauncherMode, LauncherResult
-import platform
 
 
 class CalcMode(LauncherMode):
@@ -21,18 +21,15 @@ class CalcMode(LauncherMode):
             refresh()
             return
 
-        exname = ""
-        match platform.machine():
-            case "x86_64":
-                exname = "mexe-amd64"
-            case "aarch64":
-                exname = "mexe-aarch64"
-            case _:
-                return
+        executable = Path.home() / ".local" / "bin" / "mexe"
+        if not executable.is_file():
+            result_widget.visible = False
+            self.section.visible = False
+            refresh()
+            return
 
-        escaped_expr = shlex.quote(expr)
-        result = await util.shell(
-            f"{util.root_dir}/scripts/{exname} -- {escaped_expr}",
+        result = await util.run_command(
+            [str(executable), "--", expr],
             background=False,
         )
         if result is None:

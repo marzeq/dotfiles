@@ -10,6 +10,7 @@ hl.config {
 local home = os.getenv("HOME")
 local config = home .. "/.config/hypr"
 local ignisData = home .. "/.local/share/ignis"
+local desktopCommand = "python3 " .. home .. "/.config/ignis/desktop_cli.py"
 
 local function file_exists(path)
 	local f = io.open(path, "r")
@@ -57,11 +58,11 @@ hl.env("EDITOR", programs.editor or "nvim")
 
 local autostart = {
 	"awww-daemon",
-	"~/.config/hypr/scripts/set_curr_wallpaper.sh first-start",
+	desktopCommand .. " wallpaper --first-start",
 	"goignis init",
 	"wl-clip-persist --clipboard regular",
 	"hypridle",
-	"~/.config/hypr/scripts/autostart.sh",
+	desktopCommand .. " autostart",
 	"/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1",
 }
 
@@ -305,13 +306,13 @@ bind("fullscreen", binding("F", { "SHIFT" }), hl.dsp.window.fullscreen())
 bind("keyboard_layout", binding("SPACE", { "ALT" }, "none"), hl.dsp.exec_cmd("goignis open-window ignis_keyboard_layout_proxy"))
 
 -- screenshots
-bind("screenshot_area", binding("S", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh area"))
+bind("screenshot_area", binding("S", { "SHIFT" }), hl.dsp.exec_cmd(desktopCommand .. " screenshot area"))
 
-bind("screenshot_window", binding("W", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh window"))
+bind("screenshot_window", binding("W", { "SHIFT" }), hl.dsp.exec_cmd(desktopCommand .. " screenshot window"))
 
-bind("screenshot_monitor", binding("M", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh monitor"))
+bind("screenshot_monitor", binding("M", { "SHIFT" }), hl.dsp.exec_cmd(desktopCommand .. " screenshot monitor"))
 
-bind("ocr", binding("T", { "SHIFT" }), hl.dsp.exec_cmd("~/.config/hypr/scripts/hypr-ocr.sh"))
+bind("ocr", binding("T", { "SHIFT" }), hl.dsp.exec_cmd(desktopCommand .. " ocr"))
 
 bind("colour_picker", binding("C", { "SHIFT" }), hl.dsp.exec_cmd("hyprpicker -a"))
 
@@ -401,20 +402,18 @@ if workspace_primary then
 	end
 end
 
-local workspace_command = "python3 " .. config .. "/scripts/logical-workspace.py"
-
 for i = 1, workspace_count do
 	local key = i == 10 and "0" or tostring(i)
 
 	bind(
 		"workspace_" .. i,
 		binding(key),
-		hl.dsp.exec_cmd(workspace_command .. " switch " .. tostring(i))
+		hl.dsp.exec_cmd(desktopCommand .. " workspace switch " .. tostring(i))
 	)
 	bind(
 		"move_to_workspace_" .. i,
 		binding(key, { "SHIFT" }),
-		hl.dsp.exec_cmd(workspace_command .. " move " .. tostring(i))
+		hl.dsp.exec_cmd(desktopCommand .. " workspace move " .. tostring(i))
 	)
 end
 
@@ -442,21 +441,21 @@ bind("drag_window", binding("mouse:272"), hl.dsp.window.drag(), { mouse = true }
 bind("resize_window", binding("mouse:273"), hl.dsp.window.resize(), { mouse = true })
 
 -- audio
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh inc_volume 2"), { repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(desktopCommand .. " audio volume-up 2"), { repeating = true })
 
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh dec_volume 2"), { repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(desktopCommand .. " audio volume-down 2"), { repeating = true })
 
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh toggle_mute_volume"))
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd(desktopCommand .. " audio mute-output"))
 
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh play_pause"))
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(desktopCommand .. " audio play-pause"))
 
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh pause"))
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd(desktopCommand .. " audio pause"))
 
-hl.bind("XF86MediaPlayPause", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh play_pause"))
+hl.bind("XF86MediaPlayPause", hl.dsp.exec_cmd(desktopCommand .. " audio play-pause"))
 
-hl.bind("XF86AudioNext", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh next"))
+hl.bind("XF86AudioNext", hl.dsp.exec_cmd(desktopCommand .. " audio next"))
 
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("~/.config/hypr/scripts/audio.sh previous"))
+hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(desktopCommand .. " audio previous"))
 
 -- brightness
 bind("brightness_up", binding("XF86MonBrightnessUp", {}, "none"), hl.dsp.exec_cmd("brightnessctl set +5%"), { repeating = true })

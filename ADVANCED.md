@@ -34,5 +34,10 @@ update the packages you mapped from those dependency lists and re-run GNU Stow f
 other distributions, but you must resolve and manage its full dependency set yourself. In the managed path, installing
 `desktop` also installs `terminal`; reproduce that dependency manually if you want the setup as designed.
 
+The desktop additionally expects [`mexe`](https://github.com/marzeq/mexe) and
+[`accent-extract`](https://git.marzeq.foo/marzeq/accent-extract) in `~/.local/bin`. Manual installations must build both
+projects from their `dev` branches and keep them updated independently; their build dependencies are included in
+`DESKTOP_DEPS` as the Arch reference.
+
 The `mpv` and `wallpapers` directories can likewise be copied or Stowed manually, but they are deliberately not tracked
 by the management CLI. They are personal extras rather than supported installation components.

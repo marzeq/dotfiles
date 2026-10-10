@@ -73,6 +73,8 @@ Installing `desktop` also installs `terminal`, which is part of the desktop setu
 ### update
 
 Pulls the latest repo and re-applies only the components you previously installed.
+For the two source-built desktop tools, the updater first checks the remote commit with `git ls-remote`. It only performs
+a shallow clone and rebuild when that commit has changed or the installed binary is missing.
 
 ```bash
 marzeq-dotfiles update

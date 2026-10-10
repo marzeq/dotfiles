@@ -77,13 +77,13 @@ class LauncherPowerOffResult(LauncherResult):
         util.popup_manager.close_curr_popup()
 
         if self.action in ("shutdown", "shutdown_alt"):
-            util.shell("systemctl poweroff")
+            util.run_command(["systemctl", "poweroff"])
         elif self.action == "reboot":
-            util.shell("systemctl reboot")
+            util.run_command(["systemctl", "reboot"])
         elif self.action == "logout":
-            util.shell("hyprctl dispatch 'hl.dsp.exit()'")
+            util.run_command(["hyprctl", "dispatch", "hl.dsp.exit()"])
         elif self.action in ("suspend", "sleep"):
-            util.shell("systemctl suspend")
+            util.run_command(["systemctl", "suspend"])
 
     def icon_name(self) -> str:
         icons: dict[Action, str] = {

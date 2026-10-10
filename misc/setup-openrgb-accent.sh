@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Standalone host setup helper; this is not part of the stowed desktop runtime.
 set -euo pipefail
 
 if [[ "$(id -u)" -ne 0 ]]; then

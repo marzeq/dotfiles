@@ -1,38 +1,30 @@
-#!/usr/bin/env python3
 """Deterministic logical-workspace controller for Hyprland."""
 
 from __future__ import annotations
 
 import json
 import os
-import subprocess
-import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
+from .process import run
 
-SETTINGS_PATH = Path(
-    os.path.expanduser("~/.local/share/ignis/workspace-state.json")
-)
-ACTIVE_WORKSPACE_PATH = Path(
-    os.path.expanduser("~/.local/share/ignis/active-logical-workspace")
+
+SETTINGS_PATH = Path.home() / ".local" / "share" / "ignis" / "workspace-state.json"
+ACTIVE_WORKSPACE_PATH = (
+    Path.home() / ".local" / "share" / "ignis" / "active-logical-workspace"
 )
 
 
 def _json_command(command: str) -> Any:
-    result = subprocess.run(
-        ["hyprctl", command, "-j"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    result = run(["hyprctl", command, "-j"], capture_output=True)
     return json.loads(result.stdout)
 
 
 def _settings() -> dict[str, Any]:
     try:
-        value = json.loads(SETTINGS_PATH.read_text())
+        value = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
     return value if isinstance(value, dict) else {}
@@ -63,14 +55,13 @@ def _logical_id(logical: int, monitor: dict[str, Any], offsets: dict[str, int]) 
 
 
 def _dispatch_batch(commands: list[str]) -> None:
-    result = subprocess.run(
+    result = run(
         ["hyprctl", "--batch", " ; ".join(commands)],
-        check=True,
         capture_output=True,
-        text=True,
     )
-    if "error:" in result.stdout.lower() or "error:" in result.stderr.lower():
-        raise RuntimeError((result.stdout + result.stderr).strip())
+    combined = result.stdout + result.stderr
+    if "error:" in combined.lower():
+        raise RuntimeError(combined.strip())
 
 
 def _lua_string(value: object) -> str:
@@ -109,9 +100,7 @@ def switch(logical: int) -> None:
         primary,
     )
     targets = (
-        monitors
-        if settings.get("workspaces_span_displays") is True
-        else [primary]
+        monitors if settings.get("workspaces_span_displays") is True else [primary]
     )
     commands: list[str] = []
     for monitor in targets:
@@ -124,12 +113,10 @@ def switch(logical: int) -> None:
             ]
         )
     commands.append(
-        "dispatch hl.dsp.focus({ monitor = "
-        f"{_lua_string(focused['name'])} }})"
+        "dispatch hl.dsp.focus({ monitor = " f"{_lua_string(focused['name'])} }})"
     )
     commands.append(
-        "dispatch hl.dsp.cursor.move({ "
-        f"x = {cursor_x}, y = {cursor_y} }})"
+        "dispatch hl.dsp.cursor.move({ " f"x = {cursor_x}, y = {cursor_y} }})"
     )
     _dispatch_batch(commands)
     _publish_active_workspace(logical)
@@ -144,11 +131,7 @@ def move(logical: int) -> None:
         (monitor for monitor in monitors if monitor.get("focused") is True),
         primary,
     )
-    target = (
-        focused
-        if settings.get("workspaces_span_displays") is True
-        else primary
-    )
+    target = focused if settings.get("workspaces_span_displays") is True else primary
     _dispatch_batch(
         [
             "dispatch hl.dsp.window.move({ workspace = "
@@ -156,22 +139,3 @@ def move(logical: int) -> None:
             "follow = false })"
         ]
     )
-
-
-def main() -> None:
-    if len(sys.argv) != 3 or sys.argv[1] not in {"switch", "move"}:
-        raise SystemExit("usage: logical-workspace.py switch|move NUMBER")
-    try:
-        logical = int(sys.argv[2])
-    except ValueError as error:
-        raise SystemExit("workspace number must be an integer") from error
-    if not 1 <= logical <= 10:
-        raise SystemExit("workspace number must be between 1 and 10")
-    if sys.argv[1] == "switch":
-        switch(logical)
-    else:
-        move(logical)
-
-
-if __name__ == "__main__":
-    main()

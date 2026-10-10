@@ -1,6 +1,8 @@
-import os
+import asyncio
 import hashlib
 import json
+import os
+
 import util
 from util import JsonSettings, BindableSettings
 
@@ -21,6 +23,7 @@ class StyleSettings(BindableSettings):
         os.makedirs(self._wallcache_dir, exist_ok=True)
 
         self._accent_map = self._load_accent_map()
+        self._file_hash_cache: dict[str, tuple[int, int, str]] = {}
 
     post_accent_change_cmd: str = ""
 
@@ -28,11 +31,19 @@ class StyleSettings(BindableSettings):
         self.post_accent_change_cmd = cmd
 
     def _hash_file(self, path: str) -> str:
+        stat = os.stat(path)
+        cached = self._file_hash_cache.get(path)
+        signature = (stat.st_mtime_ns, stat.st_size)
+        if cached is not None and cached[:2] == signature:
+            return cached[2]
+
         h = hashlib.md5()
         with open(path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 h.update(chunk)
-        return h.hexdigest()
+        digest = h.hexdigest()
+        self._file_hash_cache[path] = (*signature, digest)
+        return digest
 
     def _load_accent_map(self):
         if not os.path.isfile(self._accent_cache_path):
@@ -118,8 +129,10 @@ class StyleSettings(BindableSettings):
         h = self._hash_file(wallpaper)
         self._accent_map[h] = colour
         self._save_accent_map()
-        util.shell(
-            f'{util.root_dir}/scripts/change_accent.sh "{colour}"',
+        util.desktop_action(
+            "accent",
+            "set",
+            colour,
             after=self.post_accent_change,
         )
 
@@ -128,8 +141,9 @@ class StyleSettings(BindableSettings):
         if h in self._accent_map:
             del self._accent_map[h]
             self._save_accent_map()
-        util.shell(
-            f"{util.root_dir}/scripts/restore_accent.sh",
+        util.desktop_action(
+            "accent",
+            "restore",
             after=self.post_accent_change,
         )
 
@@ -188,6 +202,7 @@ class StyleSettings(BindableSettings):
     def remove_wallpaper(self, path: str):
         abs_path = os.path.realpath(os.path.expanduser(path))
         file_hash = self._hash_file(abs_path) if os.path.isfile(abs_path) else None
+        self._file_hash_cache.pop(abs_path, None)
         current_list = self._added_wallpapers_str_to_list(self.addedwallpapers)
         if abs_path in current_list:
             current_list.remove(abs_path)
@@ -212,7 +227,7 @@ class StyleSettings(BindableSettings):
         return wallpapers
 
     async def get_cached_top_colours(self, path: str):
-        file_hash = self._hash_file(path)
+        file_hash = await asyncio.to_thread(self._hash_file, path)
         cache_path = os.path.join(self._wallcache_dir, f"{file_hash}.cache")
 
         if os.path.isfile(cache_path):
@@ -226,17 +241,27 @@ class StyleSettings(BindableSettings):
 
     async def pick_wallpaper(self, file: str):
         self.set_wallpaper(file)
-        util.shell("~/.config/hypr/scripts/set_curr_wallpaper.sh")
+        util.desktop_action("wallpaper")
 
-        saved = self._accent_map.get(self._hash_file(self.wallpaper))
+        selected_wallpaper = self.wallpaper
+        wallpaper_hash = await asyncio.to_thread(
+            self._hash_file, selected_wallpaper
+        )
+        if self.wallpaper != selected_wallpaper:
+            return
+
+        saved = self._accent_map.get(wallpaper_hash)
         if saved:
-            util.shell(
-                f'{util.root_dir}/scripts/change_accent.sh "{saved}"',
+            util.desktop_action(
+                "accent",
+                "set",
+                saved,
                 after=self.post_accent_change,
             )
         else:
-            util.shell(
-                f"{util.root_dir}/scripts/restore_accent.sh",
+            util.desktop_action(
+                "accent",
+                "restore",
                 after=self.post_accent_change,
             )
 

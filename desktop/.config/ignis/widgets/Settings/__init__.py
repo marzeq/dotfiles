@@ -2,7 +2,6 @@ import asyncio
 import json
 import os
 import platform
-import shlex
 import socket
 import uuid
 import weakref
@@ -215,7 +214,7 @@ class HyprlandSettings(BindableSettings):
 
         def reload_hyprland() -> bool:
             self._hyprland_reload_source_id = None
-            util.shell("hyprctl reload")
+            util.run_command(["hyprctl", "reload"])
             return False
 
         self._hyprland_reload_source_id = GLib.timeout_add(
@@ -477,6 +476,41 @@ class WallpaperButton(Widget.Overlay):
         self, path: str, on_wallpaper_picked, on_wallpaper_removed, iscurrent: bool
     ):
         wallpaper_size = 196
+        self._selected_indicator = Widget.Box(
+            child=[
+                Widget.Icon(
+                    image="object-select-symbolic",
+                    pixel_size=16,
+                    halign="center",
+                    valign="center",
+                    hexpand=True,
+                    vexpand=True,
+                )
+            ],
+            width_request=32,
+            height_request=32,
+            halign="end",
+            valign="start",
+            hexpand=False,
+            vexpand=False,
+            can_target=False,
+            visible=iscurrent,
+            css_classes=["settings-wallpaper-selected"],
+        )
+        self._remove_button = Widget.Button(
+            child=Widget.Icon(
+                icon_name="process-stop-symbolic",
+                css_classes=["settings-wallpaper-remove-icon"],
+                pixel_size=12,
+            ),
+            halign="end",
+            valign="start",
+            hexpand=False,
+            vexpand=False,
+            css_classes=["settings-wallpaper-remove-button"],
+            on_click=lambda _: on_wallpaper_removed(path),
+            visible=not iscurrent,
+        )
         super().__init__(
             child=Widget.Button(
                 child=Widget.Picture(
@@ -490,41 +524,8 @@ class WallpaperButton(Widget.Overlay):
                 css_classes=["settings-wallpaper"],
             ),
             overlays=[
-                Widget.Box(
-                    child=[
-                        Widget.Icon(
-                            image="object-select-symbolic",
-                            pixel_size=16,
-                            halign="center",
-                            valign="center",
-                            hexpand=True,
-                            vexpand=True,
-                        )
-                    ],
-                    width_request=32,
-                    height_request=32,
-                    halign="end",
-                    valign="start",
-                    hexpand=False,
-                    vexpand=False,
-                    can_target=False,
-                    visible=iscurrent,
-                    css_classes=["settings-wallpaper-selected"],
-                ),
-                Widget.Button(
-                    child=Widget.Icon(
-                        icon_name="process-stop-symbolic",
-                        css_classes=["settings-wallpaper-remove-icon"],
-                        pixel_size=12,
-                    ),
-                    halign="end",
-                    valign="start",
-                    hexpand=False,
-                    vexpand=False,
-                    css_classes=["settings-wallpaper-remove-button"],
-                    on_click=lambda _: on_wallpaper_removed(path),
-                    visible=not iscurrent,
-                ),
+                self._selected_indicator,
+                self._remove_button,
             ],
             hexpand=False,
             vexpand=True,
@@ -532,6 +533,10 @@ class WallpaperButton(Widget.Overlay):
             halign="start",
             css_classes=["settings-wallpaper-overlay"],
         )
+
+    def set_current(self, current: bool) -> None:
+        self._selected_indicator.visible = current
+        self._remove_button.visible = not current
 
 
 class Setting(Widget.Box):
@@ -1173,7 +1178,7 @@ class SavedBluetoothConnections(Widget.Box):
 
     @staticmethod
     def _forget(device: BluetoothDevice) -> None:
-        util.shell(f"bluetoothctl remove {shlex.quote(device.address)}")
+        util.run_command(["bluetoothctl", "remove", device.address])
         _close_connection_editor()
 
     @staticmethod
@@ -2152,7 +2157,10 @@ class SettingsWindow(Widget.RegularWindow):
             vexpand=True,
             css_classes=["settings-wallpapers-box"],
         )
-        style_settings.connect("notify::wallpaper", self._render_wallpapers)
+        self._wallpaper_buttons: dict[str, WallpaperButton] = {}
+        style_settings.connect(
+            "notify::wallpaper", self._update_wallpaper_selection
+        )
         style_settings.connect("notify::addedwallpapers", self._render_wallpapers)
         self._render_wallpapers()
         self.wallpapers_scroll = Widget.Scroll(
@@ -2804,8 +2812,11 @@ class SettingsWindow(Widget.RegularWindow):
                         Setting(
                             widget=Widget.Button(
                                 label="Open documentation",
-                                on_click=lambda _: util.shell(
-                                    "xdg-open https://wiki.hypr.land/Configuring/Layouts/"
+                                on_click=lambda _: util.run_command(
+                                    [
+                                        "xdg-open",
+                                        "https://wiki.hypr.land/Configuring/Layouts/",
+                                    ]
                                 ),
                                 css_classes=["settings-secondary-button"],
                             ),
@@ -3062,7 +3073,7 @@ class SettingsWindow(Widget.RegularWindow):
                             Widget.Label(label="Reload shell"),
                         ],
                     ),
-                    on_click=lambda _: util.shell("goignis reload"),
+                    on_click=lambda _: util.run_command(["goignis", "reload"]),
                     css_classes=["settings-reload-button"],
                 ),
             ],
@@ -3293,7 +3304,7 @@ class SettingsWindow(Widget.RegularWindow):
             return
 
         if imported_wallpaper_exists:
-            util.shell("~/.config/hypr/scripts/set_curr_wallpaper.sh")
+            util.desktop_action("wallpaper")
             if accent_colour:
                 style_settings.set_accent_colour(
                     accent_colour, style_settings.wallpaper
@@ -3364,18 +3375,24 @@ class SettingsWindow(Widget.RegularWindow):
                 self.color_chooser = None
 
     def _render_wallpapers(self, *_args) -> None:
+        self._wallpaper_buttons = {
+            path: WallpaperButton(
+                path,
+                self.on_wallpaper_picked,
+                self.on_wallpaper_removed,
+                path == style_settings.wallpaper,
+            )
+            for path in style_settings.get_wallpapers()
+        }
         util.replace_box_children(
             self.wallpapers_box,
-            [
-                WallpaperButton(
-                    path,
-                    self.on_wallpaper_picked,
-                    self.on_wallpaper_removed,
-                    path == style_settings.wallpaper,
-                )
-                for path in style_settings.get_wallpapers()
-            ],
+            list(self._wallpaper_buttons.values()),
         )
+
+    def _update_wallpaper_selection(self, *_args) -> None:
+        current = style_settings.wallpaper
+        for path, button in self._wallpaper_buttons.items():
+            button.set_current(path == current)
 
     async def update_suggested_accent_colours(self, path: str):
         top_colours = await style_settings.get_cached_top_colours(path)
@@ -3457,9 +3474,10 @@ class SettingsWindow(Widget.RegularWindow):
 
     async def on_wallpaper_picked(self, file):
         await style_settings.pick_wallpaper(file)
+        if style_settings.wallpaper != os.path.realpath(os.path.expanduser(file)):
+            return
         await self.update_suggested_accent_colours(file)
         self._render_custom_accent_colours()
-        self.wallpapers_scroll.get_hadjustment().set_value(0)
 
     def on_wallpaper_removed(self, path):
         style_settings.remove_wallpaper(path)

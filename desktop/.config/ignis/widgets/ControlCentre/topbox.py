@@ -56,8 +56,9 @@ class TopBox(Widget.CenterBox):
             Widget.Button(
                 child=Widget.Icon(image="screenshooter-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda _: util.shell(
-                    "hyprshot -szm region -o ~/pictures/screenshots/",
+                on_click=lambda _: util.desktop_action(
+                    "screenshot",
+                    "area",
                     before=self.close_popup_immediately,
                 ),
             )
@@ -119,8 +120,8 @@ class TopBox(Widget.CenterBox):
             Widget.Button(
                 child=Widget.Icon(image="system-lock-screen-symbolic"),
                 css_classes=["cc-top-button"],
-                on_click=lambda _: util.shell(
-                    "loginctl lock-session",
+                on_click=lambda _: util.run_command(
+                    ["loginctl", "lock-session"],
                     before=self.close_popup_immediately,
                 ),
             ),

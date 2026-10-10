@@ -1,8 +1,9 @@
-import os
-import util
-import gc
 import asyncio
+import gc
+import os
+
 import memory_profiler
+import util
 
 from gi.repository import Gtk  # type: ignore[reportMissingModuleSource]
 
@@ -80,10 +81,16 @@ for flatpak_icon_dir in (
     if os.path.isdir(flatpak_icon_dir):
         app.add_icons(flatpak_icon_dir)
 
-util.shell("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark")
-util.shell("gsettings set org.gnome.desktop.interface font-name 'Adwaita Sans 11'")
-util.shell("gsettings set org.gnome.desktop.wm.preferences button-layout :")
-util.shell("hyprctl reload")
+util.run_command(
+    ["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "adw-gtk3-dark"]
+)
+util.run_command(
+    ["gsettings", "set", "org.gnome.desktop.interface", "font-name", "Adwaita Sans 11"]
+)
+util.run_command(
+    ["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", ":"]
+)
+util.run_command(["hyprctl", "reload"])
 
 
 monitors = list(Utils.get_monitors())  # type: ignore
@@ -120,6 +127,13 @@ util.create_task(cleanup_every(60))
 
 def cleanup():
     util.cancel_background_tasks()
-    util.sync_shell("gsettings reset org.gnome.desktop.wm.preferences button-layout")
+    util.sync_command(
+        [
+            "gsettings",
+            "reset",
+            "org.gnome.desktop.wm.preferences",
+            "button-layout",
+        ]
+    )
 
 app.connect("shutdown", lambda *_: cleanup())

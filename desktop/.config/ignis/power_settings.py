@@ -98,10 +98,7 @@ class PowerSettings(BindableSettings):
 
         def restart() -> bool:
             self._restart_source_id = None
-            util.shell(
-                "pkill -x hypridle; "
-                "setsid hypridle >/dev/null 2>&1 &"
-            )
+            util.desktop_action("restart-hypridle")
             return False
 
         self._restart_source_id = GLib.timeout_add(500, restart)

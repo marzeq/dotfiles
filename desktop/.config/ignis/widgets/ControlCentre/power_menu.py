@@ -34,8 +34,8 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.shell(
-                            "systemctl suspend",
+                        or util.run_command(
+                            ["systemctl", "suspend"],
                             before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
@@ -47,8 +47,8 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.shell(
-                            "systemctl reboot",
+                        or util.run_command(
+                            ["systemctl", "reboot"],
                             before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
@@ -60,8 +60,8 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.shell(
-                            "systemctl poweroff",
+                        or util.run_command(
+                            ["systemctl", "poweroff"],
                             before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),
@@ -73,8 +73,8 @@ class PowerMenu(ControlCentrePopup):
                         ),
                         css_classes=["cc-popup-option"],
                         on_click=lambda _: self.toggle()
-                        or util.shell(
-                            "hyprctl dispatch 'hl.dsp.exit()'",
+                        or util.run_command(
+                            ["hyprctl", "dispatch", "hl.dsp.exit()"],
                             before=lambda: util.popup_manager.close_curr_popup(),
                         ),
                     ),

@@ -5,7 +5,8 @@ import subprocess
 import asyncio
 import os
 import signal
-import platform
+import sys
+from collections.abc import Sequence
 from typing import (
     Any,
     Awaitable,
@@ -17,6 +18,7 @@ from typing import (
 )
 
 from ignis.app import IgnisApp
+from ignis.exceptions import HyprlandIPCNotFoundError
 from ignis.gobject import Binding, IgnisGObject
 from gi.repository import GObject, Gio, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.audio import AudioService
@@ -186,8 +188,44 @@ def replace_box_children(box: Widget.Box, children: list[Gtk.Widget | None]) -> 
         box.append(child)
 
 
+def _focused_monitor_connector(monitors: object) -> str | None:
+    if not isinstance(monitors, list):
+        return None
+    for monitor in monitors:
+        if not isinstance(monitor, dict) or monitor.get("focused") is not True:
+            continue
+        connector = monitor.get("name")
+        if isinstance(connector, str) and connector:
+            return connector
+    return None
+
+
 def active_monitor() -> int:
-    return hyprland.active_workspace.monitor_id
+    """Return the GDK index of Hyprland's currently focused monitor.
+
+    Hyprland monitor IDs are not GDK monitor indices and may use a different
+    order. Query focus at invocation time, then bridge the two APIs using the
+    stable connector name.
+    """
+    connector: str | None = None
+    try:
+        connector = _focused_monitor_connector(
+            json.loads(hyprland.send_command("j/monitors"))
+        )
+    except (HyprlandIPCNotFoundError, json.JSONDecodeError, OSError, RuntimeError):
+        logger.exception("Could not query Hyprland's focused monitor")
+
+    if connector is None:
+        cached_connector = hyprland.active_workspace.monitor
+        connector = cached_connector if cached_connector else None
+
+    if connector is not None:
+        monitor_index = monitor_id_for_connector(connector, fallback=-1)
+        if monitor_index >= 0:
+            return monitor_index
+
+    logger.warning("Could not map the focused Hyprland monitor to GDK; using monitor 0")
+    return 0
 
 
 def monitor_id_for_connector(connector: str, fallback: int = 0) -> int:
@@ -215,8 +253,8 @@ async def await_or_call(x: Hook) -> Any:
 
 
 @overload
-def shell(  # type: ignore
-    cmd: str,
+def run_command(  # type: ignore
+    command: Sequence[str],
     before: Hook | None = ...,
     after: Hook | None = ...,
     background: Literal[True] = ...,
@@ -224,22 +262,22 @@ def shell(  # type: ignore
 
 
 @overload
-def shell(
-    cmd: str,
+def run_command(
+    command: Sequence[str],
     before: Hook | None = ...,
     after: Hook | None = ...,
     background: Literal[False] = ...,
 ) -> Coroutine[Any, Any, str | None]: ...
 
 
-def shell(
-    cmd: str,
+def run_command(
+    command: Sequence[str],
     before: Hook | None = None,
     after: Hook | None = None,
     background: bool = True,
 ) -> Coroutine[Any, Any, str | None] | None:
     """
-    Executes a shell command.
+    Executes a command without shell parsing.
 
     Optionally executes `before` before running the command and `after` after the command completes successfully.
 
@@ -252,9 +290,7 @@ def shell(
             await await_or_call(before)
 
         process = await asyncio.create_subprocess_exec(
-            "/usr/bin/bash",
-            "-c",
-            cmd,
+            *command,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             start_new_session=True,
@@ -294,52 +330,88 @@ def shell(
     return _body()
 
 
-def sync_shell(cmd: str) -> str | None:
+@overload
+def shell(  # type: ignore
+    cmd: str,
+    before: Hook | None = ...,
+    after: Hook | None = ...,
+    background: Literal[True] = ...,
+) -> None: ...
+
+
+@overload
+def shell(
+    cmd: str,
+    before: Hook | None = ...,
+    after: Hook | None = ...,
+    background: Literal[False] = ...,
+) -> Coroutine[Any, Any, str | None]: ...
+
+
+def shell(
+    cmd: str,
+    before: Hook | None = None,
+    after: Hook | None = None,
+    background: bool = True,
+) -> Coroutine[Any, Any, str | None] | None:
+    """Execute an explicit shell command.
+
+    Use :func:`run_command` for commands that do not need shell syntax.
     """
-    Synchronously executes a shell command and returns its output if successful, or None if it fails.
+    return run_command(
+        ["/usr/bin/bash", "-c", cmd],
+        before=before,
+        after=after,
+        background=background,
+    )
+
+
+def desktop_action(
+    *arguments: str,
+    before: Hook | None = None,
+    after: Hook | None = None,
+) -> None:
+    """Run an action from the shared desktop command entry point."""
+    run_command(
+        [sys.executable, os.path.join(root_dir, "desktop_cli.py"), *arguments],
+        before=before,
+        after=after,
+    )
+
+
+def sync_command(command: Sequence[str]) -> str | None:
+    """
+    Synchronously execute a command and return its output when successful.
     """
     try:
         result = subprocess.run(
-            cmd,
-            shell=True,
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             check=True,
         )
         return result.stdout.decode().strip()
-    except subprocess.CalledProcessError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         return None
-
-
-def has_command(cmd: str) -> bool:
-    """
-    Returns True if the specified command exists in the system, False otherwise.
-    """
-    return (
-        subprocess.call(
-            f"type {cmd}",
-            shell=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        == 0
-    )
 
 
 
 async def get_top_colours(image_path) -> list[str]:
-    program_path: str
-    if platform.machine() == "x86_64":
-        program_path = os.path.join(root_dir, "scripts/accent-extract-amd64")
-    elif platform.machine() == "aarch64":
-        program_path = os.path.join(root_dir, "scripts/accent-extract-arm64")
-    else:
-        print(f"Unsupported architecture: {platform.machine()}")
+    program_path = os.path.expanduser("~/.local/bin/accent-extract")
+    if not os.access(program_path, os.X_OK):
+        logger.error("accent-extract is not installed at %s", program_path)
         return []
-    
-    # use shell and await the result
-    result = await shell(
-        f"{program_path} {image_path} --background '#36363a' --block-size 4 --tweak",
+
+    result = await run_command(
+        [
+            program_path,
+            image_path,
+            "--background",
+            "#36363a",
+            "--block-size",
+            "4",
+            "--tweak",
+        ],
         background=False,
     )
 
@@ -347,15 +419,11 @@ async def get_top_colours(image_path) -> list[str]:
         print(f"Failed to extract colours from {image_path}")
         return []
 
-    colours = []
+    colours: list[str] = []
     for line in result.splitlines():
-        print(line)
-        try:
-            colour = line.strip().split(" ")[0]
-            print(f"Extracted colour: {colour}")
+        colour = line.partition(" ")[0].strip()
+        if colour:
             colours.append(colour)
-        except ValueError:
-            continue
 
     return colours
 

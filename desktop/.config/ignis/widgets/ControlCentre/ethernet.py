@@ -47,15 +47,7 @@ class EthernetWidget(ControlCentreWidget):
         super().__init__(
             icon=network.ethernet.bind("icon_name"),
             labels=CCWLabels("Wired"),
-            on_click=lambda _: util.shell(
-                (
-                    "iface=$(nmcli -t -f DEVICE,TYPE,STATE device | awk -F':' '$2==\"ethernet\"{print $1; exit}'); "
-                    "state=$(nmcli -t -f DEVICE,STATE device | grep \"^$iface\" | cut -d':' -f2); "
-                    "[ $state = connected ] && "
-                    "nmcli device disconnect $iface || "
-                    "nmcli device connect $iface"
-                )
-            ),
+            on_click=lambda _: util.desktop_action("toggle-ethernet"),
             on_click_other=lambda _: popup_registry.close_all_but(self.popup)
             or self.popup.toggle(),
         )
