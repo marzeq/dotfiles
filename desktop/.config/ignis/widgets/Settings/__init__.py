@@ -23,8 +23,12 @@ from widgets.Launcher.currencies import CURRENCY_CODES
 from widgets.Launcher.settings import launcher_settings
 from widgets.Launcher.app_mode import app_settings
 from widgets.Tray import tray_settings
+from services.power_profiles.service import (
+    power_profiles,
+    set_power_profile,
+    transform_power_profile_name,
+)
 from power_settings import power_settings
-from services.power_profiles.service import PowerProfilesService
 from keyboard_settings import (
     KeyboardChoice,
     KeyboardLayoutConfig,
@@ -61,7 +65,6 @@ from hyprland_options import (
 network_service = NetworkService.get_default()
 bluetooth_service = BluetoothService.get_default()
 audio_service = AudioService.get_default()
-power_profiles_service = PowerProfilesService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
@@ -2890,33 +2893,14 @@ class SettingsWindow(Widget.RegularWindow):
                                     choices=[
                                         KeyboardChoice(
                                             value=profile,
-                                            label={
-                                                "performance": "Performance",
-                                                "balanced": "Balanced",
-                                                "power-saver": "Power Saver",
-                                            }.get(profile, profile.replace("-", " ").title()),
+                                            label=transform_power_profile_name(profile),
                                         )
-                                        for profile in power_profiles_service.profiles
+                                        for profile in power_profiles.profiles
                                     ],
-                                    on_change=lambda profile: power_profiles_service.set_active_profile(
-                                        profile
-                                    ),
-                                    get_current=lambda: power_profiles_service.active_profile,
-                                    settings_obj=power_profiles_service,
-                                    notify_props=["active-profile", "profiles"],
-                                    repopulate=lambda: [
-                                        KeyboardChoice(
-                                            value=profile,
-                                            label={
-                                                "performance": "Performance",
-                                                "balanced": "Balanced",
-                                                "power-saver": "Power Saver",
-                                            }.get(profile, profile.replace("-", " ").title()),
-                                        )
-                                        for profile in power_profiles_service.profiles
-                                    ],
+                                    on_change=set_power_profile,
+                                    get_current=lambda: power_profiles.active_profile,
                                 )
-                                if power_profiles_service.is_available
+                                if power_profiles.is_available
                                 else Widget.Label(label="Unavailable")
                             ),
                             label="Power mode",

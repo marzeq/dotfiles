@@ -1,7 +1,11 @@
 from typing import Callable
 from ignis.widgets import Widget
 import util
-from services.power_profiles.service import PowerProfilesService
+from services.power_profiles.service import (
+    power_profiles,
+    set_power_profile,
+    transform_power_profile_name,
+)
 from widgets.ControlCentre.popup_registry import popup_registry
 from widgets.ControlCentre.widget import (
     CCWLabels,
@@ -9,21 +13,8 @@ from widgets.ControlCentre.widget import (
     ControlCentreWidget,
 )
 
-power_profiles = PowerProfilesService.get_default()
-
-
 def transform_pp_name(p: str) -> str:
-    if p == "performance":
-        return "Performance"
-    if p == "balanced":
-        return "Balanced"
-    if p == "power-saver":
-        return "Power Saver"
-    return "Unknown"
-
-
-def set_power_profile(name: str):
-    power_profiles.set_active_profile(name)
+    return transform_power_profile_name(p)
 
 
 class PowerProfileButton(Widget.Button):

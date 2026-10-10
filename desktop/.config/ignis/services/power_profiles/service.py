@@ -90,3 +90,20 @@ class PowerProfilesService(BaseService):
         if "Profiles" in prop_dict:
             self._profiles = list(prop_dict["Profiles"].keys())
             self.notify("profiles")
+
+
+power_profiles = PowerProfilesService.get_default()
+
+
+def transform_power_profile_name(profile: str) -> str:
+    if profile == "performance":
+        return "Performance"
+    if profile == "balanced":
+        return "Balanced"
+    if profile == "power-saver":
+        return "Power Saver"
+    return "Unknown"
+
+
+def set_power_profile(profile: str) -> None:
+    power_profiles.set_active_profile(profile)
