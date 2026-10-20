@@ -7,7 +7,7 @@ import uuid
 import weakref
 from pathlib import Path
 from typing import Any, Callable, Literal, cast
-from gi.repository import Gdk, GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
+from gi.repository import Gdk, Gio, GLib, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.base_widget import BaseWidget
 from ignis.services.bluetooth import BluetoothDevice, BluetoothService
 from ignis.services.audio import AudioService, Stream
@@ -28,6 +28,13 @@ from services.power_profiles.service import (
     transform_power_profile_name,
 )
 from power_settings import power_settings
+from capture_settings import capture_settings
+from desktop_runtime.capture_config import (
+    OCR_ENGINE_MODES,
+    OCR_PAGE_SEGMENTATION_MODES,
+    available_tesseract_languages,
+    tesseract_data_directories,
+)
 from keyboard_settings import (
     KeyboardChoice,
     KeyboardLayoutConfig,
@@ -67,6 +74,10 @@ audio_service = AudioService.get_default()
 
 HyprlandLayout = Literal["master"] | Literal["dwindle"]
 hyprland_layouts: list[HyprlandLayout] = ["master", "dwindle"]
+HYPRLAND_CONFIG_PATH = Path.home() / ".local" / "share" / "ignis" / "hyprland.lua"
+LEGACY_HYPRLAND_CONFIG_PATH = (
+    Path.home() / ".local" / "share" / "ignis" / "ignis-hyprland.lua"
+)
 
 
 def _clamp_workspace_count(value: Any) -> int:
@@ -77,13 +88,17 @@ def _clamp_workspace_count(value: Any) -> int:
 
 
 def _existing_pointer_defaults() -> tuple[float, bool]:
-    try:
-        with open(
-            os.path.expanduser("~/.local/share/ignis/ignis-hyprland.lua")
-        ) as config_file:
-            existing = parse_hyprland_pointer_config(config_file.read())
-    except OSError:
-        existing = parse_hyprland_pointer_config("")
+    config = ""
+    for path in (HYPRLAND_CONFIG_PATH, LEGACY_HYPRLAND_CONFIG_PATH):
+        try:
+            candidate = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if candidate.strip():
+            config = candidate
+            break
+
+    existing = parse_hyprland_pointer_config(config)
 
     return (
         logical_speed_from_sensitivity(existing.sensitivity, existing.profile),
@@ -348,10 +363,7 @@ class HyprlandSettings(BindableSettings):
         ).replace(
             "\n", "\n        "
         )
-        with open(
-            os.path.expanduser("~/.local/share/ignis/ignis-hyprland.lua"),
-            "w",
-        ) as f:
+        with HYPRLAND_CONFIG_PATH.open("w", encoding="utf-8") as f:
             f.write(
 f"""-- Ignis generated Hyprland config, do not edit
 -- Please put manual changes in ~/.config/hypr/hyprland-custom.lua
@@ -371,6 +383,10 @@ hl.config({{
 """
             )
 
+        try:
+            LEGACY_HYPRLAND_CONFIG_PATH.unlink()
+        except FileNotFoundError:
+            pass
 
         with open(os.path.expanduser("~/.local/share/ignis/hyprlock.conf"), "w") as f:
             f.write(
@@ -636,14 +652,14 @@ class SettingsGroup(Widget.Box):
                 halign="start",
             )
         ]
-        if description:
-            desc = Widget.Label(
-                css_classes=["settings-group-description"],
-                halign="start",
-                wrap=True,
-            )
-            desc.set_markup(description)
-            heading.append(desc)
+        self._description = Widget.Label(
+            css_classes=["settings-group-description"],
+            halign="start",
+            wrap=True,
+            visible=bool(description),
+        )
+        self._description.set_markup(description)
+        heading.append(self._description)
 
         super().__init__(
             vertical=True,
@@ -658,6 +674,10 @@ class SettingsGroup(Widget.Box):
             ],
             css_classes=["settings-group"],
         )
+
+    def set_description(self, description: str) -> None:
+        self._description.set_markup(description)
+        self._description.visible = bool(description)
 
 
 class SettingsPage(Widget.Box):
@@ -1725,6 +1745,127 @@ def StringDropdown(
             settings_obj.connect(f"notify::{prop}", sync_from_settings)
 
     return cast(BaseWidget, dropdown)
+
+
+class OcrLanguagesEditor(Widget.Box):
+    def __init__(self) -> None:
+        self._syncing = False
+        self._languages = available_tesseract_languages()
+        self._buttons: dict[str, Widget.ToggleButton] = {}
+        self._rescan_source_id: int | None = None
+        self._on_languages_changed: Callable[[list[str]], None] | None = None
+        self._file_monitors: list[Gio.FileMonitor] = []
+        self._content = Widget.Box(
+            spacing=6,
+            hexpand=True,
+            halign="end",
+            css_classes=["settings-ocr-languages"],
+        )
+
+        super().__init__(
+            child=[
+                Widget.Scroll(
+                    child=self._content,
+                    hexpand=True,
+                    halign="fill",
+                    hscrollbar_policy="automatic",
+                    vscrollbar_policy="never",
+                    css_classes=["settings-ocr-languages-scroll"],
+                )
+            ],
+            hexpand=True,
+            css_classes=["settings-ocr-languages-editor"],
+        )
+        capture_settings.connect("notify::ocr-languages", self._sync)
+        self._render()
+        self._start_watching()
+
+    @property
+    def languages(self) -> list[str]:
+        return list(self._languages)
+
+    def set_on_languages_changed(
+        self, callback: Callable[[list[str]], None]
+    ) -> None:
+        self._on_languages_changed = callback
+
+    def _render(self) -> None:
+        self._buttons = {}
+        selected = set(capture_settings.selected_ocr_languages())
+        rows: list[BaseWidget]
+        if self._languages:
+            for language in self._languages:
+                self._buttons[language] = Widget.ToggleButton(
+                    label=language,
+                    active=language in selected,
+                    on_toggled=lambda _, active, value=language: self._toggle(
+                        value, active
+                    ),
+                    css_classes=["settings-ocr-language"],
+                )
+            rows = list(self._buttons.values())
+        else:
+            rows = [
+                Widget.Label(
+                    label="No language data found",
+                    css_classes=["settings-row-subtitle"],
+                )
+            ]
+        util.replace_box_children(self._content, rows)
+        self._sync()
+
+    def _start_watching(self) -> None:
+        for directory in tesseract_data_directories():
+            try:
+                monitor = Gio.File.new_for_path(str(directory)).monitor_directory(
+                    Gio.FileMonitorFlags.NONE, None
+                )
+            except GLib.Error:
+                continue
+            monitor.connect("changed", self._data_changed)
+            self._file_monitors.append(monitor)
+
+    def _data_changed(self, *_args) -> None:
+        if self._rescan_source_id is not None:
+            GLib.source_remove(self._rescan_source_id)
+        self._rescan_source_id = GLib.timeout_add(500, self._rescan)
+
+    def _rescan(self) -> bool:
+        self._rescan_source_id = None
+        languages = available_tesseract_languages()
+        if languages == self._languages:
+            return False
+
+        self._languages = languages
+        selected = capture_settings.selected_ocr_languages()
+        if languages:
+            capture_settings.update_ocr_languages(selected)
+        self._render()
+        if self._on_languages_changed is not None:
+            self._on_languages_changed(self.languages)
+        return False
+
+    def _toggle(self, language: str, active: bool) -> None:
+        if self._syncing:
+            return
+        selected = capture_settings.selected_ocr_languages()
+        if active and language not in selected:
+            selected.append(language)
+        elif not active and language in selected:
+            selected.remove(language)
+        if not selected:
+            self._sync()
+            return
+        capture_settings.update_ocr_languages(selected)
+
+    def _sync(self, *_args) -> None:
+        selected = set(capture_settings.selected_ocr_languages())
+        self._syncing = True
+        try:
+            for language, button in self._buttons.items():
+                button.active = language in selected
+        finally:
+            self._syncing = False
 
 
 class KeyboardLayoutsEditor(Widget.Box):
@@ -2829,6 +2970,101 @@ class SettingsWindow(Widget.RegularWindow):
             ],
         )
 
+        def ocr_languages_description(languages: list[str]) -> str:
+            if not languages:
+                return "Tesseract or its language data could not be found."
+            return (
+                f"Detected {len(languages)} installed Tesseract language "
+                f"package{'s' if len(languages) != 1 else ''}."
+            )
+
+        ocr_languages_editor = OcrLanguagesEditor()
+        tesseract_languages = ocr_languages_editor.languages
+        ocr_layout_setting = Setting(
+            widget=StringDropdown(
+                labels=[],
+                choices=[
+                    KeyboardChoice(str(value), label)
+                    for value, label in OCR_PAGE_SEGMENTATION_MODES.items()
+                ],
+                on_change=lambda value: capture_settings.set_ocr_page_segmentation_mode(int(value)),
+                get_current=lambda: str(capture_settings.ocr_page_segmentation_mode),
+                settings_obj=capture_settings,
+                notify_props=["ocr-page-segmentation-mode"],
+            ),
+            label="Page layout",
+            subtitle="Tell Tesseract how text is arranged inside the selected region.",
+            icon="view-list-symbolic",
+            sensitive=bool(tesseract_languages),
+        )
+        ocr_engine_setting = Setting(
+            widget=StringDropdown(
+                labels=[],
+                choices=[
+                    KeyboardChoice(str(value), label)
+                    for value, label in OCR_ENGINE_MODES.items()
+                ],
+                on_change=lambda value: capture_settings.set_ocr_engine_mode(int(value)),
+                get_current=lambda: str(capture_settings.ocr_engine_mode),
+                settings_obj=capture_settings,
+                notify_props=["ocr-engine-mode"],
+            ),
+            label="Recognition engine",
+            subtitle="Automatic is recommended; LSTM forces the modern neural engine.",
+            icon="applications-science-symbolic",
+            sensitive=bool(tesseract_languages),
+        )
+        ocr_group = SettingsGroup(
+            title="Optical character recognition",
+            description=ocr_languages_description(tesseract_languages),
+            child=[
+                Setting(
+                    widget=ocr_languages_editor,
+                    label="Recognition languages",
+                    subtitle="Select one or more installed language-data packages.",
+                    icon="accessories-dictionary-symbolic",
+                    label_hexpand=False,
+                ),
+                ocr_layout_setting,
+                ocr_engine_setting,
+            ],
+        )
+
+        def update_ocr_availability(languages: list[str]) -> None:
+            available = bool(languages)
+            ocr_group.set_description(ocr_languages_description(languages))
+            ocr_layout_setting.sensitive = available
+            ocr_engine_setting.sensitive = available
+
+        ocr_languages_editor.set_on_languages_changed(update_ocr_availability)
+        screenshots_and_ocr = SettingsPage(
+            title="Screenshots & OCR",
+            description="Choose what happens to captures and how text is recognised.",
+            child=[
+                SettingsGroup(
+                    title="Screenshots",
+                    description="Saving and clipboard copying are independent and apply to every screenshot shortcut.",
+                    child=[
+                        SwitchWithLabel(
+                            label="Save screenshots to disk",
+                            subtitle="Store captures in ~/pictures/screenshots.",
+                            icon="document-save-symbolic",
+                            active=capture_settings.screenshot_save_to_disk,
+                            on_change=lambda _, active: capture_settings.set_screenshot_save_to_disk(active),
+                        ),
+                        SwitchWithLabel(
+                            label="Copy screenshots to clipboard",
+                            subtitle="Make the captured image immediately available for pasting.",
+                            icon="edit-copy-symbolic",
+                            active=capture_settings.screenshot_copy_to_clipboard,
+                            on_change=lambda _, active: capture_settings.set_screenshot_copy_to_clipboard(active),
+                        ),
+                    ],
+                ),
+                ocr_group,
+            ],
+        )
+
         def timeout_control(
             attribute: str,
             setter: Callable[[int], None],
@@ -2968,7 +3204,7 @@ class SettingsWindow(Widget.RegularWindow):
             child=[
                 SettingsGroup(
                     title="Settings profile",
-                    description="The JSON profile contains shell, appearance, shortcut, workspace, application and power preferences. Wallpaper image files and display hardware configuration stay local.",
+                    description="The JSON profile contains shell, appearance, shortcut, workspace, application, screenshot, OCR and power preferences. Wallpaper image files and display hardware configuration stay local.",
                     child=[
                         Setting(
                             widget=Widget.Button(
@@ -3013,6 +3249,7 @@ class SettingsWindow(Widget.RegularWindow):
             ),
             ("Shortcuts", "preferences-desktop-keyboard-shortcuts-symbolic", shortcuts),
             ("Windows & Workspaces", "focus-windows-symbolic", windows),
+            ("Screenshots & OCR", "camera-photo-symbolic", screenshots_and_ocr),
             ("Power Management", "battery-symbolic", power),
             ("System Information", "computer-symbolic", system_information),
             ("Backup & Restore", "document-save-symbolic", backup),
@@ -3148,9 +3385,12 @@ class SettingsWindow(Widget.RegularWindow):
             json.loads(raw_hidden_apps) if raw_hidden_apps else []
         )
 
+        capture = capture_settings.export_data()
+        capture["ocr_languages"] = capture_settings.selected_ocr_languages()
+
         return {
             "format": "marzeq-desktop-settings",
-            "version": 1,
+            "version": 2,
             "settings": {
                 "hyprland": hyprland,
                 "style": style,
@@ -3159,6 +3399,7 @@ class SettingsWindow(Widget.RegularWindow):
                 "tray": tray_settings.export_data(),
                 "applications": apps,
                 "power": power_settings.export_data(),
+                "capture": capture,
             },
         }
 
@@ -3191,12 +3432,13 @@ class SettingsWindow(Widget.RegularWindow):
             raise ValueError("The profile root must be a JSON object")
         if profile.get("format") != "marzeq-desktop-settings":
             raise ValueError("This is not a marzeq desktop settings profile")
-        if profile.get("version") != 1:
+        version = profile.get("version")
+        if version not in (1, 2):
             raise ValueError("This settings profile version is not supported")
         sections = profile.get("settings")
         if not isinstance(sections, dict):
             raise ValueError("The profile has no settings object")
-        required = {
+        original_sections = {
             "hyprland",
             "style",
             "clock",
@@ -3205,10 +3447,13 @@ class SettingsWindow(Widget.RegularWindow):
             "applications",
             "power",
         }
+        required = original_sections | ({"capture"} if version == 2 else set())
         if set(sections) != required:
             raise ValueError("The profile has missing or unknown settings sections")
         if not all(isinstance(section, dict) for section in sections.values()):
             raise ValueError("Every settings section must be a JSON object")
+        if version == 1:
+            sections = {**sections, "capture": capture_settings.export_data()}
         return cast(dict[str, dict[str, Any]], sections)
 
     async def _import_settings(self) -> None:
@@ -3229,6 +3474,7 @@ class SettingsWindow(Widget.RegularWindow):
             "tray": tray_settings,
             "applications": app_settings,
             "power": power_settings,
+            "capture": capture_settings,
         }
         snapshots = {
             name: settings.export_data()

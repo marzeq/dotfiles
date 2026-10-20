@@ -51,7 +51,7 @@ DESKTOP_DEPS=(
   "pipewire" "pipewire-pulse" "pipewire-alsa"
   "gst-plugin-pipewire" "alsa-utils"
   "swww" "hyprpicker" "hypridle" "hyprlock"
-  "hyprshot" "grim" "slurp"
+  "grim" "slurp"
   "imagemagick" "tesseract" "tesseract-data-eng"
   "go" "sdl3" "sdl3_image" "pkgconf"
   ".PARU"

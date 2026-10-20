@@ -39,6 +39,11 @@ if file_exists(optsFp) then
 	opts = dofile(optsFp) or {}
 end
 
+local ignisHyprland = ignisData .. "/hyprland.lua"
+if file_exists(ignisHyprland) then
+	dofile(ignisHyprland)
+end
+
 -- ┌──────────┐
 -- │ PROGRAMS │
 -- └──────────┘
@@ -154,7 +159,6 @@ hl.config {
 	},
 
 	input = {
-		kb_layout = "",
 		kb_options = "fkeys:basic_13-24",
 
 		follow_mouse = 1,
@@ -368,13 +372,42 @@ local function monitor_is_vertical(monitor)
 	return height > width
 end
 
+local configured_workspace_ids = {}
+
 local function add_workspace_rule(logical_id, monitor)
+	local layout = opts.layout_type or "master"
+	local workspace_id = logical_workspace_id(logical_id, monitor)
 	local rule = {
-		workspace = tostring(logical_workspace_id(logical_id, monitor)),
+		workspace = tostring(workspace_id),
 		monitor = monitor.name,
 		persistent = true,
+		layout = layout,
 	}
-	if opts.layout_type == "master" and monitor_is_vertical(monitor) then
+	if layout == "master" and monitor_is_vertical(monitor) then
+		rule.layout_opts = {
+			orientation = "top",
+		}
+	end
+	hl.workspace_rule(rule)
+	configured_workspace_ids[workspace_id] = true
+end
+
+local function add_existing_workspace_layout_rule(workspace)
+	local monitor = workspace.monitor
+	if configured_workspace_ids[workspace.id]
+		or workspace.special
+		or not monitor
+		or not monitor_is_vertical(monitor)
+	then
+		return
+	end
+
+	local layout = opts.layout_type or "master"
+	local rule = {
+		workspace = tostring(workspace.id),
+		layout = layout,
+	}
+	if layout == "master" then
 		rule.layout_opts = {
 			orientation = "top",
 		}
@@ -400,6 +433,10 @@ if workspace_primary then
 			end
 		end
 	end
+end
+
+for _, workspace in ipairs(hl.get_workspaces()) do
+	add_existing_workspace_layout_rule(workspace)
 end
 
 for i = 1, workspace_count do
@@ -536,14 +573,15 @@ hl.layer_rule {
 	no_anim = true,
 }
 
-package.path = package.path .. ";" .. home .. "/.local/share/ignis/?.lua"
-local ignisConfig = os.getenv("HOME") .. "/.local/share/ignis/ignis-hyprland.lua"
-if file_exists(ignisConfig) then
-	require("ignis-hyprland")
-end
 local hyprlandCustom = config .. "/hyprland-custom.lua"
 if file_exists(hyprlandCustom) then
-	require("hyprland-custom")
+  local ok, result = pcall(require, "./hyprland-custom.lua")
+
+  if ok then
+    if type(result) == "function" then
+      result(opts)
+    end
+  end
 end
 
 hl.on("hyprland.start", function()

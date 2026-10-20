@@ -1,15 +1,17 @@
 from __future__ import annotations
 import json
+import logging
 import os
 from pathlib import Path
 from ignis.services.applications import ApplicationsService, Application
 from ignis.widgets import Widget
-from gi.repository import Gio  # pyright: ignore[reportMissingModuleSource]
+from gi.repository import Gio, GLib  # pyright: ignore[reportMissingModuleSource]
 from util import JsonSettings
 from .base_mode import LauncherMode, LauncherResult, fuzzy_search_results
 import util
 
 applications = ApplicationsService.get_default()
+logger = logging.getLogger(__name__)
 
 
 def _flatpak_export_dirs() -> tuple[Path, ...]:
@@ -180,7 +182,15 @@ class LauncherAppResult(LauncherResult):
 
     def launch_app(self):
         util.popup_manager.close_curr_popup()
-        self.app.launch()
+        try:
+            # Ignis' Application.launch() replaces PATH with os.defpath, which
+            # excludes common desktop application locations such as
+            # /usr/local/bin. Let Gio launch the desktop entry directly so its
+            # Exec field, field codes, environment and startup notification are
+            # handled according to the desktop-entry specification.
+            self.app.app.launch([], None)
+        except GLib.Error:
+            logger.exception("Could not launch desktop application %s", self.app.id)
 
     def hide_app(self) -> None:
         app_settings.hide_app(self.app.name)

@@ -298,6 +298,33 @@
   }
 }
 
+.settings-ocr-languages-editor {
+  min-width: 20rem;
+}
+
+.settings-ocr-languages-scroll {
+  background: transparent;
+}
+
+.settings-ocr-languages {
+  padding: 0.2rem;
+}
+
+.settings-ocr-language {
+  @include custom-button;
+
+  min-height: 2.15rem;
+  padding: 0 0.7rem;
+  border-radius: 0.5rem;
+  background-color: $button-bg;
+  font-size: 0.8rem;
+
+  &:checked {
+    background-color: rgba($accent, 0.25);
+    color: $fg;
+  }
+}
+
 .settings-custom-shortcut-row {
   padding: 0.9rem 1rem;
 }
