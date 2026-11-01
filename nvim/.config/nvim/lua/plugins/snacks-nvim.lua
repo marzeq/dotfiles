@@ -29,9 +29,9 @@ return {
       },
     },
     image = {
-      math = {
-        enabled = false,
-      },
+      -- math = {
+      --   enabled = false,
+      -- },
     },
     notifier = {},
     indent = {

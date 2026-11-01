@@ -2855,7 +2855,7 @@ class SettingsWindow(Widget.RegularWindow):
         )
 
         shortcuts = SettingsPage(
-            title="Shortcuts",
+            title="Keyboard Shortcuts",
             description="Customise desktop keyboard shortcuts.",
             child=shortcut_groups,
         )
@@ -2972,11 +2972,8 @@ class SettingsWindow(Widget.RegularWindow):
 
         def ocr_languages_description(languages: list[str]) -> str:
             if not languages:
-                return "Tesseract or its language data could not be found."
-            return (
-                f"Detected {len(languages)} installed Tesseract language "
-                f"package{'s' if len(languages) != 1 else ''}."
-            )
+                return "Tesseract or its language data could not be found. OCR is unavailable."
+            return "Configure the languages and engine used for optical character recognition (OCR)."
 
         ocr_languages_editor = OcrLanguagesEditor()
         tesseract_languages = ocr_languages_editor.languages
@@ -3043,7 +3040,7 @@ class SettingsWindow(Widget.RegularWindow):
             child=[
                 SettingsGroup(
                     title="Screenshots",
-                    description="Saving and clipboard copying are independent and apply to every screenshot shortcut.",
+                    description="Configure the behaviour of the screenshot tool and the clipboard.",
                     child=[
                         SwitchWithLabel(
                             label="Save screenshots to disk",
@@ -3247,7 +3244,7 @@ class SettingsWindow(Widget.RegularWindow):
                 "application-x-executable-symbolic",
                 default_applications,
             ),
-            ("Shortcuts", "preferences-desktop-keyboard-shortcuts-symbolic", shortcuts),
+            ("Keyboard Shortcuts", "preferences-desktop-keyboard-shortcuts-symbolic", shortcuts),
             ("Windows & Workspaces", "focus-windows-symbolic", windows),
             ("Screenshots & OCR", "camera-photo-symbolic", screenshots_and_ocr),
             ("Power Management", "battery-symbolic", power),
