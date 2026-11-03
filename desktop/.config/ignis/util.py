@@ -22,6 +22,7 @@ from ignis.exceptions import HyprlandIPCNotFoundError
 from ignis.gobject import Binding, IgnisGObject
 from gi.repository import GObject, Gio, Gtk  # pyright: ignore[reportMissingModuleSource]
 from ignis.services.audio import AudioService
+from ignis.services.hyprland.monitor import HyprlandMonitor
 from ignis.services.hyprland.service import HyprlandService
 from ignis.utils import Utils
 from ignis.widgets import Widget
@@ -45,6 +46,22 @@ app = get_app()
 if app is None:
     raise RuntimeError("IgnisApp is not initialized yet.")
 
+# Ignis 0.57 assumes every specialWorkspace has an id, but Hyprland returns
+# {"address": "", "type": "", "name": ""} when no special workspace is open.
+# The service uses id 0 for the same inactive state in activespecialv2 events.
+_monitor_sync = HyprlandMonitor.sync
+
+
+def _sync_monitor_with_empty_special_workspace(
+    self: HyprlandMonitor, data: dict[str, Any]
+) -> None:
+    special = data.get("specialWorkspace")
+    if isinstance(special, dict) and "id" not in special and not special.get("name"):
+        data["specialWorkspace"] = {**special, "id": 0}
+    _monitor_sync(self, data)
+
+
+HyprlandMonitor.sync = _sync_monitor_with_empty_special_workspace
 hyprland = HyprlandService.get_default()
 
 root_dir = Utils.get_current_dir()  # type: ignore
